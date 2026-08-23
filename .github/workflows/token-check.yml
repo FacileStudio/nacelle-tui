@@ -19,6 +19,12 @@ jobs:
           TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          echo "--- diagnostics ---"
+          curl -sS -D - -o /dev/null -H "Authorization: Bearer $TOKEN" \
+            https://api.github.com/user | grep -iE "^HTTP|x-oauth-scopes|github-authentication-token-expiration" || true
+          echo "GET tap contents: $(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/FacileStudio/homebrew-tap/contents/Formula)"
+          echo "GET user: $(curl -sS -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" https://api.github.com/user)"
+          echo "--- write probe ---"
           code=$(curl -sS -o /tmp/put.json -w "%{http_code}" -X PUT \
             -H "Authorization: Bearer $TOKEN" \
             -H "Accept: application/vnd.github+json" \
