@@ -1,0 +1,38 @@
+name: token-check
+
+# One-off probe for HOMEBREW_TAP_GITHUB_TOKEN: proves the stored value can
+# write to the tap by creating and deleting a scratch file through the
+# contents API — exactly what goreleaser's brews step does. Remove after use.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: write-probe against FacileStudio/homebrew-tap
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/put.json -w "%{http_code}" -X PUT \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/FacileStudio/homebrew-tap/contents/.token-check \
+            -d '{"message":"token check","content":"b2sK"}')
+          echo "PUT answered $code"
+          if [ "$code" != "201" ] && [ "$code" != "200" ]; then
+            cat /tmp/put.json; exit 1
+          fi
+          sha=$(python3 -c "import json;print(json.load(open('/tmp/put.json'))['content']['sha'])")
+          code=$(curl -sS -o /dev/null -w "%{http_code}" -X DELETE \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/FacileStudio/homebrew-tap/contents/.token-check \
+            -d "{\"message\":\"token check cleanup\",\"sha\":\"$sha\"}")
+          echo "DELETE answered $code"
+          [ "$code" = "200" ]
