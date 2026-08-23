@@ -1,0 +1,20 @@
+# nacelle-tui: the terminal harness for the nacelle agent SDK.
+ignore: [.git, node_modules, vendor, dist, build, target, testdata, .output, coverage]
+extensions: [.go]
+
+disabled:
+  - gen.line.long # gofmt owns line width
+
+# One package, so there is no layering to state. The one rule worth writing
+# down is inherited from the SDK's own gate and still applies here: this
+# program picks a backend by name and never sees a provider's wire types.
+architecture:
+  fileNamePattern: '^[a-z0-9_]+\.go$'
+  maxDepth: 3
+  forbiddenImports:
+    .: [github.com/anthropics/anthropic-sdk-go, github.com/openai/openai-go/v3]
+
+# info, not error, for the same measured reason as the SDK's gate: every style
+# rule filet has is info severity, so a gate failing on error alone can only
+# fire on a Go file that does not parse or on a forbidden import.
+failOn: info

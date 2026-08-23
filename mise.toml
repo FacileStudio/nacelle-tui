@@ -1,0 +1,23 @@
+[settings]
+lockfile = true
+
+# Bubble Tea v2 declares the 1.26.4 floor; this repository is nothing but that
+# floor, so the pin is the floor rather than a choice above it.
+[tools]
+lefthook = "latest"
+go = "1.26.4"
+
+[hooks]
+postinstall = "lefthook install"
+
+[tasks.check]
+description = "Run the full quality gate: gofmt, vet, test, lint"
+run = "sh ./scripts/check.sh"
+
+[tasks.test]
+description = "Run the tests only"
+run = "go test ./..."
+
+[tasks.format]
+description = "Format the Go sources in place"
+run = "sh ./scripts/check.sh --format"

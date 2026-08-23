@@ -1,0 +1,26 @@
+name: filet
+
+# The style and architecture gate, kept in its own workflow so a fork can drop
+# it into an existing ci.yml as a single job, or delete it as a single file.
+# The rules it enforces live in filet.yml at the repository root, not here; the
+# only thing this file decides is which severity fails the build.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  filet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: FacileStudio/filet@v0.3.0
+        with:
+          version: v0.3.0
+          fail-on: info
+          antenne-url: ${{ secrets.ANTENNE_FILET_SECRET != '' && 'https://antenne.facile.studio/webhook/filet' || '' }}
+          antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}
