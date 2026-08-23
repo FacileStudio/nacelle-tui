@@ -177,7 +177,7 @@ func fromFlags() Config {
 	f := declareFlags(defaults())
 	flag.Parse()
 	if *showVersion {
-		fmt.Println(version)
+		fmt.Println("nacelle", version)
 		os.Exit(0)
 	}
 	typed := typedSetters(f)

@@ -1,5 +1,9 @@
 version: 2
 
+# Pinned explicitly per CLI-STANDARD §5.2: ProjectName is inferred from the
+# repo name when absent, and the archive name_template interpolates it.
+project_name: nacelle-tui
+
 builds:
   - main: .
     binary: nacelle
