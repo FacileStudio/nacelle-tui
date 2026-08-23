@@ -81,6 +81,8 @@ environment variables, then flags. The useful ones:
 reasoning effort and budget, web search/fetch, project-context and skill
 discovery, hooks trust.
 
+Full settings reference: [docs/configuration.md](docs/configuration.md).
+
 ## Configuration
 
 Settings live in `~/.nacelle.yml`, created with defaults the first time a
