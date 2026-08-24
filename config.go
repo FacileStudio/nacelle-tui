@@ -23,12 +23,12 @@ const ConfigFile = ".nacelle.yml"
 // it is a file that can never be committed to a dotfiles repo, which is the
 // only reason to want one of these on two machines.
 type Config struct {
-	Backend       string `yaml:"backend"`
-	Model         string `yaml:"model"`
-	Root          string `yaml:"root"`
-	System        string `yaml:"system"`
+	Backend string `yaml:"backend"`
+	Model   string `yaml:"model"`
+	Root    string `yaml:"root"`
+	System  string `yaml:"system"`
 
-	MaxIterations *int   `yaml:"max_iterations"`
+	MaxIterations *int `yaml:"max_iterations"`
 
 	// Toggles is embedded and inlined so Bash, ApproveTools and Diffs keep
 	// the keys they always had at the file's top level, and so this struct's

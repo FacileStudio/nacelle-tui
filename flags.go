@@ -32,11 +32,15 @@ type declared struct {
 	backend, model, root, system *string
 	reasoningFlags
 	webFlags
-	bash, subagents, approveTools *bool
-	diffs                         *bool
-	iterations                    *int
+	togglesFlags
+	iterations *int
 	sourceFlags
 	discoveryFlags
+}
+
+// togglesFlags is declared's half of Toggles, one flag pointer per switch.
+type togglesFlags struct {
+	bash, subagents, approveTools, diffs *bool
 }
 
 // reasoningFlags is declared's half of Reasoning, one flag pointer per field
@@ -76,12 +80,12 @@ func declareFlags(fallback Config) declared {
 		system:         flag.String("system", fallback.System, "system prompt"),
 		reasoningFlags: declareReasoning(fallback),
 		webFlags:       declareWeb(fallback),
-		bash:           flag.Bool("bash", *fallback.Bash, "let the model run commands"),
-		subagents:      flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
-		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools,
-			"ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
-		diffs: flag.Bool("diffs", *fallback.Diffs,
-			"show a git-style diff when the model edits a file; on by default"),
+		togglesFlags: togglesFlags{
+			bash:         flag.Bool("bash", *fallback.Bash, "let the model run commands"),
+			subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
+			approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
+			diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
+		},
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
 		discoveryFlags: discoveryFlags{
 			mycelium: flag.Bool("mycelium", *fallback.Mycelium,

@@ -197,10 +197,8 @@ func augmentSystem(config *Config) loaded {
 //
 // The three reasoning settings fold into one nacelle.Thinking here, and the
 // one rename in that fold is worth knowing about: this client's -thinking
-// becomes Show, which decides what the transcript displays and nothing else.
-// The model reasons and is billed for it either way, and the reasoning now
-// travels back over the wire either way, so turning -thinking off no longer
-// costs the model its own last thought on the next tool round.
+// becomes Show, which decides what the transcript displays and nothing else:
+// the model reasons, is billed, and replays its reasoning either way.
 func build(config Config, local []nacelle.Tool, approve nacelle.Approve, hooks map[nacelle.HookPoint][]nacelle.Hook) (*nacelle.Agent, nacelle.Backend, error) {
 	backend, err := chosen(config)
 	if err != nil {
@@ -208,17 +206,9 @@ func build(config Config, local []nacelle.Tool, approve nacelle.Approve, hooks m
 	}
 
 	retrying := nacelle.Retry(backend, nacelle.RetryOptions{})
-	if *config.Subagents {
-		sub, err := nacelle.NewSubAgentTool(nacelle.Config{
-			Backend:       retrying,
-			System:        config.System,
-			Tools:         local,
-			MaxIterations: *config.MaxIterations,
-		}, nacelle.SubAgentOptions{Usage: func(u nacelle.Usage) { delegations <- u }})
-		if err != nil {
-			return nil, nil, err
-		}
-		local = append(local, sub)
+	local, err = withSubagents(config, retrying, local)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	agent, err := nacelle.New(nacelle.Config{

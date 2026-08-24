@@ -37,3 +37,24 @@ func (m *model) recordDelegation(spent spentDelegation) tea.Cmd {
 	m.run.usage = m.run.usage.Add(spent.usage)
 	return watchDelegations()
 }
+
+// withSubagents mounts the delegation tool when the settings ask for one. It
+// exists so build stays a readable sequence of wiring rather than growing a
+// branch per optional tool: the delegate shares the parent's wrapped backend,
+// system prompt, tools and iteration ceiling, and reports its spend to the
+// session the same way the parent's own turns do.
+func withSubagents(config Config, backend nacelle.Backend, local []nacelle.Tool) ([]nacelle.Tool, error) {
+	if !*config.Subagents {
+		return local, nil
+	}
+	sub, err := nacelle.NewSubAgentTool(nacelle.Config{
+		Backend:       backend,
+		System:        config.System,
+		Tools:         local,
+		MaxIterations: *config.MaxIterations,
+	}, nacelle.SubAgentOptions{Usage: func(u nacelle.Usage) { delegations <- u }})
+	if err != nil {
+		return nil, err
+	}
+	return append(local, sub), nil
+}
