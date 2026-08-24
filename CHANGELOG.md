@@ -6,6 +6,46 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-24
+
+### Added
+
+- `ctrl+t` expands a turn's reasoning, and keeps showing it in full until pressed again. It
+  costs the prompt its `transpose-character-backward` binding.
+
+### Changed
+
+- A tool call reads as `read_file(view.go) · 12ms` instead of the tool name followed by its
+  raw JSON input. The argument is picked by key (`path`, `file_path`, `file`, `command`,
+  `pattern`, `query`, `url`, `name`), falling back to the sole key of a one-argument call.
+- A tool that succeeds is one line carrying its duration, not a call line plus a
+  `done in 12ms` line under it. Failures keep both lines. The call line is held until the
+  result arrives, which the status line already covers by naming the running tool; a run that
+  ends with calls in flight still prints them, without a duration.
+- Reasoning collapses to `· thought for 4.2s`, with the `ctrl+t` hint shown once per session.
+
+### Fixed
+
+- The thinking duration measured the whole turn. A turn is committed at its end, which is
+  after the answer has streamed and after any tool the model called has run, so 0.6s of
+  reasoning followed by a 0.6s answer printed `thought for 1.2s`. The clock now stops at the
+  first answer delta or tool call.
+- `/clear` left the retained reasoning behind, so `ctrl+t` reprinted the thinking from the
+  session that was just cleared.
+- A run that ended mid-tool said the held call line above the sentence that announced it.
+- The build binary `nacelle-tui` was tracked rather than ignored; plain `go build` writes it
+  and `.gitignore` only listed the old `nacelle` name. Untracked here, though the objects
+  already in history stay there.
+
+### Security
+
+- Tool-call input carrying a repeated key is refused rather than summarised.
+  `encoding/json` silently keeps the last value, so `{"command":"ls","command":"rm -rf /"}`
+  could be shown as `run_command(ls)` over a call that ran something else. With
+  `-approve-tools` on, such a call is denied before any prompt is drawn and before the
+  session allow-list is consulted, since allow-for-session is permission for a tool granted
+  against a legible call, not a standing waiver on whatever input arrives afterwards.
+
 ## [0.1.0] — 2026-08-23
 
 ### Added
@@ -19,5 +59,6 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.1.0

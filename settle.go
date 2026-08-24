@@ -1,0 +1,91 @@
+package main
+
+import (
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle"
+)
+
+// This file is how a run ends: the state left behind is tidied, what streamed
+// is committed, and whatever was typed while it ran is delivered. Starting one
+// and stopping one live in run.go — the split is a filet file-length cap
+// rather than a new idea, and this was the seam already there.
+
+// settle ends a run: whatever streamed is committed, what it cost joins the
+// session total, and the prompt opens again. Usage is folded into spent
+// here, not left standing, so the next question starts from a clean counter
+// and the status line keeps showing a total that only grows.
+//
+// pending and running are cleared here too, not only on their own paths: a
+// stream that closes without yielding anything never reaches either one, and
+// nothing should be left asking a question, or named as still running, about
+// a dead run. Clearing running says the lines it was holding for calls no
+// result ever answered, so a run that ends mid-tool still reports the tool.
+//
+// stranded runs after closeTurn because closeTurn flushes the text the model
+// streamed before asking for the tool: saying the held line first put the tool
+// above the sentence announcing it. consume gets that order right by recording
+// before it absorbs, and this is the path that never reaches consume.
+//
+// Whatever was typed while this run was going is delivered last, once the
+// state above is clean — send is what the dispatch reaches, and it would
+// otherwise be handed a run that has not finished tidying up after itself.
+// One at a time, because dispatching the next queued line starts a run that
+// settles again and takes the one after it.
+func (m *model) settle() tea.Cmd {
+	m.run.cancel()
+	m.run.busy = false
+	m.run.pending = nil
+
+	m.closeResults()
+	m.dropUnanswered()
+	m.closeTurn(m.run.stop)
+	m.stranded()
+	m.spent = m.spent.Add(m.run.usage)
+	m.run.usage = nacelle.Usage{}
+	m.compact()
+
+	return m.deliver()
+}
+
+// deliver sends what was typed while the last run was going, and keeps going
+// until something is actually running again.
+//
+// The loop is the whole point. dispatch has two outcomes and only one of them
+// leads back here: a question starts a run, which settles and takes the next
+// line, but a command answers on the spot and starts nothing. Popping a single
+// line per settle therefore stranded everything behind the first queued
+// /help — still drawn as queued, still holding its row, never sent and with
+// nothing left that would ever send it, which is precisely the disappearing
+// input this queue exists to prevent.
+//
+// Every command's own Cmd is collected rather than dropped, so a queued /quit
+// still quits, and the loop stops on run.busy rather than on a non-nil Cmd —
+// a command that returns work to do is not a command that started a run, and
+// reading it as one would strand the queue all over again.
+//
+// Sequence, not Batch, for the reason prints() and route() both give: a batch
+// makes no promise about the order its commands run in, and /clear returns one
+// that prints. Two queued /clears under a batch can interleave their blank
+// runs with each other's transcript, which is a scrambled screen rather than a
+// cleared one. Batch was safe only while every command returned something
+// order-independent, and that stopped being true without the type changing.
+//
+// What makes sequencing safe here is the break above: send's own Cmd blocks on
+// the results channel, so a run-starting line must be the last thing in cmds
+// or everything behind it would wait for the run's first event. Breaking on
+// run.busy is what guarantees that, and it is now load-bearing twice.
+func (m *model) deliver() tea.Cmd {
+	var cmds []tea.Cmd
+	for len(m.run.queued) > 0 {
+		next := m.run.queued[0]
+		m.run.queued = m.run.queued[1:]
+		m.layout(m.windowHeight)
+
+		cmds = append(cmds, m.dispatch(next))
+		if m.run.busy {
+			break
+		}
+	}
+	return tea.Sequence(cmds...)
+}

@@ -60,9 +60,12 @@ func TestAStreamErrorIsCommittedAfterTheAnswerItInterrupted(t *testing.T) {
 // Reasoning written into the answer's buffer comes out concatenated: the last
 // thought against the first word with no separator, and the whole run-on
 // committed as the assistant's message, so every later turn re-sends a chain of
-// thought the providers bill for and do not want replayed.
+// thought the providers bill for and do not want replayed. Expanded, because
+// the separation is the property under test and a collapsed line has no
+// reasoning on screen to run into the answer.
 func TestReasoningIsShownApartAndKeptOutOfTheConversation(t *testing.T) {
 	m := sized()
+	m.expanded = true
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "let me think"})
 	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "the answer"})
 	m.settle()

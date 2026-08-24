@@ -122,7 +122,16 @@ func (m *model) paint(who speaker, text string) string {
 // Both are drawn plainly, not as markdown. Half a fenced code block is not a
 // document, and a parser run over the answer again on every arriving
 // character is a cost this pays once, at the end, instead.
+//
+// It stamps the moment reasoning started on its way past. Drawing is not where
+// a clock belongs, but this is the only thing that runs after every absorbed
+// delta and lives in a file this may write to — absorb itself is in view.go.
+// The frame is drawn after every message, so the stamp lands one frame after
+// the first thinking delta, which is under a millisecond on a figure printed
+// to a tenth of a second. See stamp.
 func (m *model) streaming() []string {
+	m.stamp()
+
 	var live []string
 	if reasoning := m.run.reasoning.String(); reasoning != "" {
 		live = append(live, m.theme.thinking.Width(max(m.width, 1)).Render(reasoning))

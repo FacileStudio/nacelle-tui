@@ -87,14 +87,15 @@ func TestTheWholeAnswerIsPrintedEvenThoughOnlyItsTailWasShown(t *testing.T) {
 	}
 }
 
-// A tool's call line announced a tool that had already finished. absorb says
-// the line, consume returns the wait for the next event, and the next event
-// after a call is that call's own result — so the line naming a six-second
-// command reached the screen at the same moment the command did. Measured
-// against OpenRouter: said at 1467ms, drawn at 7451ms.
+// A tool's line is held until its result so the duration can fold into it, and
+// the status line names the tool while it is in flight — but the line itself
+// still has to reach the screen the moment it is said, ahead of the wait for
+// whatever comes next. Update flushing the queue before the blocking command
+// is what guarantees that, and it is the half of this that is still load
+// bearing.
 // The closed channel is not scenery: reading what consume printed also runs
 // the wait it re-armed, and a nil one never sends.
-func TestAToolIsAnnouncedWhenItIsCalledNotWhenItReturns(t *testing.T) {
+func TestAToolLineIsPrintedAheadOfTheWaitForTheNextEvent(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 
@@ -102,13 +103,17 @@ func TestAToolIsAnnouncedWhenItIsCalledNotWhenItReturns(t *testing.T) {
 	close(ended)
 	m.run.results = ended
 
-	_, cmd := m.Update(result{event: nacelle.Event{
+	m.Update(result{event: nacelle.Event{
 		Kind: nacelle.KindToolCall,
+		Tool: &nacelle.ToolEvent{ID: "1", Name: "run_command"},
+	}})
+	_, cmd := m.Update(result{event: nacelle.Event{
+		Kind: nacelle.KindToolResult,
 		Tool: &nacelle.ToolEvent{ID: "1", Name: "run_command"},
 	}})
 
 	if printed := printedBy(cmd); !strings.Contains(printed, "run_command") {
-		t.Errorf("printed = %q, want the call announced before the wait for its result", printed)
+		t.Errorf("printed = %q, want the line said before the wait for the next event", printed)
 	}
 }
 

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
@@ -64,11 +65,31 @@ func newApprovals() *approvals {
 // who walks away mid-question would hang the whole client with no way out
 // but kill -9.
 //
+// Input whose keys repeat is refused here without ever being shown, before
+// the session allow-list is even consulted. The status line renders the input
+// bytes and the tool runs the decoded value, and a duplicate key is exactly
+// the case where those two disagree — {"command":"ls","command":"rm -rf /"}
+// reads as ls and executes rm -rf /. The alternative was to prompt and say
+// the input is ambiguous, but a prompt still has a y key on it, and offering
+// someone a yes for a call nobody can render is not a safer prompt, it is the
+// same lie with a warning label. Refusing costs the model one tool call and
+// tells it so — nacelle reports a declined call as Refused with an error the
+// model reads, which is machinery this client already has — where approving
+// the wrong half of an ambiguous call costs whatever the second value did.
+//
+// The check runs ahead of isAllowed because allow-for-this-session was
+// granted against a legible call. It is permission for a tool, not a standing
+// waiver on inputs nobody has been able to read since.
+//
 // isAllowed is checked twice, once before the asking lock and once after:
 // the second check is for a call that arrived while waiting for its turn to
 // ask, and whose tool was allowed for the session by whichever call was
 // asked first.
 func (a *approvals) ask(ctx context.Context, name string, input json.RawMessage) bool {
+	if _, err := strictObject(input); errors.Is(err, errDuplicateKey) {
+		return false
+	}
+
 	if a.isAllowed(name) {
 		return true
 	}

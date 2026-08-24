@@ -64,8 +64,10 @@ func TestAFinishedAnswerJoinsTheConversation(t *testing.T) {
 	}
 }
 
-// Watching a tool run is most of why a terminal is the first consumer.
-func TestToolCallsAndResultsBothReachTheTranscript(t *testing.T) {
+// Watching a tool run is most of why a terminal is the first consumer — but a
+// tool that worked has one thing to report, and reporting it twice doubled the
+// height of every transcript to say nothing had gone wrong.
+func TestASuccessfulToolIsOneLineCarryingItsDuration(t *testing.T) {
 	m := sized()
 	m.absorb(nacelle.Event{
 		Kind: nacelle.KindToolCall,
@@ -77,14 +79,14 @@ func TestToolCallsAndResultsBothReachTheTranscript(t *testing.T) {
 	})
 
 	lines := spoken(m)
-	if len(lines) != 2 {
-		t.Fatalf("transcript = %v, want the call and the result", lines)
+	if len(lines) != 1 {
+		t.Fatalf("transcript = %v, want the call and its duration on one line", lines)
 	}
 	if !strings.Contains(lines[0], "read_file") {
 		t.Errorf("call line = %q, want the tool named", lines[0])
 	}
-	if !strings.Contains(lines[1], "3ms") {
-		t.Errorf("result line = %q, want how long it took", lines[1])
+	if !strings.Contains(lines[0], "3ms") {
+		t.Errorf("call line = %q, want how long it took", lines[0])
 	}
 }
 

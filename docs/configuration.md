@@ -301,7 +301,7 @@ question:
 | Command | Does |
 |---|---|
 | `/clear` | Reset the transcript, the conversation sent to the model, and the running cost total. Same client, new session. Never starts a run. |
-| `/help` | List the commands above and the keybindings (esc, ctrl+c/ctrl+\). Never starts a run. |
+| `/help` | List the commands above and the keybindings (esc, ctrl+c/ctrl+\, ctrl+t). Never starts a run. |
 | `/quit` | Quit. Never starts a run. |
 | `/skill:name [what to do]` | Run a loaded skill directly — **does** start a run, unlike the three above. |
 
@@ -383,6 +383,61 @@ and what a question starts is a wait on the model. The prompt emptied and nothin
 which reads as a client that swallowed it. The `⏺` line naming a tool had the same fault and was
 worse for it — it waited on the tool it was announcing, so a six-second command was announced six
 seconds late. The CHANGELOG carries the measurements.
+
+### What a tool call reads as
+
+A tool that worked is **one line**, carrying its own duration:
+
+```
+⏺ read_file(view.go) · 12ms
+⏺ run_command(go test ./...) · 2.34s
+```
+
+The name, the single argument that says which thing it acted on, and how long it took. The
+argument is picked by key (`path`, `file_path`, `file`, `command`, `pattern`, `query`, `url`,
+`name`), falling back to the sole key when a call has exactly one and to `name()` when nothing
+there is worth printing. That beats a table of tool-name to argument-name, because this client
+does not know which tools an agent was built with and half of them arrive over MCP under a
+server's own names.
+
+The line is held until the result arrives, which is the only way the duration can be on it: a
+printed line belongs to the terminal's scrollback and can never be rewritten. Nothing is hidden
+while it waits, because the status line names the running tool for exactly as long as the line is
+held. A run that ends with calls still in flight (the iteration limit, or `esc`) still prints
+them, without a duration.
+
+**A failure stays two lines and stays loud**, because it is the thing a reader must not scroll
+past:
+
+```
+⏺ edit_file(transcript.go)
+  ⤷ edit_file failed after 3ms: no such file
+```
+
+What this replaced printed the raw JSON input and then a second `done in 12ms` line under it,
+so every transcript was twice as tall in order to report that nothing had gone wrong.
+
+**Input with a repeated key is refused rather than summarised.** `encoding/json` keeps the last
+value of a duplicate key silently, so `{"command":"ls","command":"rm -rf /"}` can be shown as
+`run_command(ls)` over a call that ran something else. The line says `input has a duplicate key`
+instead, and with `-approve-tools` on the gate denies the call outright without ever drawing a
+prompt: an approval prompt that offers `y` for a call nobody can render is the same lie with a
+warning label.
+
+### Reasoning
+
+With `thinking: true`, a turn's reasoning collapses to one quiet line:
+
+```
+· thought for 4.2s · ctrl+t to expand
+```
+
+The hint appears once per session, not under every answer. **`ctrl+t` expands**: it prints the
+retained reasoning below, and sticks, so later turns print theirs in full until it is pressed
+again. Expanding cannot replace the collapsed line already on screen for the same reason the
+tool line carries its own duration, so a second copy underneath is what expanding means here.
+Only the most recent turn's reasoning is retained. `ctrl+t` takes the press whatever is on
+screen, which costs the prompt its `transpose-character-backward` binding.
 
 ### Quitting
 

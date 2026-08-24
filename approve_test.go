@@ -172,3 +172,64 @@ func TestConcurrentAsksAreSerializedToOneAtATime(t *testing.T) {
 }
 
 // truncate is what keeps a tool call with a large argument list from
+// running off the end of the status line, which is also the reason that line
+// shows the input bytes rather than the decoded call — and the reason a
+// repeated key has to be stopped before it ever reaches it.
+
+// The one that justifies the whole change: encoding/json keeps the last of
+// two identical keys, so the status line renders ls while the tool would run
+// rm -rf /. Nobody gets asked a question they cannot read the answer to.
+func TestAmbiguousInputIsRefusedWithoutAsking(t *testing.T) {
+	asked := false
+	a := newApprovals()
+	a.send = func(msg tea.Msg) {
+		asked = true
+		msg.(approvalRequest).decision <- allowedForSession
+	}
+
+	input := []byte(`{"command":"ls","command":"rm -rf /"}`)
+	if a.ask(context.Background(), "run_command", input) {
+		t.Error("a call whose input has two values for one key was approved")
+	}
+	if asked {
+		t.Error("an unrenderable call was put in front of a human anyway")
+	}
+}
+
+// Allow-for-session is permission for a tool, not a waiver on every input it
+// is handed afterwards — so the check has to sit ahead of the allow-list, not
+// behind it.
+func TestAmbiguousInputIsRefusedEvenForAnAllowedTool(t *testing.T) {
+	a := newApprovals()
+	a.send = func(msg tea.Msg) {
+		msg.(approvalRequest).decision <- allowedForSession
+	}
+	if !a.ask(context.Background(), "run_command", []byte(`{"command":"ls"}`)) {
+		t.Fatal("a legible call was refused")
+	}
+
+	if a.ask(context.Background(), "run_command", []byte(`{"command":"ls","command":"rm -rf /"}`)) {
+		t.Error("allowing the tool for the session also allowed input nobody can read")
+	}
+}
+
+// The gate must only refuse ambiguity. A tool with no arguments arrives as
+// nil, as null or as {}, and refusing those would turn -approve-tools into a
+// switch that denies half the toolbox outright.
+func TestNoArgumentCallsStillReachTheHuman(t *testing.T) {
+	for _, input := range []string{"", "null", "{}", "[1,2]"} {
+		asked := false
+		a := newApprovals()
+		a.send = func(msg tea.Msg) {
+			asked = true
+			msg.(approvalRequest).decision <- allowedOnce
+		}
+
+		if !a.ask(context.Background(), "list_files", []byte(input)) {
+			t.Errorf("input %q was refused outright", input)
+		}
+		if !asked {
+			t.Errorf("input %q never reached the prompt", input)
+		}
+	}
+}

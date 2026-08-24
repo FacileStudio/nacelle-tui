@@ -29,6 +29,22 @@ type commandState struct {
 	menu   commandMenu
 }
 
+// look is how a line is drawn rather than what it says: the palette resolved
+// for the terminal's own background, the markdown renderer built for the
+// current width, and the spinner that keeps the status line moving. All three
+// are rebuilt or ticked by something other than the thing that produced the
+// text, and none of them is ever read without the others nearby.
+//
+// Embedded, so every field still reads as m.theme, m.pretty and m.spin — the
+// grouping exists for the same reason commandState's does, to keep model's own
+// field count from growing by one every time this client learns to draw
+// something new.
+type look struct {
+	theme  palette
+	pretty *glamour.TermRenderer
+	spin   spinner.Model
+}
+
 // model is the whole client: a transcript, a prompt, and at most one run in
 // flight.
 //
@@ -45,12 +61,10 @@ type model struct {
 
 	account
 
-	theme  palette
-	pretty *glamour.TermRenderer
-	spin   spinner.Model
-
+	look
 	commandState
 	screen
+	thoughts
 	run inflight
 }
 
@@ -66,8 +80,10 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
 		agent:  agent,
 		banner: banner,
 		prompt: newPrompt(),
-		theme:  themed(true),
-		spin:   spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		look: look{
+			theme: themed(true),
+			spin:  spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+		},
 		screen: screen{width: 80, liveRows: 1},
 		commandState: commandState{
 			skills: byName,
@@ -166,6 +182,18 @@ func (m *model) route(message tea.Msg) tea.Cmd {
 // itself does not claim (an ordinary character, backspace) falls all the
 // way through to the prompt, which is what keeps its own filter editable.
 //
+// Ctrl+t sits above esc and takes the press unconditionally — see reveal for
+// what it does with nothing to expand, and why that is not the call escaped
+// makes. Esc reports an idle press unhandled because esc is the key every
+// terminal reader uses to back out of something; nobody presses ctrl+t at a
+// prompt meaning anything at all.
+//
+// Nobody except the textarea, which binds it to transpose-character-backward
+// and now never sees it. That is the trade taken knowingly: transposing the
+// two characters behind the cursor is an emacs habit almost nothing in this
+// prompt is edited by, and reading the model's reasoning is a thing somebody
+// wants several times a session.
+//
 // Esc stops a run and does nothing else, which is the whole reason it is
 // worth having next to a ctrl+c that already cancels: the key that stops the
 // answer is then never the key that might close the client, so there is no
@@ -193,6 +221,8 @@ func (m *model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		}
 	}
 	switch press.String() {
+	case "ctrl+t":
+		return m.reveal()
 	case "esc":
 		return m.escaped()
 	case "enter":

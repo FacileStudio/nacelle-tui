@@ -107,6 +107,7 @@ func (m *model) clear() tea.Cmd {
 	m.conversation = nil
 	m.spent = nacelle.Usage{}
 	m.size, m.trimmed = 0, 0
+	m.forget()
 	echoed := m.prints()
 	m.say(fromClient, m.banner+" · cleared")
 	return tea.Sequence(echoed, m.printed(scrolledAway(m.windowHeight)), m.prints())
@@ -135,6 +136,7 @@ func (m *model) help() tea.Cmd {
 		"/skill:name [what to do] — run a loaded skill directly, instead of waiting for the model to decide to",
 		"",
 		"Esc stops a run and nothing else. Ctrl+C stops one too, or quits when idle; ctrl+\\ force-quits.",
+		"Ctrl+T expands the reasoning collapsed to a single line, and keeps showing it in full until pressed again.",
 		"Enter during a run queues the line and sends it once the run finishes; stopping the run drops whatever is queued.",
 		"The prompt wraps and grows as you type. Alt+Enter (or ctrl+j) starts a new line without sending.",
 		"Scroll, select and copy with the terminal as usual — what was said is ordinary terminal output, not a window this client owns.",

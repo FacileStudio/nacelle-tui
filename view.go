@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -78,12 +77,18 @@ func (m *model) View() tea.View {
 // and knowing what. A run_command waiting on a slow build and a wedged client
 // look identical without it, and this client's own timeout is measured in
 // minutes.
+//
+// What run.running holds is the whole line the call will print, so the name is
+// cut back off it here. That is one map rather than two for a reason bigger
+// than tidiness: the held line and the tool named as running are the same fact
+// about the same call, and two maps are two places to forget it.
 func (m *model) working() string {
 	doing := "waiting for a response"
 	switch len(m.run.running) {
 	case 0:
 	case 1:
-		for _, name := range m.run.running {
+		for _, line := range m.run.running {
+			name, _, _ := strings.Cut(line, "(")
 			doing = "running " + name
 		}
 	default:
@@ -103,18 +108,27 @@ func (m *model) working() string {
 // concatenation is what would go back as the assistant's message on every
 // later turn, putting a chain of thought in the one field no provider wants it
 // replayed in.
+//
+// A tool call says nothing here. Its line is built and held against the call
+// id, and finished is what says it once the result names how long it took —
+// see toolline.go for why the duration cannot be added to a line that has
+// already been printed.
+//
+// The two events that are not reasoning stop the thinking clock on their way
+// past, because this is where a turn stops thinking and starts doing. See
+// thought for what measuring it anywhere later billed to thinking instead.
 func (m *model) absorb(event nacelle.Event) {
 	switch event.Kind {
 	case nacelle.KindText:
+		m.thought()
 		m.run.answer.WriteString(event.Text)
 	case nacelle.KindThinking:
 		m.run.reasoning.WriteString(event.Text)
 	case nacelle.KindToolCall:
-		m.run.running[event.Tool.ID] = event.Tool.Name
-		m.say(fromTool, fmt.Sprintf("%s %s", event.Tool.Name, event.Tool.Input))
+		m.thought()
+		m.run.running[event.Tool.ID] = toolLine(event.Tool.Name, event.Tool.Input, m.width)
 	case nacelle.KindToolResult:
-		delete(m.run.running, event.Tool.ID)
-		m.say(fromResult, describe(event.Tool))
+		m.finished(event.Tool)
 	case nacelle.KindTurn:
 		m.run.usage = m.run.usage.Add(event.Usage)
 		m.sized(event.Usage)
@@ -150,44 +164,4 @@ func cutShort(stop nacelle.Stop) string {
 		return "abandoned"
 	}
 	return "stopped early"
-}
-
-// describe is what a finished tool call reads as. A failure is reported rather
-// than hidden, because the model is about to be told the same thing and the
-// person watching should see what it sees.
-func describe(tool *nacelle.ToolEvent) string {
-	if tool.Err != nil {
-		return fmt.Sprintf("%s failed after %s: %v", tool.Name, tool.Duration.Round(time.Millisecond), tool.Err)
-	}
-	return fmt.Sprintf("%s done in %s", tool.Name, tool.Duration.Round(time.Millisecond))
-}
-
-// flush moves whatever is still streaming into the transcript, and reports the
-// answer it committed so the caller can put that same text in the conversation.
-//
-// It is not bookkeeping. Both buffers are drawn by render only while they are
-// filling, so clearing one without moving its text somewhere permanent erases
-// it from the screen at the exact moment it finished — which is what this did
-// until it was used.
-//
-// Reasoning is shown and then dropped rather than recorded. nacelle.Reasoning
-// exists and would hold it, but what this buffer holds is the readable copy
-// and not the one a provider will take back. Within a run the backend already
-// carries the real thing on the assistant message it rebuilds, in the shape
-// the provider signs and validates; across runs no provider wants a chain of
-// thought from an answer it has already given, and both backends drop the part
-// on the way out. Recording it here would fill the conversation with something
-// that is only ever skipped.
-func (m *model) flush() string {
-	if reasoning := m.run.reasoning.String(); reasoning != "" {
-		m.run.reasoning.Reset()
-		m.say(fromThinking, reasoning)
-	}
-
-	answer := m.run.answer.String()
-	m.run.answer.Reset()
-	if answer != "" {
-		m.say(fromModel, answer)
-	}
-	return answer
 }
