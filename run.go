@@ -90,6 +90,13 @@ type clock struct {
 type turn struct {
 	asked    []nacelle.Part
 	answered []nacelle.Part
+
+	// reported is whether this run put anything on screen: a word of an
+	// answer, a tool call, or a failure. It is the one thing settle cannot
+	// work out for itself once the run is over — the answer buffer has been
+	// flushed, the tool map emptied and the stop reason is the same "ended
+	// cleanly" whether the model wrote a page or nothing at all.
+	reported bool
 }
 
 // editState is what a run tracks per tool call, plus what drawing a diff for
@@ -129,6 +136,7 @@ func (m *model) send(text string) tea.Cmd {
 	m.run.began = time.Now()
 	m.run.interrupted = time.Time{}
 	m.run.asked, m.run.answered = nil, nil
+	m.run.reported = false
 	m.stranded()
 	m.conversation = append(m.conversation, nacelle.UserText(text))
 
@@ -222,6 +230,7 @@ func (m *model) escaped() (bool, tea.Cmd) {
 func (m *model) consume(next result) tea.Cmd {
 	if next.err != nil {
 		m.flush()
+		m.run.reported = true
 		m.say(fromFailure, next.err.Error())
 		return waitFor(m.run.results)
 	}

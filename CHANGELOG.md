@@ -6,6 +6,31 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-08-24
+
+### Fixed
+
+- A run that produced nothing now says so instead of returning to `ready`
+  under a transcript holding only the question. A stream that yields a turn
+  and a done with no text between them is well-formed — nothing errored and
+  nothing was refused — so there was no ending to report and the client
+  looked like it had ignored the question. When the turn billed no tokens
+  either, the report says so: that is a request the provider dropped before
+  running it, which is what a model that will not accept tool definitions
+  does. Measured against `openrouter/stealth-ox-alpha`, which returns exactly
+  this for any request carrying a tool, and answers normally without one.
+- The launch banner is visible again without scrolling up. It was handed to
+  `tea.Println`, which does not append: it makes room by scrolling the screen
+  and inserting above the frame, so on a freshly cleared terminal — where the
+  frame stands on the first row — there was nothing above it to insert into
+  and the banner went straight into the scrollback. Which backend and model
+  are about to be billed now prints before the program takes the screen.
+- A queued message pulled into the prompt for editing no longer appears twice.
+  It is drawn in the prompt, and was still listed above in the state it was
+  being rewritten out of, which read as the edit having failed. It is also no
+  longer delivered while it is being edited: a run settling mid-edit used to
+  send the wording the reader had already decided was wrong.
+
 ## [0.4.0] — 2026-08-24
 
 ### Added

@@ -179,3 +179,42 @@ func TestCtrlCStopsTheRunAndDropsTheQueue(t *testing.T) {
 		t.Errorf("transcript = %q, want the drop said out loud", said)
 	}
 }
+
+// A line pulled into the prompt for editing is drawn in the prompt. Left in
+// the queue list as well it is on screen twice — once as it is being rewritten
+// and once, above, in the state it is being rewritten out of — which reads as
+// the edit having failed to take.
+func TestTheLineBeingEditedLeavesTheQueueOnScreen(t *testing.T) {
+	m := busyWith("first queued", "second queued")
+	m.hist.index = len(m.walkable())
+
+	m.key(up)
+	drawn := strings.Join(m.viewQueued(), "\n")
+	if strings.Contains(visible(drawn), "second queued") {
+		t.Errorf("queue = %q, want the line being edited gone from the list", visible(drawn))
+	}
+	if !strings.Contains(visible(drawn), "first queued") {
+		t.Errorf("queue = %q, want the lines not being edited still listed", visible(drawn))
+	}
+	if m.queuedHeight() != len(m.viewQueued()) {
+		t.Errorf("queuedHeight = %d but %d rows drawn — layout reserves what view draws",
+			m.queuedHeight(), len(m.viewQueued()))
+	}
+}
+
+// A run settling mid-edit must not send the version being replaced. That is
+// the one wording the reader has already decided is wrong, and their edit
+// would arrive after it as a near-duplicate.
+func TestARunSettlingMidEditDoesNotSendTheLineBeingEdited(t *testing.T) {
+	m := busyWith("goes out", "being edited")
+	m.hist.index = len(m.walkable())
+	m.key(up)
+
+	if at := m.nextToSend(); at != 0 {
+		t.Fatalf("nextToSend = %d, want the line that is not being edited", at)
+	}
+	m.run.queued = m.run.queued[1:]
+	if at := m.nextToSend(); at != -1 {
+		t.Errorf("nextToSend = %d, want nothing sendable while the last line is being edited", at)
+	}
+}
