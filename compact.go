@@ -42,6 +42,22 @@ type account struct {
 	// a record of a finished call: the line is printed and forgotten.
 	tools  int
 	failed int
+
+	// sink appends each finished turn to mycelium's event feed, so a session
+	// running here shows up in mycelium's dashboard while it is still going.
+	// It is nil when mycelium is not installed on this machine.
+	sink *usageSink
+
+	// session is this run of the client written down: the questions asked
+	// and the answers given, appended to a file under ~/.nacelle/sessions
+	// as they are said. It is nil when the file could not be opened, which
+	// is not a reason to refuse to run.
+	session *sessionLog
+
+	// tasks is the plan the model is working to, as it last reported it.
+	// It is written only by the routed update, never by the tool that
+	// produces it — see tasks.go for why a tool goroutine cannot touch it.
+	tasks taskList
 }
 
 const (

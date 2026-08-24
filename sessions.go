@@ -1,0 +1,172 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+)
+
+// sessionLog is the record of a session on disk: one JSONL file per run,
+// under ~/.nacelle/sessions/, holding the questions that were typed and the
+// answers that came back.
+//
+// It holds a path and nothing else — no handle, no buffer, no goroutine. Each
+// line is an open, an append and a close, which costs a syscall per line and
+// buys the property that matters here: the file on disk is complete after
+// every line, so a session killed with ctrl+c, a crashed terminal or a laptop
+// closing lid leaves a readable transcript rather than a truncated one. A
+// transcript that only survives a clean exit is a transcript you cannot rely
+// on, and the write rate is one line per thing a human said or read.
+//
+// A nil sessionLog records nothing and every method tolerates it. That is the
+// state a machine gets when the directory or the file could not be opened —
+// a read-only home, a full disk, no resolvable HOME. say() calls line() on
+// every transcript line without checking, deliberately: the alternative is a
+// nil test at the one call site that runs most, guarding a feature that is
+// beside the point of the program.
+type sessionLog struct {
+	path string
+}
+
+// sessionHeader is the first line of the file, and the only place the run's
+// own identity is written. Readers keyed on "v" can tell a v1 file from
+// whatever replaces it without parsing the body, which is what a version
+// field is for; the rest is what you need to make sense of the lines below
+// it and is not repeated on any of them.
+type sessionHeader struct {
+	Version int    `json:"v"`
+	Started string `json:"started"`
+	Backend string `json:"backend"`
+	Model   string `json:"model"`
+	Root    string `json:"root"`
+}
+
+// sessionEntry is one recorded line. Text and the tool pair are exclusive —
+// a question or an answer carries text, a finished tool carries a name and a
+// duration — and both halves are omitempty so a tool entry has no empty
+// "text" key inviting a reader to look for content that was never collected.
+type sessionEntry struct {
+	At   string `json:"t"`
+	Who  string `json:"who"`
+	Text string `json:"text,omitempty"`
+	Name string `json:"name,omitempty"`
+	Ms   int64  `json:"ms,omitempty"`
+}
+
+// newSessionLog opens this run's transcript, or returns nil if it cannot.
+//
+// The directory is 0700 and the file 0600 because of what is in it: the
+// questions a person typed at a work machine and what a model answered. Those
+// are not world-readable on a shared host, and a mode set after the fact
+// leaves a window where they were.
+//
+// The name is a timestamp plus the pid. The timestamp sorts the directory
+// chronologically with no index to maintain, and the pid is what keeps two
+// clients started in the same second from appending into one file — RFC3339
+// has second resolution, and two shells launched from one command is a normal
+// thing to do rather than a rare race.
+//
+// The header is written here rather than lazily on the first line, so an
+// abandoned session still leaves a file saying what it was going to be. A
+// session where nobody typed anything is a fact worth having; a zero-length
+// file is not.
+func newSessionLog(backend, model, root string) *sessionLog {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+	dir := filepath.Join(home, ".nacelle", "sessions")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil
+	}
+	now := time.Now()
+	name := now.Format(time.RFC3339) + "-" + strconv.Itoa(os.Getpid()) + ".jsonl"
+	log := &sessionLog{path: filepath.Join(dir, name)}
+	if !log.write(sessionHeader{
+		Version: 1,
+		Started: now.Format(time.RFC3339Nano),
+		Backend: backend,
+		Model:   model,
+		Root:    root,
+	}) {
+		return nil
+	}
+	return log
+}
+
+// line records a question or an answer, and nothing else.
+//
+// The other six speakers are dropped on the floor, and that is the feature
+// rather than an omission. fromThinking is the model's reasoning, fromResult
+// is a tool's output and fromDiff is the content of a file that was edited —
+// so a single `run_command` printing an environment variable, a `read_file`
+// over a private key, or a diff touching a .env would put a secret in a file
+// that outlives the session and that nobody remembers is there. Filtering it
+// out afterwards means writing it first, which is exactly the moment the
+// damage is done; the only reliable redaction is never collecting it.
+//
+// fromClient and fromFailure are dropped for a duller reason: they are the
+// client talking about itself, and a transcript of what a person asked is not
+// improved by the banner and the notices around it.
+func (l *sessionLog) line(who speaker, text string) {
+	if l == nil {
+		return
+	}
+	var label string
+	switch who {
+	case fromReader:
+		label = "question"
+	case fromModel:
+		label = "answer"
+	default:
+		return
+	}
+	l.write(sessionEntry{At: stamped(), Who: label, Text: text})
+}
+
+// tool records that a named tool ran and how long it took.
+//
+// The name and the duration only. Neither the input nor the result is
+// written, for the same reason line() ignores fromResult: the arguments to a
+// tool call are the most reliable place to find a path, a token or a command
+// line in the whole session. What survives is a shape — that a session ran
+// eleven `read_file`s and one `run_command` that took nine seconds — which is
+// enough to read back what happened without holding what happened to be in
+// the buffer at the time.
+func (l *sessionLog) tool(name string, took time.Duration) {
+	if l == nil {
+		return
+	}
+	l.write(sessionEntry{At: stamped(), Who: "tool", Name: name, Ms: took.Milliseconds()})
+}
+
+// write appends one entry, reporting whether it landed.
+//
+// Every failure is swallowed by the callers. A transcript is bookkeeping
+// beside the session, and a full disk or a revoked permission must not take
+// down the thing the person is actually doing — the next line writes again,
+// and a file with a gap in it is worth more than a client that fell over
+// while producing one.
+//
+// It reports a bool rather than an error because there is exactly one caller
+// that can act on the answer: newSessionLog, deciding whether this machine
+// gets a log at all. Returning an error the other two would have to discard
+// invites `_ =` at both, which is the spelling that hides a real mistake
+// among two deliberate ones.
+func (l *sessionLog) write(entry any) bool {
+	line, err := json.Marshal(entry)
+	if err != nil {
+		return false
+	}
+	return appendLine(l.path, line) == nil
+}
+
+// stamped is the wall clock at nanosecond resolution, which is what keeps two
+// lines said in the same millisecond in the order they were said. The file is
+// append-only so the order is already on disk, but a reader that sorts by
+// timestamp — every log viewer does — would otherwise be free to swap them.
+func stamped() string {
+	return time.Now().Format(time.RFC3339Nano)
+}

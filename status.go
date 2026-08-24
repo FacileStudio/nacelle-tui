@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/lipgloss/v2"
-
 	"github.com/FacileStudio/nacelle"
 )
 
@@ -66,20 +64,18 @@ func (m *model) status() string {
 	}
 	if m.run.busy {
 		state = m.working()
-		if since := m.ongoing(); since != "" {
-			state += " · " + since
-		}
 		if time.Since(m.run.interrupted) < forceQuit {
 			state = "stopping · ctrl+c or ctrl+\\ to quit now"
 		}
 	}
 	if m.run.pending != nil {
 		state = fmt.Sprintf("approve %s(%s)? y = once · a = always this session · n = deny",
-			m.run.pending.name, truncate(string(m.run.pending.input), 60))
+			m.run.pending.name, truncate(unstyled(string(m.run.pending.input)), 60))
 	}
 
+	width := max(m.width, 1)
 	counts := strings.Join(m.footer(), " · ")
-	return truncate(state, max(m.width, 1)) + "\n" + lipgloss.NewStyle().Faint(true).Render(truncate(counts, max(m.width, 1)))
+	return truncate(state, width) + "\n" + m.theme.muted.Render(truncate(counts, width))
 }
 
 // footer is what the session has spent so far, as the pieces the counts row
@@ -155,10 +151,15 @@ func (m *model) footer() []string {
 // With no tool to name there is nothing to say but that the model has not
 // answered, so that is the half that rewords itself — see waiting for what a
 // line that never changed its words was mistaken for.
-// working is what the status line says while a run is busy: the spinner and
-// one phrase for the phase. The spinner keeps one neutral colour — it is a
-// heartbeat, not a signal — and the phrase carries the state instead: dim
-// while the model thinks, tool-coloured once something runs.
+//
+// The spinner, the phrase and the clock are rendered as one span in one
+// colour, and the colour is the phase: cyan while the model is being waited
+// on, the tool's own colour once something runs. Two of the three used to be
+// styled separately and the spinner not at all, which read as three widgets
+// sharing a row rather than one sentence about one run — and left the busiest
+// line on screen in the same grey as everything that had finished. Colouring
+// the whole span means the frame where the colour changes is itself the
+// statement that the phase changed, before anybody has read the words.
 func (m *model) working() string {
 	doing := waitingVerb(time.Since(m.run.began))
 	tone := m.theme.waiting
@@ -175,7 +176,10 @@ func (m *model) working() string {
 		doing = fmt.Sprintf("running %d tools", len(m.run.running))
 		tone = m.theme.tool
 	}
-	return m.spin.View() + " " + tone.Render(doing)
+	if since := m.ongoing(); since != "" {
+		doing += " · " + since
+	}
+	return tone.Render(m.spin.View() + " " + doing)
 }
 
 // waitingVerb is the phrase for one moment of this run.

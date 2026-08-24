@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -48,6 +49,7 @@ import (
 // two can never disagree about how tall the menu drew this frame.
 func (m *model) View() tea.View {
 	above := append(m.streaming(), "", m.status())
+	above = append(above, m.tasks.view(max(m.width, 1), m.theme.muted)...)
 	above = append(above, m.viewQueued()...)
 	menu := m.viewMenu()
 	rows := append(above, m.prompt.View())
@@ -104,6 +106,7 @@ func (m *model) absorb(event nacelle.Event) {
 		m.finished(event.Tool)
 	case nacelle.KindTurn:
 		m.run.usage = m.run.usage.Add(event.Usage)
+		m.sink.record(event.Usage, time.Now())
 		m.sized(event.Usage)
 	case nacelle.KindDone:
 		m.run.usage = event.Usage

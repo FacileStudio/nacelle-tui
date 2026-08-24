@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"unicode/utf8"
 
@@ -42,6 +43,29 @@ func TestTruncateNeverSplitsARune(t *testing.T) {
 				t.Errorf("truncate(%q, %d) = %q, which is not valid UTF-8", s, max, got)
 			}
 		}
+	}
+}
+
+// The rune-at-a-time version priced every character of an escape sequence as a
+// cell, so a coloured status line was cut a dozen cells early and cut wherever
+// the budget ran out — mid-sequence, dropping the reset, which leaks the colour
+// into everything printed after it. A styled string is the normal input here.
+func TestTruncateChargesNothingForStylingAndAlwaysClosesIt(t *testing.T) {
+	styled := lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Render("⠋ waiting for a response")
+
+	if got := truncate(styled, 24); got != styled {
+		t.Errorf("truncate = %q, want the line untouched — it is 24 cells of text", got)
+	}
+
+	cut := truncate(styled, 12)
+	if width := lipgloss.Width(cut); width != 12 {
+		t.Errorf("truncate = %q, %d cells wide, want 12", cut, width)
+	}
+	if !strings.Contains(cut, "waiting") {
+		t.Errorf("truncate = %q, want the escape sequence charged nothing and the words kept", cut)
+	}
+	if opens := strings.Count(cut, "\x1b["); opens != 2 {
+		t.Errorf("truncate = %q, want the colour opened and closed exactly once", cut)
 	}
 }
 

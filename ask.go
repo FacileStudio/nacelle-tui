@@ -6,8 +6,20 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// ask takes whatever is in the prompt: sent now, or queued behind the run
-// already going and delivered when it settles.
+// ask takes whatever is in the prompt: sent now, queued behind the run already
+// going and delivered when it settles, or — when the arrow keys walked back
+// onto a line that is already queued — put back over that line instead of
+// added after it.
+//
+// held is the one question that decides the ending: is this line sitting in
+// the queue rather than going out now. Replacing a queued line and appending
+// one are the same answer to it, which is why they share the return rather
+// than each growing a copy of what follows.
+//
+// remember runs after the queue has been added to, never before. It leaves the
+// walk at the end of everything walkable, and the queue is part of that — left
+// at the end of the sent questions with lines still queued, the next Up would
+// step into the middle of the queue instead of onto the line just typed.
 //
 // The prompt is echoed once, up front, for every non-empty line — a
 // command's own reply and a /skill:name's expanded question would otherwise
@@ -27,14 +39,17 @@ func (m *model) ask() tea.Cmd {
 		return nil
 	}
 	m.prompt.Reset()
-	m.remember(question)
 
-	if m.run.busy {
+	held := m.requeue(question)
+	if !held && m.run.busy {
 		m.run.queued = append(m.run.queued, question)
-		m.layout(m.windowHeight)
+		held = true
+	}
+	m.remember(question)
+	m.layout(m.windowHeight)
+	if held {
 		return nil
 	}
-	m.layout(m.windowHeight)
 	return m.dispatch(question)
 }
 

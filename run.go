@@ -139,33 +139,53 @@ func (m *model) send(text string) tea.Cmd {
 	return tea.Batch(waitFor(m.run.results), m.spin.Tick)
 }
 
-// abandon stops the run in flight and everything it would have led to.
+// halt stops the run in flight and leaves the queue standing.
 //
-// It is what both stop keys do, and it is all they have in common: they differ
-// only in what they mean when there is nothing to stop, where ctrl+c quits the
-// client and esc does nothing at all. Stopping itself is one behaviour and
-// this is it, in one place, so the two can never drift into stopping a run
-// differently.
+// It is the half both stop keys share, and all they share: what they disagree
+// about is the queue, and what they disagree about with nothing running at all
+// — ctrl+c quits the client there, esc does nothing. Stopping itself is one
+// behaviour and this is it, in one place, so the two can never drift into
+// stopping a run differently.
 //
 // interrupted is stamped here rather than by either caller. It is what the
 // status line reads to say the run is stopping instead of leaving the spinner
 // claiming it is still going, and it is what arms the force quit — busy is
 // only cleared by settle, settle waits on the results channel, and a tool
 // wedged on a subprocess never closes it.
-//
-// The queue goes with the run. Left alone it is delivered by settle, which
-// cancelling reaches like any other ending, so stopping one run would start
-// the next one on the spot — the opposite of what either key was pressed for.
-func (m *model) abandon() {
+func (m *model) halt() {
 	m.run.interrupted = time.Now()
 	m.run.stop = abandoned
 	m.run.pending = nil
 	m.run.cancel()
+}
+
+// abandon stops the run in flight and everything it would have led to.
+//
+// This is ctrl+c's stop, and dropping the queue is the whole of what makes it
+// ctrl+c's. Left alone the queue is delivered by settle, which cancelling
+// reaches like any other ending, so stopping one run would start the next on
+// the spot. That is the wrong answer for a key whose next press quits the
+// client, and the right one for esc — see escaped.
+func (m *model) abandon() {
+	m.halt()
 	m.dropQueued()
 }
 
-// escaped is esc once the dropdown has had its turn: it stops a run in flight,
-// and does nothing else ever.
+// escaped is esc once the dropdown has had its turn: it stops the run in
+// flight and hands the session straight to whatever was queued behind it.
+//
+// That is the whole difference between the two stop keys. Both end the answer
+// being written; esc means "not this one, move on", ctrl+c means "stop". So
+// esc leaves the queue alone and lets settle deliver it — the next line starts
+// the moment the cancelled stream closes, which is the behaviour anyone who
+// queued a follow-up while reading a wrong answer is pressing esc to get.
+// Dropping the queue there made the queue useless exactly when it was most
+// wanted: the reader had to watch the whole wrong answer out to keep it.
+//
+// It says so when there is a queue, because otherwise esc reads as having done
+// nothing — the spinner keeps spinning, and the only way to tell it is now
+// spinning for a different question is to recognise the answer changing under
+// it.
 //
 // Idle it is not this client's key at all, which is why it reports the press
 // unhandled rather than swallowing it. Claiming it would turn the one press
@@ -187,7 +207,10 @@ func (m *model) escaped() (bool, tea.Cmd) {
 		return false, nil
 	}
 	if time.Since(m.run.interrupted) >= forceQuit {
-		m.abandon()
+		m.halt()
+		if waiting := len(m.run.queued); waiting > 0 {
+			m.say(fromClient, "stopped · "+countedNoun(waiting, "queued message")+" still to send")
+		}
 	}
 	return true, nil
 }

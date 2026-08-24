@@ -53,6 +53,7 @@ const (
 // order lines are said in is the order they land in.
 func (m *model) say(who speaker, text string) {
 	m.unprinted = append(m.unprinted, m.paint(who, text))
+	m.session.line(who, text)
 }
 
 // prints hands everything said since the last message to the terminal, as a
