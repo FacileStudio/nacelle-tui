@@ -19,7 +19,7 @@ func TestAskingShowsTheSpinnerBeforeAnythingArrives(t *testing.T) {
 	m.ask()
 	defer m.run.cancel()
 
-	if !strings.Contains(visible(m.status()), "waiting for a response") {
+	if !strings.Contains(visible(m.status()), "waiting ") {
 		t.Errorf("status = %q, want it saying so while nothing has arrived yet", visible(m.status()))
 	}
 }

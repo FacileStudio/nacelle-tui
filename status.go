@@ -20,6 +20,34 @@ import (
 // answer.
 const abandoned nacelle.Stop = "abandoned"
 
+// rephrase is how long one way of saying "nothing has come back yet" stays up
+// before the next way replaces it.
+//
+// It is several spinner cycles long on purpose. The spinner already proves the
+// program is alive frame by frame, so words changing at the spinner's own rate
+// would read as flicker rather than as time passing. Four seconds is long
+// enough to read the line twice and short enough that a wait worth worrying
+// about never shows the same words for the whole of it.
+const rephrase = 4 * time.Second
+
+// waiting is every way this client says it is waiting on the model.
+//
+// One fixed sentence was indistinguishable from a frozen line as soon as the
+// spinner scrolled past the edge of attention. The question a reader is
+// actually asking a minute in is not "is the animation running" but "has
+// anything changed since I last looked", and a character cycling in place
+// answers the first and not the second — the words are what answer the second.
+//
+// Every phrase here has to be true at any instant of a run, not only once a
+// run has gone on a while, because which one shows is a function of the clock
+// rather than of how long this particular wait has lasted. That rules out the
+// obvious "still waiting", which would be a lie two hundred milliseconds in.
+var waiting = []string{
+	"waiting for a response",
+	"waiting on the model",
+	"waiting on the backend",
+}
+
 // status is the one line that is always true: what the session has cost so
 // far, whether a run is still going, and whether the answer above it is whole.
 //
@@ -27,20 +55,10 @@ const abandoned nacelle.Stop = "abandoned"
 // such state to report — the terminal owns scrolling, and a client that has
 // been scrolled away from does not know it and does not need to.
 //
-// The count is spent plus the run in flight, which is the session total.
-// Anything else jumps around: a per-run counter that survives into the next
-// run reads as the old total plus the new turns and then falls back to the new
-// total on its own, which is a number nobody can act on.
-//
-// The count separates input from output, because in an agentic session they
-// are different animals: every turn re-bills the whole conversation as input,
-// so a short chat with many tool calls shows an input figure that dwarfs the
-// words actually on screen. One merged number reads as a counting bug; two
-// numbers read as what they are.
-//
-// Cost is only shown when a backend reports one. Anthropic returns tokens and
-// nothing else, and a zero next to a currency symbol reads as free rather than
-// as unknown.
+// What the session has spent is footer's, not this function's. Splitting it
+// off is what keeps the state — the leftmost thing, and the only part of the
+// line a narrow terminal is guaranteed to keep — one decision read in one
+// place, rather than the first of six appends to a shared buffer.
 func (m *model) status() string {
 	state := "ready"
 	if cut := cutShort(m.run.stop); cut != "" {
@@ -57,20 +75,52 @@ func (m *model) status() string {
 			m.run.pending.name, truncate(string(m.run.pending.input), 60))
 	}
 
+	line := strings.Join(append([]string{state}, m.footer()...), " · ")
+	return lipgloss.NewStyle().Faint(true).Render(truncate(line, max(m.width, 1)))
+}
+
+// footer is what the session has spent so far, as the pieces the status line
+// puts after the state.
+//
+// The total is spent plus the run in flight, which is the session total.
+// Anything else jumps around: a per-run counter that survives into the next
+// run reads as the old total plus the new turns and then falls back to the new
+// total on its own, which is a number nobody can act on.
+//
+// The count separates input from output, because in an agentic session they
+// are different animals: every turn re-bills the whole conversation as input,
+// so a short chat with many tool calls shows an input figure that dwarfs the
+// words actually on screen. One merged number reads as a counting bug; two
+// numbers read as what they are.
+//
+// Cost leads, ahead of the counts it summarises. The line is cut to the
+// terminal's width from the right, so this order is a priority order, and the
+// figure a reader is answerable for is worth more of a narrow terminal than
+// the tokens behind it. It is still only shown when a backend reports one:
+// Anthropic returns tokens and nothing else, and a zero beside a currency
+// symbol reads as free rather than as unknown.
+//
+// Pieces rather than one buffer, so the separator is decided once. Appended
+// onto a string each optional piece had to carry its own " · ", which is one
+// place per piece to lose it or to double it — invisible in a faint grey line
+// until someone reads the line closely enough to count the dots.
+func (m *model) footer() []string {
 	total := m.spent.Add(m.run.usage)
-	line := fmt.Sprintf("%s · in %s · out %s", state,
-		shortTokens(total.InputTokens+total.CacheCreationTokens),
-		shortTokens(total.OutputTokens))
-	if total.CacheReadTokens > 0 {
-		line += fmt.Sprintf(" · %s cached", shortTokens(total.CacheReadTokens))
-	}
+
+	var spent []string
 	if total.Cost > 0 {
-		line += fmt.Sprintf(" · $%.4f", total.Cost)
+		spent = append(spent, fmt.Sprintf("$%.4f", total.Cost))
+	}
+	spent = append(spent,
+		"in "+shortTokens(total.InputTokens+total.CacheCreationTokens),
+		"out "+shortTokens(total.OutputTokens))
+	if total.CacheReadTokens > 0 {
+		spent = append(spent, shortTokens(total.CacheReadTokens)+" cached")
 	}
 	if m.trimmed > 0 {
-		line += fmt.Sprintf(" · %d trimmed", m.trimmed)
+		spent = append(spent, fmt.Sprintf("%d trimmed", m.trimmed))
 	}
-	return lipgloss.NewStyle().Faint(true).Render(truncate(line, max(m.width, 1)))
+	return spent
 }
 
 // working is what a busy run is doing, spun so the line moves even when
@@ -91,8 +141,12 @@ func (m *model) status() string {
 // cut back off it here. That is one map rather than two for a reason bigger
 // than tidiness: the held line and the tool named as running are the same fact
 // about the same call, and two maps are two places to forget it.
+//
+// With no tool to name there is nothing to say but that the model has not
+// answered, so that is the half that rewords itself — see waiting for what a
+// line that never changed its words was mistaken for.
 func (m *model) working() string {
-	doing := "waiting for a response"
+	doing := waitingVerb(time.Now())
 	switch len(m.run.running) {
 	case 0:
 	case 1:
@@ -104,6 +158,19 @@ func (m *model) working() string {
 		doing = fmt.Sprintf("running %d tools", len(m.run.running))
 	}
 	return m.spin.View() + " " + doing
+}
+
+// waitingVerb is the phrase for one moment.
+//
+// It buckets the clock instead of counting frames, which is what makes it a
+// function of an instant and nothing else. Counting would need somewhere to
+// keep the count, and a count kept anywhere outside the run would carry into
+// the next wait and start it mid-rotation; kept inside the run it would be a
+// second thing to reset in a function that already resets six. Nothing here
+// asks for a tick of its own either — the spinner's own tick is what redraws
+// the line, so the words change on the first frame after a bucket rolls over.
+func waitingVerb(at time.Time) string {
+	return waiting[at.UnixNano()/int64(rephrase)%int64(len(waiting))]
 }
 
 // shortTokens renders a token count the way a status line wants it: exact
