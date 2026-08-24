@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/FacileStudio/nacelle"
 )
@@ -29,6 +30,18 @@ type account struct {
 	// status line, because a model whose memory was quietly edited should
 	// not be the only one who knows.
 	trimmed int
+
+	// began is when this client started, stamped once in newModel. The
+	// status line and the closing recap both measure against it, so the
+	// two can never disagree about how long the session ran.
+	began time.Time
+
+	// tools and failed are how many tool calls this session finished, and
+	// how many of those fell over. They are counted where a call ends
+	// rather than derived at the end from anything, because nothing keeps
+	// a record of a finished call: the line is printed and forgotten.
+	tools  int
+	failed int
 }
 
 const (

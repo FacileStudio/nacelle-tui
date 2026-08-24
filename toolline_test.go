@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"charm.land/lipgloss/v2"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 // A call line is only worth reading if it names the thing the tool acted on,
@@ -90,5 +93,24 @@ func TestARepeatedKeyIsSaidRatherThanSummarised(t *testing.T) {
 	got := toolLine("run_command", `{"command":"ls","command":"rm -rf /"}`, 80)
 	if got != "run_command(input has a duplicate key)" {
 		t.Errorf("line = %q, want the ambiguity reported instead of one of the two values", got)
+	}
+}
+
+// TestADiscardedCallIsNotCountedAsWorkDone pins the one thing about the
+// session tally that is not obvious: a call belonging to a superseded attempt
+// never ran, so counting it would have the closing recap claim work nobody
+// did. Every other call, failures included, is counted exactly once.
+func TestADiscardedCallIsNotCountedAsWorkDone(t *testing.T) {
+	m := newModel(nil, "banner", nil)
+
+	m.finished(&nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"x"}`})
+	m.finished(&nacelle.ToolEvent{ID: "b", Name: "run_command", Input: `{"command":"x"}`, Err: errors.New("nope")})
+	m.finished(&nacelle.ToolEvent{ID: "c", Name: "read_file", Input: `{"path":"y"}`, Discarded: true})
+
+	if m.tools != 2 {
+		t.Errorf("counted %d tools, want 2 (the discarded call must not count)", m.tools)
+	}
+	if m.failed != 1 {
+		t.Errorf("counted %d failures, want 1", m.failed)
 	}
 }

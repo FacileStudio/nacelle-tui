@@ -84,7 +84,8 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
 			theme: themed(true),
 			spin:  spinner.New(spinner.WithSpinner(spinner.MiniDot)),
 		},
-		screen: screen{width: 80, liveRows: 1},
+		account: account{began: time.Now()},
+		screen:  screen{width: 80, liveRows: 1},
 		commandState: commandState{
 			skills: byName,
 			menu:   commandMenu{items: menuItems(byName)},

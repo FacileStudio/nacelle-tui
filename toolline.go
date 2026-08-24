@@ -130,6 +130,12 @@ func oneLine(raw json.RawMessage) string {
 // which is why conversation.go forgets it rather than answering it — so its
 // held line is dropped rather than printed. Announcing a call the model no
 // longer made is the transcript describing work nobody did.
+//
+// The session tally is kept here for that same reason: this is the one point a
+// call is known to have both run and ended, and it sits past the discard
+// check, so a superseded call is never counted as work. Nothing downstream
+// could count them instead — a printed line belongs to the terminal and is
+// forgotten the moment it is said.
 func (m *model) finished(tool *nacelle.ToolEvent) {
 	line, held := m.run.running[tool.ID]
 	delete(m.run.running, tool.ID)
@@ -140,7 +146,9 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 	if !held {
 		line = toolLine(tool.Name, tool.Input, m.width)
 	}
+	m.tools++
 	if tool.Err != nil {
+		m.failed++
 		m.say(fromTool, line)
 		m.say(fromResult, failed(tool))
 		return
