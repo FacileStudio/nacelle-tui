@@ -56,7 +56,7 @@ with an `*Unsupported` error rather than silently running with less.
 
 ## The TUI's settings layer
 
-`tui/` is a separate settings problem from the core, and deliberately does not share a
+The client's settings layer is a separate settings problem from the core, and deliberately does not share a
 mechanism with it: **the library must never read configuration from disk or environment.** A
 `nacelle` package that read `~/.nacelle.yml` would let a file on a *different* machine's disk
 change a headless consumer's behaviour, the way Bubble Tea's own config never reaches past the
@@ -65,7 +65,7 @@ program that imports it.
 ### Precedence
 
 **Flag beats environment beats file beats default**, resolved in one function
-(`settings()` in `tui/config.go`) and nowhere else. The suite has already paid for the
+(`settings()` in `config.go`) and nowhere else. The suite has already paid for the
 alternative once: a CLI that read its environment inside one code branch and its file inside
 another turned what its README called "overrides" into two mutually exclusive modes nobody
 could tell apart.
@@ -122,11 +122,11 @@ users is a layer nobody has asked for the shape of.
 
 ## Context, skills and mycelium tools
 
-Four things the TUI adds beyond flags and the model's own tools, all in `tui/`, none of them
+Four things the TUI adds beyond flags and the model's own tools, all client-side, none of them
 in the core `nacelle` package — the same "the library must never read configuration from disk"
 rule above applies to these too, not only to settings.
 
-**This session's own facts** (always on, `tui/environment.go`). Prepended to whatever `System`
+**This session's own facts** (always on, `environment.go`). Prepended to whatever `System`
 says, before context and skills, because it is the most general layer and the only one with no
 switch: the absolute working directory, that the file and search tools are confined to it and
 strip a leading `/` rather than refusing it, today's date, that the answer is rendered as
@@ -138,14 +138,14 @@ Advice about *which* tool to reach for is deliberately not here; it lives in the
 descriptions, where it travels with the tool that needs it and costs nothing when that tool is
 not mounted.
 
-The persona above it (`defaultSystem`, `tui/main.go`) is the one layer `-system` replaces
+The persona above it (`defaultSystem`, `main.go`) is the one layer `-system` replaces
 outright, and it stays deliberately short. Codex ships two prompts for one harness — 6.6&nbsp;KB
 for the models post-trained on it, 24&nbsp;KB for general GPT-5 — so prompt size mostly measures
 how much the model was *not* trained on your harness, and Claude is well inside the trained case
 for this shape of tool. What it carries is only what a terminal changes about answering: brevity,
 paths rather than pasted source, and not claiming something works unchecked.
 
-**Project and global context** (`-project-context`, `tui/context.go`). Every `CLAUDE.md` and
+**Project and global context** (`-project-context`, `context.go`). Every `CLAUDE.md` and
 `AGENTS.md` found walking up from `-root` to the filesystem root, plus `~/.agents/AGENTS.md` —
 the [AGENTS.md standard](https://agentsstandard.com)'s own global-base path, also read by
 Codex, Cursor, Copilot, Gemini and pi (at its own equivalent, `~/.pi/agent/AGENTS.md`) — all
@@ -156,7 +156,7 @@ sense to whichever agent finds it. None of this is trust-gated — see
 [architecture.md](architecture.md) for why a plain instruction file and a skill are not the
 same risk.
 
-**Skills** (`-skills`, `-trust-skills`, `-skill-dir`, `tui/skills.go`), following the
+**Skills** (`-skills`, `-trust-skills`, `-skill-dir`, `skills.go`), following the
 [Agent Skills specification](https://agentskills.io/specification): every `SKILL.md` under
 `~/.agents/skills/` (no trust needed, the user's own machine), every one under a **trusted**
 `.agents/skills/` found the same way the context walk works, and every one under a directory
@@ -167,7 +167,7 @@ every project-local `.agents/skills/` found on that run and remembers the decisi
 `~/.nacelle/trust.json`, keyed by canonical directory — run it once per project, not on every
 launch.
 
-**MCP servers** (`-mcp`, `tui/mcp.go`). Each `-mcp` names a file in the `mcpServers` format —
+**MCP servers** (`-mcp`, `mcp.go`). Each `-mcp` names a file in the `mcpServers` format —
 `.mcp.json` and its siblings — whose servers are started at launch, their tools handed to the
 model like any other. It reads the file other clients already write, so pointing at
 `~/.claude/.mcp.json` works without copying anything, which is the same problem `-skill-dir`
@@ -206,7 +206,7 @@ something only the person running nacelle, on their own machine, can do in the f
 and `search_memory`, when the `mycelium` binary is on `PATH`. Narrower and more legible than
 reaching the same commands through `run_command`, and available even with `-bash=false`.
 
-**The banner** (`tui/main.go`'s `banner`) is how much of this is actually visible before typing
+**The banner** (`main.go`'s `banner`) is how much of this is actually visible before typing
 anything: line one names the backend and model, line two the resolved `-root`, how many skills
 loaded (from every source above, combined), how many `CLAUDE.md`/`AGENTS.md` files did, and
 whether bash is on. Nothing on it is decorative — each answers a real "is that actually on"
