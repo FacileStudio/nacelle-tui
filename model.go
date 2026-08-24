@@ -107,7 +107,7 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
 // newPrompt's SetVirtualCursor(false); the caret on screen is the terminal's,
 // positioned by View, and a blink tick for a cursor nobody renders is a
 // timer that wakes the program up to change nothing.
-func (m *model) Init() tea.Cmd { return tea.RequestBackgroundColor }
+func (m *model) Init() tea.Cmd { return tea.Batch(tea.RequestBackgroundColor, watchDelegations()) }
 
 // Update routes each message to the one place that owns it, and hands whatever
 // that had to say to the terminal before whatever it started.
@@ -159,6 +159,8 @@ func (m *model) route(message tea.Msg) tea.Cmd {
 		return m.consume(message)
 	case finished:
 		return m.settle()
+	case spentDelegation:
+		return m.recordDelegation(message)
 	}
 
 	var cmd tea.Cmd

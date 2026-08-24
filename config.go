@@ -27,6 +27,7 @@ type Config struct {
 	Model         string `yaml:"model"`
 	Root          string `yaml:"root"`
 	System        string `yaml:"system"`
+
 	MaxIterations *int   `yaml:"max_iterations"`
 
 	// Toggles is embedded and inlined so Bash, ApproveTools and Diffs keep
@@ -81,6 +82,7 @@ type Config struct {
 // comment gives.
 type Toggles struct {
 	Bash         *bool `yaml:"bash"`
+	Subagents    *bool `yaml:"subagents"`
 	ApproveTools *bool `yaml:"approve_tools"`
 
 	// Diffs draws what an editing tool did to a file as a git-style diff
@@ -120,6 +122,7 @@ type Toggles struct {
 func defaults() Config {
 	bash, thinking, mycelium, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
 		false, false, true, true, true, false, false, false, true
+	subagents := false
 	iterations, budget := 40, int64(0)
 	search, fetch := "", true
 	return Config{
@@ -127,7 +130,7 @@ func defaults() Config {
 		Backend:       "anthropic",
 		Root:          ".",
 		System:        defaultSystem,
-		Toggles:       Toggles{Bash: &bash, ApproveTools: &approveTools, Diffs: &diffs},
+		Toggles:       Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
 		MaxIterations: &iterations,
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{

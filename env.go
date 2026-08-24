@@ -33,6 +33,7 @@ func fromEnv() Config {
 		Sources:       Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
 		Toggles: Toggles{
 			Bash:         envBool(EnvPrefix + "BASH"),
+			Subagents:    envBool(EnvPrefix + "SUBAGENTS"),
 			ApproveTools: envBool(EnvPrefix + "APPROVE_TOOLS"),
 			Diffs:        envBool(EnvPrefix + "DIFFS"),
 		},

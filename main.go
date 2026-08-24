@@ -207,8 +207,22 @@ func build(config Config, local []nacelle.Tool, approve nacelle.Approve, hooks m
 		return nil, nil, err
 	}
 
+	retrying := nacelle.Retry(backend, nacelle.RetryOptions{})
+	if *config.Subagents {
+		sub, err := nacelle.NewSubAgentTool(nacelle.Config{
+			Backend:       retrying,
+			System:        config.System,
+			Tools:         local,
+			MaxIterations: *config.MaxIterations,
+		}, nacelle.SubAgentOptions{Usage: func(u nacelle.Usage) { delegations <- u }})
+		if err != nil {
+			return nil, nil, err
+		}
+		local = append(local, sub)
+	}
+
 	agent, err := nacelle.New(nacelle.Config{
-		Backend: nacelle.Retry(backend, nacelle.RetryOptions{}),
+		Backend: retrying,
 		System:  config.System,
 		Thinking: nacelle.Thinking{
 			Effort: nacelle.Effort(config.Effort),

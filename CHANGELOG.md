@@ -14,6 +14,13 @@ while on `v0`, a breaking change bumps the minor.
   from what the file held when the call was seen against the contents it wrote. Off with
   `diffs: false` (`NACELLE_DIFFS`, `-diffs`), which restores the bare one-line report.
 
+- `-subagents` / `subagents:` / `NACELLE_SUBAGENTS`, off by default. When on, the model
+  gets a `subagent` tool that delegates a self-contained task to a fresh nested run — its
+  own context window, the same backend and tools — and only the delegate's final answer
+  comes back. The nested run cannot delegate further and denies every tool call by
+  default; it runs unattended or not at all. A delegate's token spend lands in the
+  session's totals as it is spent.
+
 ### Fixed
 
 - The gofmt pass in `scripts/check.sh` handed git's file list to `xargs` as
