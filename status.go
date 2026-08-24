@@ -93,10 +93,17 @@ func (m *model) status() string {
 // words actually on screen. One merged number reads as a counting bug; two
 // numbers read as what they are.
 //
-// Cost leads, ahead of the counts it summarises. The line is cut to the
-// terminal's width from the right, so this order is a priority order, and the
-// figure a reader is answerable for is worth more of a narrow terminal than
-// the tokens behind it. It is still only shown when a backend reports one:
+// How long the run in flight has been going leads everything, and only while
+// there is one. The line is cut to the terminal's width from the right, so
+// this order is a priority order, and a reader watching a slow tool is asking
+// whether it is wedged — a question no other figure on the line answers, and
+// the one that stops mattering the instant the run ends. Idle it is absent
+// rather than frozen at its last value, because a stopped clock left on screen
+// is a number that looks live and is not.
+//
+// Cost comes next, ahead of the counts it summarises. Same priority argument:
+// the figure a reader is answerable for is worth more of a narrow terminal
+// than the tokens behind it. It is still only shown when a backend reports one:
 // Anthropic returns tokens and nothing else, and a zero beside a currency
 // symbol reads as free rather than as unknown.
 //
@@ -108,6 +115,9 @@ func (m *model) footer() []string {
 	total := m.spent.Add(m.run.usage)
 
 	var spent []string
+	if since := m.ongoing(); since != "" {
+		spent = append(spent, since)
+	}
 	if total.Cost > 0 {
 		spent = append(spent, fmt.Sprintf("$%.4f", total.Cost))
 	}
@@ -171,6 +181,38 @@ func (m *model) working() string {
 // the line, so the words change on the first frame after a bucket rolls over.
 func waitingVerb(at time.Time) string {
 	return waiting[at.UnixNano()/int64(rephrase)%int64(len(waiting))]
+}
+
+// ongoing is how long the run in flight has been going, and the empty string
+// when nothing is running.
+//
+// It measures this run rather than the session. Someone reading it is asking
+// whether the tool in front of them is wedged, and a session counter reading
+// 41m answers a question nobody asked while hiding the one they did. The
+// session's own span is not lost — recap says it on the way out, which is
+// where a total belongs.
+//
+// It is not called running, which is the name the sentence wants, because
+// run.running is the map of calls in flight two functions up this same file.
+// Two things a line apart called the same thing is how somebody reads the
+// wrong one and cannot see why the count is a duration.
+//
+// It borrows recap's lasted rather than rounding again here. The two are the
+// same measurement shown twice, and a client that called the same forty-one
+// seconds 41s in one place and 41.0021s in the other would be reporting a
+// discrepancy it does not have.
+//
+// The zero check is not defensive dressing over the busy check. begun is
+// stamped by send, which is also the only thing that sets busy, so the two
+// agree in this program — but a test that sets busy by hand to draw a status
+// line does not go through send, and time.Since on a zero Time renders as a
+// span in the thousands of hours. Refusing to print it is cheaper than a rule
+// nobody reading a test would know they had broken.
+func (m *model) ongoing() string {
+	if !m.run.busy || m.run.began.IsZero() {
+		return ""
+	}
+	return lasted(time.Since(m.run.began))
 }
 
 // shortTokens renders a token count the way a status line wants it: exact

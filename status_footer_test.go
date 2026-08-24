@@ -61,3 +61,39 @@ func TestAnUnreportedCostIsLeftOutRatherThanShownAsZero(t *testing.T) {
 		t.Errorf("status = %q, want no currency figure when the backend reported none", status)
 	}
 }
+
+// TestTheElapsedTimerMeasuresTheRunAndDisappearsWithIt pins the two halves of
+// the timer that are easy to get backwards: it counts from the moment this run
+// started rather than from the moment the client did, and an idle line has no
+// timer at all rather than one frozen at whatever the last run reached.
+func TestTheElapsedTimerMeasuresTheRunAndDisappearsWithIt(t *testing.T) {
+	m := newModel(nil, "banner", nil)
+	m.began = time.Now().Add(-41 * time.Minute)
+	m.run.began = time.Now().Add(-12 * time.Second)
+	m.run.busy = true
+
+	if got := m.status(); !strings.Contains(got, "12s") {
+		t.Errorf("status while running = %q, want the run's own 12s", got)
+	}
+	if got := m.status(); strings.Contains(got, "41m") {
+		t.Errorf("status while running = %q, want the run's span and not the session's", got)
+	}
+
+	m.run.busy = false
+	if got := m.status(); strings.Contains(got, "12s") {
+		t.Errorf("idle status = %q, want no timer left standing", got)
+	}
+}
+
+// TestAStatusLineDrawnWithoutSendIsNotGivenAThousandHourTimer covers the one
+// way the busy flag and the stamp can disagree: a test drawing a status line
+// sets busy by hand and never reaches send, and time.Since on a zero Time is a
+// span in the thousands of hours.
+func TestAStatusLineDrawnWithoutSendIsNotGivenAThousandHourTimer(t *testing.T) {
+	m := newModel(nil, "banner", nil)
+	m.run.busy = true
+
+	if got := m.ongoing(); got != "" {
+		t.Errorf("ongoing with no stamp = %q, want the empty string", got)
+	}
+}
