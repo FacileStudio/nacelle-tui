@@ -68,6 +68,19 @@ func TestEnvironmentSaysWhetherAnyoneReviewsAToolCall(t *testing.T) {
 	}
 }
 
+// Batching spans every tool, so no single description can carry it — and a
+// custom persona must not lose it, which is why this is here and not in the
+// default prompt.
+func TestEnvironmentTeachesBatchingIndependentToolCalls(t *testing.T) {
+	got := environment(withApproval(false), time.Now())
+
+	for _, want := range []string{"independent", "one turn"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("environment() = %q, want it to teach batching with %q", got, want)
+		}
+	}
+}
+
 // The shell is unconfined and, by default, unreviewed. Naming the commands
 // that cannot be undone is the cheapest guard there is — but only where a
 // shell was actually mounted.

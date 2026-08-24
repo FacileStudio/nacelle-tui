@@ -12,8 +12,10 @@ import (
 // The banner already tells the person running this where the root is and
 // whether the approval gate is on; nothing told the model any of it. Every
 // line here is a fact no tool schema carries and no amount of reasoning
-// recovers — not advice about how to work, which belongs in the tool
-// descriptions where it travels with the tool that needs it.
+// recovers — plus one rule about how to work, batching independent tool
+// calls, which no single tool description can carry because it spans all
+// of them. It lives here rather than in the default prompt so a custom
+// -system persona keeps it too.
 //
 // The path rule earns its length. Two tools live in two different path
 // universes: clean() (tools/file.go) strips a leading "/" rather than
@@ -63,6 +65,9 @@ func environment(config Config, now time.Time) string {
 
 	fmt.Fprintf(&body, "Today is %s.\n\n", now.Format(time.DateOnly))
 	body.WriteString("What you write is rendered as markdown in a terminal.\n")
+
+	body.WriteString("\nWhen several tool calls are independent — none needs another's result — make them together in " +
+		"one turn instead of one after another; wait only where a later call needs an earlier one's output.")
 
 	if *config.ApproveTools {
 		body.WriteString("\nEvery tool call is shown to the person running this before it runs. A " +
