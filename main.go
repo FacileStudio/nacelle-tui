@@ -209,7 +209,12 @@ func build(config Config, local []nacelle.Tool, approve nacelle.Approve, hooks m
 			System:        config.System,
 			Tools:         local,
 			MaxIterations: *config.MaxIterations,
-		}, nacelle.SubAgentOptions{})
+		}, nacelle.SubAgentOptions{Usage: func(u nacelle.Usage) {
+			select {
+			case delegations <- u:
+			default:
+			}
+		}})
 		if err != nil {
 			return nil, nil, err
 		}
