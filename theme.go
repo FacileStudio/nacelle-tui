@@ -36,6 +36,14 @@ type palette struct {
 // through an answer, not to decorate. Everything that is not the answer is
 // dimmed instead, because the answer is what the window is for.
 //
+// Bold alone was not enough to find. An answer is full of bold — every heading
+// and every emphasised phrase the model writes — so the one bold line that
+// means "you said this" was competing with a page of them, and scrolling back
+// for your own question meant reading rather than glancing. The background is
+// the menu's, deliberately: the two rows this client owns and the reader acts
+// on should look like each other, and paint pads the row to the full width so
+// the bar is the shape of a bar rather than of the sentence.
+//
 // Dimmed is not the same as unreadable, and the difference is which grey. Every
 // muted style here used ANSI 8, which is the one index a scheme is free to put
 // wherever it likes — dark themes routinely set it a shade or two off the
@@ -62,7 +70,9 @@ func themed(dark bool) palette {
 	return palette{
 		question: lipgloss.NewStyle().
 			Bold(true).
-			PaddingLeft(1),
+			PaddingLeft(1).
+			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
+			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
 		menu: lipgloss.NewStyle().
 			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),

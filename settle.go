@@ -79,12 +79,14 @@ func (m *model) settle() tea.Cmd {
 func (m *model) deliver() tea.Cmd {
 	var cmds []tea.Cmd
 	for {
+		editing := m.editing()
 		at := m.nextToSend()
 		if at < 0 {
 			break
 		}
 		next := m.run.queued[at]
 		m.run.queued = append(m.run.queued[:at], m.run.queued[at+1:]...)
+		m.reanchor(editing, at)
 		m.layout(m.windowHeight)
 
 		cmds = append(cmds, m.dispatch(next))
@@ -134,6 +136,11 @@ func (m *model) nextToSend() int {
 // a model that will not accept this client's tool definitions does, and the
 // reader cannot guess that from an empty screen.
 //
+// Both lines separate their clauses with the same · the status line uses, and
+// no dash. One punctuation mark for "and here is the next part of the same
+// thought" is one thing to recognise rather than two, and a dash in a line the
+// client says about itself reads as an aside apologising for the line above it.
+//
 // Both lines are short enough not to wrap, and neither says whose fault it is.
 // The first draft explained that a model refusing tool definitions is the usual
 // cause, which was true, wrapped onto a second row, and read as the client
@@ -150,8 +157,35 @@ func (m *model) sayNothingCame() {
 		return
 	}
 	if m.run.usage.InputTokens == 0 && m.run.usage.OutputTokens == 0 {
-		m.say(fromFailure, "no answer · nothing billed — try another model")
+		m.say(fromFailure, "no answer · nothing billed · try another model")
 		return
 	}
-	m.say(fromFailure, "no answer · the turn ended empty")
+	m.say(fromFailure, "no answer · the model stopped without one")
+}
+
+// reanchor keeps the edit offset naming the same line after a different one
+// has been sent out from under it.
+//
+// The offset is counted from the end of the queue because deliver drains from
+// the front, and a count from the back survives that untouched. Skipping the
+// line being edited broke exactly that assumption: deliver now takes lines
+// from behind it too, and every one of those shortens the queue without moving
+// the edited line any closer to the end. The offset then pointed past the
+// queue, editing reported "nothing is being edited", and the next turn of the
+// loop sent the line the reader was in the middle of rewriting — the one thing
+// hiding it from delivery exists to prevent, and worse than never hiding it,
+// because their edit arrived afterwards as a second nearly identical message.
+//
+// Working in indexes and converting back at the end is what makes it readable.
+// The index only moves when the line that went out was in front of it, which is
+// one comparison; doing the same arithmetic on the offset directly is the same
+// two cases written as something nobody can check by eye.
+func (m *model) reanchor(editing, sent int) {
+	if editing < 0 {
+		return
+	}
+	if sent < editing {
+		editing--
+	}
+	m.hist.fromEnd = len(m.run.queued) - editing
 }
