@@ -29,7 +29,7 @@ func build(config Config, local []nacelle.Tool, approve nacelle.Approve, hooks m
 	}
 
 	retrying := nacelle.Retry(backend, nacelle.RetryOptions{})
-	local, err = withSubagents(config, retrying, local)
+	local, err = withSubagents(config, retrying, local, approve)
 	if err != nil {
 		return nil, nil, err
 	}
