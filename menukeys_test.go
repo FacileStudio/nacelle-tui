@@ -201,7 +201,7 @@ func TestViewMenuSelectedRowAlignsWithUnselectedRows(t *testing.T) {
 	if !strings.HasPrefix(lines[0], "  /clear") {
 		t.Errorf("first row = %q after moving selection away, want it indented to the arrow", lines[0])
 	}
-	if !strings.HasPrefix(lines[1], "→ /help") {
+	if !strings.HasPrefix(lines[1], "→ /cost") {
 		t.Errorf("second row = %q once selected, want the arrow on it", lines[1])
 	}
 }

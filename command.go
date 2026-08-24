@@ -16,6 +16,7 @@ type command func(m *model) tea.Cmd
 
 var commands = map[string]command{
 	"clear": (*model).clear,
+	"cost":  (*model).cost,
 	"help":  (*model).help,
 	"quit":  (*model).quit,
 }
@@ -131,6 +132,7 @@ func scrolledAway(height int) string {
 func (m *model) help() tea.Cmd {
 	m.say(fromClient, strings.Join([]string{
 		"/clear — start a new session, same client",
+		"/cost — what this session has spent so far",
 		"/help — show this message",
 		"/quit — quit",
 		"/skill:name [what to do] — run a loaded skill directly, instead of waiting for the model to decide to",
