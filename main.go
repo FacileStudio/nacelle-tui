@@ -113,17 +113,38 @@ type uiSession struct {
 	gate       *approvals
 }
 
-// launch opens the program and delivers whatever was queued for the
-// transcript before it opened.
+// launch opens the program, delivers whatever was queued for the transcript
+// before it opened, and says what the session came to on the way out.
+//
+// The recap is printed from the model Run hands back rather than from the one
+// built here, and they are the same pointer today — but only because bubbletea
+// happens to return the model it was given. Reading the returned one is what
+// keeps this correct if that ever stops being true, and it costs an assertion.
+//
+// That assertion is checked rather than forced. A failed type assertion panics,
+// and panicking on the way out of a session that has already finished — over a
+// closing line, of all things — would destroy the thing the recap exists to
+// hand over. No recap is the honest answer to a model this does not recognise.
+//
+// It is printed whatever Run returned, and before that error is reported. A
+// terminal falling over does not un-bill the tokens the session spent, and the
+// error goes to stderr while this goes to stdout, so the two do not interleave
+// even when both are on screen.
 func launch(c uiSession) error {
-	model := newModel(c.agent, c.banner, c.skills)
+	opened := newModel(c.agent, c.banner, c.skills)
 	if c.hookNotice != "" {
-		model.say(fromClient, c.hookNotice)
+		opened.say(fromClient, c.hookNotice)
 	}
 
-	program := tea.NewProgram(model)
+	program := tea.NewProgram(opened)
 	wireApprovals(c.gate, program)
-	_, err := program.Run()
+	final, err := program.Run()
+
+	if done, ok := final.(*model); ok {
+		if recap := done.recap(); recap != "" {
+			fmt.Println(recap)
+		}
+	}
 	return err
 }
 
