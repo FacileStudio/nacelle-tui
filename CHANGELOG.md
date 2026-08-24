@@ -6,6 +6,20 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-08-24
+
+### Changed
+
+- Homebrew installs from a cask rather than a formula. `brew install
+  FacileStudio/tap/nacelle` is unchanged; what moves is the tap file, from
+  `Formula/nacelle.rb` to `Casks/nacelle.rb`. GoReleaser soft-deprecated `brews` in v2.10 and
+  hard-deprecated it in v2.16, and release CI runs 2.17.1, so the previous config would have
+  failed its own check on the next tag. A cask download carries the quarantine attribute
+  where a formula's did not, so a `postflight` hook strips it — without that, the first run
+  of the unsigned binary dies on "the developer cannot be verified".
+- The core SDK is pinned at v0.4.0, up from v0.3.1. The only change between the two is the
+  split that created this repository, so nothing here had to adapt.
+
 ## [0.2.0] — 2026-08-24
 
 ### Added
@@ -59,6 +73,7 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.1.0
