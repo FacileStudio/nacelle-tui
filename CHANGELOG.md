@@ -6,6 +6,30 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-24
+
+### Added
+
+- Prompt history: Up recalls sent questions newest-first, Down walks back
+  forward and restores the draft being written; from a wrapped question's
+  later rows, Up still moves the caret.
+- A two-row status bar — what is happening (spinner, phrase, run clock) on
+  top, what the session has spent underneath.
+- `/cost` says what the session has spent so far, on demand.
+- The command menu marks its selected row with an arrow.
+
+### Changed
+
+- The palette is ANSI indices now, so every shade follows the terminal's own
+  scheme; the question entry is bold instead of carrying a background. The
+  status spinner takes its colour from the phase — dim while thinking,
+  tool-blue once something runs.
+- The suggestion menu draws below the prompt, which no longer moves the
+  input line when the list changes; the prompt gained a gutter marker and a
+  blank row of its own, and one empty row follows the launch banner.
+- The core SDK is pinned at v0.4.1, up from v0.4.0: sub-agent delegation
+  (`NewSubAgentTool`) arrives in core, opt-in here via `subagents:`.
+
 ### Added
 
 - File edits draw a git-style diff under the tool's one-line report: removals in the
