@@ -91,11 +91,13 @@ func (m *model) absorb(event nacelle.Event) {
 	switch event.Kind {
 	case nacelle.KindText:
 		m.thought()
+		m.run.reported = m.run.reported || event.Text != ""
 		m.run.answer.WriteString(event.Text)
 	case nacelle.KindThinking:
 		m.run.reasoning.WriteString(event.Text)
 	case nacelle.KindToolCall:
 		m.thought()
+		m.run.reported = true
 		m.run.running[event.Tool.ID] = toolLine(event.Tool.Name, event.Tool.Input, m.width)
 		if m.run.diffs {
 			if change, ok := captureEdit(m.run.root, event.Tool.Name, event.Tool.Input); ok {

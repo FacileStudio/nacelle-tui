@@ -41,6 +41,7 @@ func (m *model) settle() tea.Cmd {
 	m.dropUnanswered()
 	m.closeTurn(m.run.stop)
 	m.stranded()
+	m.sayNothingCame()
 	m.spent = m.spent.Add(m.run.usage)
 	m.run.usage = nacelle.Usage{}
 	m.compact()
@@ -77,9 +78,13 @@ func (m *model) settle() tea.Cmd {
 // run.busy is what guarantees that, and it is now load-bearing twice.
 func (m *model) deliver() tea.Cmd {
 	var cmds []tea.Cmd
-	for len(m.run.queued) > 0 {
-		next := m.run.queued[0]
-		m.run.queued = m.run.queued[1:]
+	for {
+		at := m.nextToSend()
+		if at < 0 {
+			break
+		}
+		next := m.run.queued[at]
+		m.run.queued = append(m.run.queued[:at], m.run.queued[at+1:]...)
 		m.layout(m.windowHeight)
 
 		cmds = append(cmds, m.dispatch(next))
@@ -88,4 +93,58 @@ func (m *model) deliver() tea.Cmd {
 		}
 	}
 	return tea.Sequence(cmds...)
+}
+
+// nextToSend is the first queued line that is free to go out, or -1 when none
+// is.
+//
+// It skips the line being edited rather than sending it. A run settling while
+// somebody is halfway through rewriting a queued question would otherwise send
+// the version they are in the middle of replacing — the one thing they have
+// already decided is wrong — and their edit would then arrive as a second
+// message saying almost the same thing. It stays queued until enter says what
+// it now is.
+//
+// Front-first otherwise, because the queue is the order the questions were
+// typed in and that is the order they were meant to be asked in.
+func (m *model) nextToSend() int {
+	editing := m.editing()
+	for i := range m.run.queued {
+		if i != editing {
+			return i
+		}
+	}
+	return -1
+}
+
+// sayNothingCame reports a run that ended without ever putting anything on
+// screen, which is otherwise the one ending this client cannot tell the reader
+// about.
+//
+// A stream that yields a turn and a done and no text between them is
+// well-formed. Nothing errored, nothing was refused, the stop reason says the
+// model finished — so cutShort has nothing to say and the status line goes back
+// to "ready" under a transcript holding only the question. Measured against
+// openrouter/stealth-ox-alpha on 2026-08-24: two events, zero tokens, no error,
+// and a client that looked like it had simply ignored the question.
+//
+// Zero tokens either way is the tell worth passing on. A model that answers
+// with nothing still bills for reading the prompt, so a turn that bills for
+// neither is a request the provider dropped before running it — which is what
+// a model that will not accept this client's tool definitions does, and the
+// reader cannot guess that from an empty screen.
+//
+// It runs after closeTurn so that a run which committed something is already
+// committed, and it says nothing when the run was abandoned or cut short: those
+// endings have their own words in cutShort, and two explanations of one silence
+// is worse than none.
+func (m *model) sayNothingCame() {
+	if m.run.reported || cutShort(m.run.stop) != "" {
+		return
+	}
+	if m.run.usage.InputTokens == 0 && m.run.usage.OutputTokens == 0 {
+		m.say(fromFailure, "no answer · the model returned nothing and billed nothing, which is a request refused before it ran — a model that will not take this client's tools is the usual cause")
+		return
+	}
+	m.say(fromFailure, "no answer · the model ended the turn without saying anything")
 }

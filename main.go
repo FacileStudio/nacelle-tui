@@ -133,6 +133,16 @@ type uiSession struct {
 // terminal falling over does not un-bill the tokens the session spent, and the
 // error goes to stderr while this goes to stdout, so the two do not interleave
 // even when both are on screen.
+//
+// The banner goes out here, as ordinary stdout, before the program takes the
+// screen — and it has to, because tea.Println cannot put it anywhere the reader
+// will see. Println does not append: it makes room by scrolling the screen up
+// and inserting above the frame, so on a freshly cleared terminal, where the
+// frame is standing on the first row, there is nothing above it to insert into
+// and the banner goes straight into the scrollback. Which backend and model are
+// about to be billed then sits one page up from where anybody looks. Printing
+// it before the program starts means the terminal has scrolled the way it
+// scrolls for every other command, and the frame opens underneath it.
 func launch(c uiSession) error {
 	opened := newModel(c.agent, c.banner, c.skills)
 	opened.run.root = c.root
@@ -142,6 +152,10 @@ func launch(c uiSession) error {
 	if c.hookNotice != "" {
 		opened.say(fromClient, c.hookNotice)
 	}
+	for _, line := range opened.unprinted {
+		fmt.Println(line)
+	}
+	opened.unprinted = nil
 
 	program := tea.NewProgram(opened)
 	wireApprovals(c.gate, program)
