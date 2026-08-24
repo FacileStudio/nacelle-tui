@@ -1,10 +1,6 @@
 package main
 
-import (
-	"strings"
-
-	"charm.land/lipgloss/v2"
-)
+import "github.com/charmbracelet/x/ansi"
 
 // truncate fits s into max terminal cells, ending in an ellipsis when it had
 // to cut something off.
@@ -18,27 +14,34 @@ import (
 // UTF-8: every queued line carrying an accent was one narrow window away from
 // mojibake.
 //
-// lipgloss.Width is what knows the real answer. It skips ANSI sequences rather
-// than counting them as content, and it costs a wide rune the two cells it
-// actually occupies, so neither styling nor CJK can talk this over the width
-// it was handed.
+// ansi.Truncate is what knows the real answer, and the hand-rolled loop that
+// used to live here got a third thing wrong that measuring in cells did not
+// fix. It priced one rune at a time, and a single rune out of an escape
+// sequence is not an escape sequence: every character of a "\x1b[38;5;245m"
+// was charged a cell it does not occupy, so a coloured line was cut a dozen
+// cells early and cut wherever the budget ran out — mid-sequence, dropping the
+// reset, which leaks the colour into everything printed after it. Truncating a
+// styled string is the normal case here, not the exotic one; the status line
+// is styled before it gets this far.
 func truncate(s string, max int) string {
 	if max <= 0 {
 		return ""
 	}
-	if lipgloss.Width(s) <= max {
-		return s
-	}
-
-	var kept strings.Builder
-	spent := 0
-	for _, r := range s {
-		cost := lipgloss.Width(string(r))
-		if spent+cost > max-1 {
-			break
-		}
-		kept.WriteRune(r)
-		spent += cost
-	}
-	return kept.String() + "…"
+	return ansi.Truncate(s, max, "…")
 }
+
+// unstyled strips the escape sequences out of text this client did not write,
+// for the rows where it decides the styling itself.
+//
+// Everything measuring a line here skips ANSI rather than counting it, which
+// is right for a line this client styled and wrong for one carrying somebody
+// else's escapes: a tool argument ending in a bare "\x1b[7m" costs nothing,
+// survives every width check, and leaves the terminal in reverse video for
+// whatever is printed next. Tool inputs are written by the model and queued
+// lines by whoever is typing, so neither is this client's to trust.
+//
+// Tool *output* is deliberately not run through this. A run_command printing
+// its own colours is a command working correctly, and the transcript is where
+// that belongs — the rule is about the rows this client owns and lays out, not
+// about everything that crosses the screen.
+func unstyled(s string) string { return ansi.Strip(s) }

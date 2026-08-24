@@ -48,7 +48,7 @@ const durationRoom = 10
 // argument worth showing", which is true and short; the raw blob read as noise.
 func toolLine(name, input string, width int) string {
 	room := width - lipgloss.Width(name) - durationRoom - len("• ()")
-	return toolGlyph(name) + " " + name + "(" + truncate(primaryArg(input), room) + ")"
+	return toolGlyph(name) + " " + name + "(" + truncate(unstyled(primaryArg(input)), room) + ")"
 }
 
 // primaryArg is the argument a call is named by, rendered for a single line.
@@ -156,8 +156,9 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		return
 	}
 	m.say(fromTool, line+" · "+took(tool.Duration))
+	m.session.tool(tool.Name, tool.Duration)
 	if edited {
-		if diff := renderDiff(change, m.width); diff != "" {
+		if diff := renderDiff(change, m.width, m.theme.muted); diff != "" {
 			m.say(fromDiff, diff)
 		}
 	}

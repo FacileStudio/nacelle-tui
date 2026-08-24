@@ -27,10 +27,23 @@ const contextLines = 3
 // scrollback that can never be redrawn.
 const shownDiffLines = 400
 
+// The added and removed sides are the terminal's own green and red, because a
+// diff's two colours are the two every scheme already has an opinion about. An
+// ANSI index needs no help following a light terminal: the scheme is what
+// resolves it, and it resolves it again the moment the scheme changes.
+//
+// There is no third var for the unchanged lines between them. Those are muted
+// text, the same as the queued rows and the counts under the status line, and
+// the whole point of routing every grey through palette.muted is that the grey
+// is decided once — by the background the terminal reported, not by whoever
+// last typed a colour into a package var. It lived here as a fixed ANSI 8 and
+// was the one style in this program that could not follow the background,
+// which is exactly the case a constant grey gets wrong: 8 is a near-black on
+// the dark schemes that move it, and a fixed mid-grey is thin on white. The
+// style arrives as an argument now — see renderDiff.
 var (
 	diffAdded   = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(2))
 	diffRemoved = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(1))
-	diffContext = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
 
 // editChange is what one editing call did to one file: its path relative to
@@ -132,7 +145,7 @@ func priorContents(root, path string) string {
 // whose input could not be parsed, a change that touches no line — renders as
 // empty, and the caller simply says the ordinary one-line report it always
 // has.
-func renderDiff(change editChange, width int) string {
+func renderDiff(change editChange, width int, muted lipgloss.Style) string {
 	if change.path == "" || change.before == change.after {
 		return ""
 	}
@@ -145,11 +158,11 @@ func renderDiff(change editChange, width int) string {
 	shown := 0
 	for i, block := range blocks {
 		if i > 0 {
-			out.WriteString(diffContext.Render("  …") + "\n")
+			out.WriteString(muted.Render("  …") + "\n")
 			shown++
 		}
 		var cut bool
-		shown, cut = renderBlock(&out, block, width, shown)
+		shown, cut = renderBlock(&out, block, width, shown, muted)
 		if cut {
 			break
 		}
@@ -160,13 +173,13 @@ func renderDiff(change editChange, width int) string {
 // renderBlock writes one hunk's lines, stopping at the display cap with a
 // marker saying the diff was cut rather than pretending it wasn't. It
 // returns how many lines are through and whether the cap was reached.
-func renderBlock(out *strings.Builder, block []diffOp, width, shown int) (int, bool) {
+func renderBlock(out *strings.Builder, block []diffOp, width, shown int, muted lipgloss.Style) (int, bool) {
 	for _, op := range block {
 		if shown >= shownDiffLines {
-			out.WriteString(diffContext.Render("  … more"))
+			out.WriteString(muted.Render("  … more"))
 			return shown, true
 		}
-		out.WriteString(renderOp(op, width))
+		out.WriteString(renderOp(op, width, muted))
 		shown++
 	}
 	return shown, false
@@ -174,8 +187,8 @@ func renderBlock(out *strings.Builder, block []diffOp, width, shown int) (int, b
 
 // renderOp is one diff line as styled text, indented past the ⏺ that names
 // the call above it and cut to the window so nothing wraps.
-func renderOp(op diffOp, width int) string {
-	style, prefix := diffContext, "    "
+func renderOp(op diffOp, width int, muted lipgloss.Style) string {
+	style, prefix := muted, "    "
 	switch op.kind {
 	case '-':
 		style, prefix = diffRemoved, "  - "

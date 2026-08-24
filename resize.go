@@ -102,6 +102,6 @@ func (m *model) resize(size tea.WindowSizeMsg) tea.Cmd {
 // called before the frame it describes reaches the screen, and the gap between
 // the two is exactly where a print goes wrong.
 func (m *model) layout(height int) {
-	taken := 3 + m.prompt.Height() + m.menu.height() + m.queuedHeight()
+	taken := 3 + m.prompt.Height() + m.menu.height() + m.queuedHeight() + m.tasks.rows()
 	m.liveRows = max(height-taken-height/2, 1)
 }

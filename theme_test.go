@@ -49,10 +49,10 @@ func TestOnlyTheReaderSQuestionCarriesABackground(t *testing.T) {
 }
 
 // A palette of hex guesses picked for a dark terminal is grey on grey on a
-// light one. The palette is ANSI indices now, so the terminal's own scheme
-// answers the colour question and both backgrounds render the same styles —
-// what still changes with the background is the markdown renderer, which
-// picks a glamour theme by name.
+// light one. Everything with a hue is an ANSI index, so the terminal's own
+// scheme answers that question; what follows the background is the markdown
+// renderer, which picks a glamour theme by name, and the one grey — see below
+// for why that one cannot be an index.
 func TestTheTerminalSBackgroundPicksThePalette(t *testing.T) {
 	m := sized()
 	if m.theme.markdown != "dark" {
@@ -63,5 +63,27 @@ func TestTheTerminalSBackgroundPicksThePalette(t *testing.T) {
 
 	if m.theme.markdown != "light" {
 		t.Errorf("markdown style = %q, want light for a light terminal", m.theme.markdown)
+	}
+}
+
+// ANSI 8 is the one index a scheme is free to put anywhere, and dark themes
+// routinely set it a shade off the background — every muted style in this
+// client used it, so "dimmed" came out as unreadable on those terminals. The
+// 256-colour greys are fixed whatever the scheme, and they have to differ by
+// background or the light terminal gets back the grey-on-grey this replaced.
+func TestTheMutedGreyIsReadableOnEitherBackground(t *testing.T) {
+	dark := themed(true).muted.Render("in 0 · out 0")
+	light := themed(false).muted.Render("in 0 · out 0")
+
+	for _, rendered := range []string{dark, light} {
+		if strings.Contains(rendered, "\x1b[90m") || strings.Contains(rendered, "\x1b[2m") {
+			t.Errorf("muted = %q, want a fixed grey rather than ANSI 8 or faint", rendered)
+		}
+		if !strings.Contains(rendered, "\x1b[38;5;2") {
+			t.Errorf("muted = %q, want one of the 256-colour greys", rendered)
+		}
+	}
+	if dark == light {
+		t.Errorf("muted = %q on both backgrounds, want the light terminal a darker grey", dark)
 	}
 }

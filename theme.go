@@ -25,6 +25,7 @@ type palette struct {
 	client   lipgloss.Style
 	plain    lipgloss.Style
 	waiting  lipgloss.Style
+	muted    lipgloss.Style
 	markdown string
 }
 
@@ -34,9 +35,24 @@ type palette struct {
 // exists so the reader can find where they asked something while scrolling back
 // through an answer, not to decorate. Everything that is not the answer is
 // dimmed instead, because the answer is what the window is for.
+//
+// Dimmed is not the same as unreadable, and the difference is which grey. Every
+// muted style here used ANSI 8, which is the one index a scheme is free to put
+// wherever it likes — dark themes routinely set it a shade or two off the
+// background, so "dimmed" came out as barely-there on the terminals that do.
+// The 256-colour ramp is not themeable: 243 and 245 are #767676 and #8a8a8a
+// whatever the scheme, which clears 4.5:1 against white and black respectively,
+// so the muted text stays muted and stays legible. Everything with a hue is
+// still an ANSI index, because a hue is exactly what a scheme should own.
+//
+// waiting is the one muted-looking thing that is not muted. It was the same
+// grey as everything else, on the row that is the only proof the client is
+// still doing something, which left the busiest line on screen looking like
+// the deadest one. Cyan reads as pending and is not blue, so the phrase
+// changing colour is itself the signal that waiting turned into running.
 func themed(dark bool) palette {
 	pick := lipgloss.LightDark(dark)
-	quiet := lipgloss.Color("8")
+	quiet := pick(lipgloss.Color("243"), lipgloss.Color("245"))
 
 	style := "light"
 	if dark {
@@ -51,12 +67,13 @@ func themed(dark bool) palette {
 			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
 		thinking: lipgloss.NewStyle().Foreground(quiet).Italic(true).PaddingLeft(1),
-		tool:     lipgloss.NewStyle().Foreground(lipgloss.Color("4")),
+		tool:     plainTool,
 		result:   lipgloss.NewStyle().Foreground(quiet),
 		failure:  lipgloss.NewStyle().Foreground(lipgloss.Color("1")),
 		client:   lipgloss.NewStyle().Foreground(quiet),
 		plain:    lipgloss.NewStyle(),
-		waiting:  lipgloss.NewStyle().Foreground(quiet),
+		waiting:  lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
+		muted:    lipgloss.NewStyle().Foreground(quiet),
 		markdown: style,
 	}
 }

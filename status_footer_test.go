@@ -35,6 +35,62 @@ func TestEveryWaitingPhraseIsTrueTheMomentAskingStarts(t *testing.T) {
 	}
 }
 
+// The status row is the only proof the client is still doing something, and it
+// was drawn in the same grey as everything that had already finished — on the
+// terminals where a scheme parks ANSI 8 near the background, the busiest line
+// on screen was the hardest one to read. It carries a hue of its own now, and
+// the spinner carries the same one: a neutral spinner beside a coloured phrase
+// reads as two widgets sharing a row rather than one sentence about one run.
+func TestTheSpinnerAndTheWaitingPhraseAreOneColouredStatement(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.run.began = time.Now()
+
+	line, _, _ := strings.Cut(m.status(), "\n")
+	if strings.HasPrefix(line, visible(line)) {
+		t.Fatalf("status = %q, want the whole line coloured rather than left plain", line)
+	}
+	if opens := strings.Index(line, "\x1b["); opens != 0 {
+		t.Errorf("status = %q, want the colour to open before the spinner, not after it", line)
+	}
+	if inner := strings.Count(line, "\x1b["); inner != 2 {
+		t.Errorf("status = %q, want one colour and one reset, not %d sequences", line, inner)
+	}
+}
+
+// Which colour is the phase, so the frame where it changes is itself the
+// statement that waiting turned into running. An MCP tool has no glyph of its
+// own and used to fall back to no colour at all, which made a call in flight
+// look like a run that had stopped doing anything.
+func TestTheStatusColourSaysWhichPhaseTheRunIsIn(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.run.began = time.Now()
+	idle := m.status()
+
+	for _, held := range []string{"$ run_command(go test)", "• some_mcp_tool(x)"} {
+		m.run.running = map[string]string{"1": held}
+		busy := m.status()
+
+		if colourOf(busy) == "" {
+			t.Errorf("status running %q = %q, want a colour rather than a plain line", held, busy)
+		}
+		if colourOf(busy) == colourOf(idle) {
+			t.Errorf("status running %q wears the waiting colour, so the phase change is invisible", held)
+		}
+	}
+}
+
+// colourOf is the escape sequence a rendered line opens with, or the empty
+// string for one that opens with text.
+func colourOf(line string) string {
+	if !strings.HasPrefix(line, "\x1b[") {
+		return ""
+	}
+	sequence, _, _ := strings.Cut(line, "m")
+	return sequence
+}
+
 // Cost is the figure someone is answerable for and the one a backend only
 // sometimes reports, so it has to survive a terminal narrow enough to cut the
 // counts it summarises.

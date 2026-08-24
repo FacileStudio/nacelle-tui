@@ -57,5 +57,5 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 	}
 	local = append(local, reaching...)
 
-	return opened, local, nil
+	return opened, append(local, tasksTool{}), nil
 }

@@ -6,6 +6,43 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-24
+
+### Added
+
+- Queued messages can be edited. Up from the prompt now walks the lines still
+  waiting to be sent before it walks the questions already sent, and enter puts
+  the edited line back where it came from instead of adding a second copy. A
+  line that goes out while it is being edited becomes a new message rather than
+  overwriting whichever line has taken its place.
+- Esc hands the session to the queue. It still stops the answer being written,
+  but what was typed behind it now starts immediately instead of being thrown
+  away — esc means "not this one, move on", and ctrl+c keeps meaning stop.
+- Session transcripts under `~/.nacelle/sessions`, one JSONL file per run.
+  Questions, answers, and the name and duration of each tool call. Reasoning,
+  tool arguments, tool output and file diffs are never written: the only
+  reliable redaction is not collecting it. Directory `0700`, file `0600`.
+- A task list the model keeps through a `tasks` tool, drawn under the status
+  line, for a job big enough to need splitting into steps.
+- Each finished turn is appended to mycelium's event feed when mycelium is
+  installed, so a session shows up in its dashboard while it is still running.
+
+### Fixed
+
+- Pressing Up twice with one question in the history crashed the client. The
+  walk ran past the start of the list and indexed it at -1.
+- Muted text is readable again. Every dimmed style used ANSI 8, which a dark
+  scheme is free to park on the background, so "dimmed" came out invisible on
+  the terminals that move it. Greys now come from the 256-colour ramp, which is
+  not themeable, and follow the terminal's own background.
+- The status row says which phase a run is in: the spinner, the phrase and the
+  clock share one colour, cyan while the model is being waited on and the
+  tool's own colour once something runs. A tool with no glyph of its own — every
+  MCP tool — was drawn with no colour at all.
+- Truncating a styled line charged a cell for every character of an escape
+  sequence, so a coloured status line was cut a dozen cells early and cut
+  mid-sequence, leaking the colour into everything printed after it.
+
 ## [0.3.0] — 2026-08-24
 
 ### Added

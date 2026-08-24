@@ -17,7 +17,7 @@ func plain(diff string) string {
 
 func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 	change := editChange{path: "main.go", before: "one\ntwo\nthree\n", after: "one\nTWO\nthree\n"}
-	diff := renderDiff(change, 80)
+	diff := renderDiff(change, 80, themed(true).muted)
 	text := plain(diff)
 
 	if !strings.Contains(text, "- two") {
@@ -35,7 +35,7 @@ func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 
 func TestADiffColoursRemovalsRedAndAdditionsGreen(t *testing.T) {
 	change := editChange{path: "f", before: "old\n", after: "new\n"}
-	diff := renderDiff(change, 80)
+	diff := renderDiff(change, 80, themed(true).muted)
 
 	if !strings.Contains(diff, diffRemoved.Render("  - old")) {
 		t.Errorf("diff = %q, want removals in ANSI red", diff)
@@ -47,7 +47,7 @@ func TestADiffColoursRemovalsRedAndAdditionsGreen(t *testing.T) {
 
 func TestACreatedFileIsAllAdditions(t *testing.T) {
 	change := editChange{path: "new.go", before: "", after: "package main\n"}
-	diff := plain(renderDiff(change, 80))
+	diff := plain(renderDiff(change, 80, themed(true).muted))
 
 	if strings.Contains(diff, "- ") {
 		t.Errorf("diff = %q, want no removals for a new file", diff)
@@ -59,7 +59,7 @@ func TestACreatedFileIsAllAdditions(t *testing.T) {
 
 func TestAnUnchangedFileRendersNothing(t *testing.T) {
 	change := editChange{path: "same.go", before: "a\nb\n", after: "a\nb\n"}
-	if diff := renderDiff(change, 80); diff != "" {
+	if diff := renderDiff(change, 80, themed(true).muted); diff != "" {
 		t.Errorf("diff = %q, want nothing for identical contents", diff)
 	}
 }
@@ -67,7 +67,7 @@ func TestAnUnchangedFileRendersNothing(t *testing.T) {
 func TestADiffIsCutToTheWindowWithoutWrapping(t *testing.T) {
 	long := strings.Repeat("x", 200)
 	change := editChange{path: "f", before: long + "\n", after: long + "\nadded\n"}
-	diff := renderDiff(change, 40)
+	diff := renderDiff(change, 40, themed(true).muted)
 
 	for _, line := range strings.Split(diff, "\n") {
 		if width := len([]rune(plain(line))); width > 41 {
@@ -81,7 +81,7 @@ func TestAHugeRewriteFallsBackToOneReplacementBlock(t *testing.T) {
 	after := strings.Repeat("new line\n", 3000)
 	change := editChange{path: "f", before: before, after: after}
 
-	diff := renderDiff(change, 80)
+	diff := renderDiff(change, 80, themed(true).muted)
 	if got := strings.Count(plain(diff), "+ new line"); got == 0 {
 		t.Error("diff shows no additions for a wholesale rewrite")
 	}

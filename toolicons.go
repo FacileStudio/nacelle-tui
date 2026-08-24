@@ -37,6 +37,15 @@ var toolStyles = map[string]lipgloss.Style{
 	"»": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 }
 
+// plainTool is what a tool with no glyph of its own wears — the blue the shell
+// tool uses, which is the closest thing here to "a tool, unspecified".
+//
+// It is the single definition of that blue: toolLinePainted paints an unknown
+// call's line with it, toolTone gives the status phrase the same one, and
+// palette.tool takes it for "running N tools". Three places said Color("4")
+// on their own before, which is three places to change and two to forget.
+var plainTool = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
+
 // toolGlyph is the marker a tool's lines carry, and the key its colour is
 // read from.
 func toolGlyph(name string) string {
@@ -46,13 +55,19 @@ func toolGlyph(name string) string {
 	return "•"
 }
 
-// toolTone is the colour of whatever a named tool is doing right now, used
-// by the status phrase while it waits on one.
+// toolTone is the colour of whatever a named tool is doing right now, used by
+// the status line while it waits on one.
+//
+// A tool with no glyph of its own — every MCP tool — falls back to the same
+// blue toolLinePainted gives its line, not to no colour at all. Unstyled is
+// the one answer this cannot return: the status line reads the phase off the
+// colour now, so a plain tone would make an MCP call in flight look like a run
+// that had stopped doing anything.
 func toolTone(name string) lipgloss.Style {
 	if style, ok := toolStyles[toolGlyph(name)]; ok {
 		return style
 	}
-	return lipgloss.NewStyle()
+	return plainTool
 }
 
 // toolLinePainted colours a held call line by the glyph it opens with. A
@@ -65,5 +80,5 @@ func toolLinePainted(text string) string {
 			return style.Render(text)
 		}
 	}
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("4")).Render(text)
+	return plainTool.Render(text)
 }
