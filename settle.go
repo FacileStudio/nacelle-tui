@@ -134,6 +134,13 @@ func (m *model) nextToSend() int {
 // a model that will not accept this client's tool definitions does, and the
 // reader cannot guess that from an empty screen.
 //
+// Both lines are short enough not to wrap, and neither says whose fault it is.
+// The first draft explained that a model refusing tool definitions is the usual
+// cause, which was true, wrapped onto a second row, and read as the client
+// making an excuse for itself. What a reader can act on is the next thing to
+// try, so that is what it says; the diagnosis stays here, where it is wanted by
+// whoever is fixing this rather than by whoever is waiting on an answer.
+//
 // It runs after closeTurn so that a run which committed something is already
 // committed, and it says nothing when the run was abandoned or cut short: those
 // endings have their own words in cutShort, and two explanations of one silence
@@ -143,8 +150,8 @@ func (m *model) sayNothingCame() {
 		return
 	}
 	if m.run.usage.InputTokens == 0 && m.run.usage.OutputTokens == 0 {
-		m.say(fromFailure, "no answer · the model returned nothing and billed nothing, which is a request refused before it ran — a model that will not take this client's tools is the usual cause")
+		m.say(fromFailure, "no answer · nothing billed — try another model")
 		return
 	}
-	m.say(fromFailure, "no answer · the model ended the turn without saying anything")
+	m.say(fromFailure, "no answer · the turn ended empty")
 }

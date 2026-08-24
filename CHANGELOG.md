@@ -6,6 +6,21 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-08-24
+
+### Added
+
+- The banner names the client and its version — `nacelle 0.4.2 · openrouter ·
+  <model>`. It is the one thing on screen a bug report needs and nothing else
+  supplied, on a line that was already there.
+
+### Changed
+
+- The empty-run report is one line and says what to do rather than whose fault
+  it is. The first version explained that a model refusing tool definitions is
+  the usual cause: true, but it wrapped onto a second row and read as the
+  client making an excuse for itself. The diagnosis lives in the source now.
+
 ## [0.4.1] — 2026-08-24
 
 ### Fixed

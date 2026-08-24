@@ -10,7 +10,14 @@ import (
 
 // banner is the two lines the transcript opens with.
 //
-// The backend and model come first, because the failure that costs the most
+// It opens by naming itself and its own version, which is the one thing on
+// screen that a bug report needs and nothing else supplies. Asking somebody
+// which build they are on means asking them to quit and run -version, and the
+// answer to "it did this yesterday and not today" is usually the number they
+// would have had to go and look up. It costs a word on a line that is already
+// there.
+//
+// The backend and model come next, because the failure that costs the most
 // is discovering, after composing a question, that the client was pointed
 // at a provider you have no key for. Root, skill count and how many
 // CLAUDE.md/AGENTS.md files loaded come second — none of it is decorative:
@@ -56,7 +63,7 @@ func banner(backend nacelle.Backend, config Config, found loaded, mcp connected)
 	if *config.Bash {
 		bash = "bash on"
 	}
-	line := fmt.Sprintf("%s · %s\n%s · %s · %s · %s", backend.Name(), model, root,
+	line := fmt.Sprintf("nacelle %s · %s · %s\n%s · %s · %s · %s", version, backend.Name(), model, root,
 		countedNoun(len(found.skills), "skill"), countedNoun(found.contextFiles, "context file"), bash)
 
 	if mcp.servers > 0 {
