@@ -46,24 +46,34 @@ import (
 // decision — nil otherwise, so status() and key() only change behaviour for
 // someone who asked for a gate at all.
 type inflight struct {
-	results     <-chan result
-	cancel      context.CancelFunc
-	answer      strings.Builder
-	reasoning   strings.Builder
-	usage       nacelle.Usage
-	stop        nacelle.Stop
-	began       time.Time
-	interrupted time.Time
-	busy        bool
-	pending     *approvalRequest
-	queued      []string
-	running     map[string]string
+	results   <-chan result
+	cancel    context.CancelFunc
+	answer    strings.Builder
+	reasoning strings.Builder
+	usage     nacelle.Usage
+	stop      nacelle.Stop
+	busy      bool
+	pending   *approvalRequest
+	queued    []string
+	running   map[string]string
+
+	// clock is embedded rather than named so its fields still read as
+	// m.run.began and m.run.interrupted — the grouping exists only to keep
+	// inflight's own field count under filet's cap, the same reason turn
+	// below and Config's Discovery in config.go are embedded.
+	clock
 
 	// turn is embedded rather than named so both fields still read as
 	// m.run.asked and m.run.answered — the grouping exists only to keep
 	// inflight's own field count from growing every time this list does,
 	// the same reason Config embeds Discovery in config.go.
 	turn
+}
+
+// clock is when this run started and when esc was first pressed this one.
+type clock struct {
+	began       time.Time
+	interrupted time.Time
 }
 
 // turn is the assistant turn being built for the conversation: the tools it
