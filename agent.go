@@ -33,6 +33,7 @@ func build(config Config, local []nacelle.Tool, approve nacelle.Approve, hooks m
 	if err != nil {
 		return nil, nil, err
 	}
+	local = withTasks(local)
 
 	agent, err := nacelle.New(nacelle.Config{
 		Backend: retrying,

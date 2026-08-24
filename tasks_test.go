@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"charm.land/lipgloss/v2"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 // plan is a list of n steps with the given one running, which is the only
@@ -127,6 +129,45 @@ func TestRunReportsThePlanWithoutTouchingTheModel(t *testing.T) {
 	if len(m.tasks) != 1 || m.tasks[0].Title != "first" {
 		t.Errorf("model plan = %v, want the reported step", m.tasks)
 	}
+}
+
+// The plan tool must not be in the set localTools returns, because that set is
+// what a delegate inherits, and there is one plan on one screen. This fails
+// the moment somebody moves the append back into localTools where it looks
+// like it belongs.
+func TestThePlanToolIsMountedAfterTheDelegateTakesItsCopy(t *testing.T) {
+	config := defaults()
+	config.Root = t.TempDir()
+
+	set, local, err := localTools(config)
+	if set != nil {
+		t.Cleanup(func() {
+			if err := set.Close(); err != nil {
+				t.Errorf("closing the tool set: %v", err)
+			}
+		})
+	}
+	if err != nil {
+		t.Fatalf("localTools: %v", err)
+	}
+	if named(local, "tasks") != 0 {
+		t.Errorf("localTools returned the plan tool, so a delegate inherits it")
+	}
+	if got := named(withTasks(local), "tasks"); got != 1 {
+		t.Errorf("withTasks mounted the plan tool %d times, want exactly one", got)
+	}
+}
+
+// named counts the tools called name, because "is it there" and "is it there
+// twice" are the two ways the mounting can be wrong.
+func named(local []nacelle.Tool, name string) int {
+	count := 0
+	for _, tool := range local {
+		if tool.Name() == name {
+			count++
+		}
+	}
+	return count
 }
 
 // The text the model reads back names the step it is now on, so a model that

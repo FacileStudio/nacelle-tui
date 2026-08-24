@@ -15,12 +15,19 @@ func TestSlashClearResetsTranscriptConversationAndSpent(t *testing.T) {
 	m := sized()
 	m.conversation = append(m.conversation, nacelle.UserText("earlier"))
 	m.spent = nacelle.Usage{InputTokens: 42}
+	m.tasks = taskList{
+		{Title: "read the file", Status: statusDone},
+		{Title: "write the file", Status: statusActive},
+	}
 
 	m.prompt.SetValue("/clear")
 	printed := printedBy(m.ask())
 
 	if len(m.conversation) != 0 {
 		t.Errorf("conversation = %v, want it emptied", m.conversation)
+	}
+	if len(m.tasks) != 0 {
+		t.Errorf("tasks = %v, want the old session's plan dropped with the session it belonged to", m.tasks)
 	}
 	if m.spent != (nacelle.Usage{}) {
 		t.Errorf("spent = %+v, want it reset", m.spent)

@@ -104,10 +104,23 @@ func commandNames() []string {
 // The banner is re-said rather than left gone: it is the only place the
 // backend and model are ever named, and it is what makes the fresh screen
 // legible as a fresh session rather than as a client that lost its place.
+//
+// The reported plan goes with the conversation it belonged to. Left standing,
+// it is a list of steps from a session the model no longer remembers, so
+// nothing it does afterwards will ever overwrite it — a plan that outlives its
+// own run is not stale state, it is a lie about what is happening now. The
+// field is assigned rather than passed through recordTasks, which re-arms the
+// watcher on the way out and would leave a second goroutine on the reports
+// channel every time somebody cleared. Re-laying out is not optional either:
+// resize.go:105 reserves one screen row per line the plan draws, so dropping
+// the plan without recomputing the layout leaves the live region short by
+// however many rows the plan held, for the rest of the session.
 func (m *model) clear() tea.Cmd {
 	m.conversation = nil
 	m.spent = nacelle.Usage{}
 	m.size, m.trimmed = 0, 0
+	m.tasks = nil
+	m.layout(m.windowHeight)
 	m.forget()
 	echoed := m.prints()
 	m.say(fromClient, m.banner+" · cleared")

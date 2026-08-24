@@ -81,6 +81,21 @@ func newApprovals() *approvals {
 // granted against a legible call. It is permission for a tool, not a standing
 // waiver on inputs nobody has been able to read since.
 //
+// The plan tool is exempt and never prompts. It has no effect outside this
+// process: it validates a list of steps and hands it to the update loop to be
+// drawn, and the whole of what it did is then on screen anyway, which is a
+// better report than any prompt would be. The model is told to re-send the
+// plan every time a step changes, so asking about it costs roughly one
+// keypress per step of every plan — enough to make -approve-tools not worth
+// turning on, which is the failure mode where a safety feature stays off.
+//
+// Matching on the name is safe here in a way it would not be in general. Every
+// tool in this process has a fixed name, and a bridged MCP tool is always
+// composed as server_remote by the SDK (mcp/client/bridge.go, compose), so a
+// bare "tasks" cannot be anything but ours. The comparison goes through
+// tasksTool{}.Name() rather than a literal so that renaming the tool cannot
+// quietly leave a dead exemption behind.
+//
 // isAllowed is checked twice, once before the asking lock and once after:
 // the second check is for a call that arrived while waiting for its turn to
 // ask, and whose tool was allowed for the session by whichever call was
@@ -88,6 +103,10 @@ func newApprovals() *approvals {
 func (a *approvals) ask(ctx context.Context, name string, input json.RawMessage) bool {
 	if _, err := strictObject(input); errors.Is(err, errDuplicateKey) {
 		return false
+	}
+
+	if name == (tasksTool{}).Name() {
+		return true
 	}
 
 	if a.isAllowed(name) {

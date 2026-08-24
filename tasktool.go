@@ -19,8 +19,10 @@ import (
 // the reports channel and comes back as a message the update loop routes —
 // see delegate.go, which solves the same problem the same way.
 //
-// It is not wired in here. Whoever owns tools_main.go appends tasksTool{} to
-// the local set; this file only has to be safe to call.
+// It is not wired in here. withTasks in tools_main.go appends tasksTool{} to
+// the local set, and it has to run after withSubagents: a delegate inherits
+// every tool the parent holds when its own tool is built, and there is one
+// plan on one screen. This file only has to be safe to call.
 type tasksTool struct{}
 
 // Name is what the model calls.
