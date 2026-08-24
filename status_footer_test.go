@@ -12,13 +12,13 @@ import (
 // not that the wait is going anywhere, and one fixed sentence under it reads
 // as a frozen line to anyone who looks away and back.
 func TestTheWaitingWordsChangeWhileNothingArrives(t *testing.T) {
-	at := time.Unix(0, 0)
-	first := waitingVerb(at)
+	elapsed := time.Duration(0)
+	first := waitingVerb(elapsed)
 
-	if next := waitingVerb(at.Add(rephrase)); next == first {
+	if next := waitingVerb(elapsed + rephrase); next == first {
 		t.Errorf("the line still says %q one rephrase later, so a long wait never changes", next)
 	}
-	if round := waitingVerb(at.Add(time.Duration(len(waiting)) * rephrase)); round != first {
+	if round := waitingVerb(elapsed + time.Duration(len(waiting))*rephrase); round != first {
 		t.Errorf("waitingVerb = %q after a full cycle, want it back at %q", round, first)
 	}
 }

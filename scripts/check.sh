@@ -42,7 +42,7 @@ if ! command -v "$GO" >/dev/null 2>&1; then
 fi
 
 if [ "$mode" = "format" ]; then
-  git ls-files -co --exclude-standard '*.go' | xargs "$GOFMT" -w
+  git ls-files -co --exclude-standard -z -- '*.go' | xargs -0 "$GOFMT" -w
   echo "==> formatted"
   exit 0
 fi
@@ -59,8 +59,14 @@ status=0
 # Tracked and untracked-but-not-ignored, so a source file written a minute ago
 # is still checked and anything .gitignore already excludes is not. That is the
 # same set every other tool here means by "this repository's files".
+#
+# The handoff is null-delimited (-z feeding xargs -0), not whitespace-delimited:
+# git passes spaces through unquoted, so xargs would split a filename at its
+# space and gofmt would format half a path. It also means an empty list runs
+# gofmt on nothing rather than once with stdin attached, which GNU xargs would
+# do where the BSD one on macOS does not.
 echo "==> gofmt"
-unformatted="$(git ls-files -co --exclude-standard '*.go' | xargs "$GOFMT" -l)"
+unformatted="$(git ls-files -co --exclude-standard -z -- '*.go' | xargs -0 "$GOFMT" -l)"
 if [ -n "$unformatted" ]; then
   echo "gofmt: the following files are not formatted (run 'sh scripts/check.sh --format'):"
   echo "$unformatted"

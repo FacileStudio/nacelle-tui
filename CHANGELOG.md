@@ -6,6 +6,17 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Fixed
+
+- The gofmt pass in `scripts/check.sh` handed git's file list to `xargs` as
+  whitespace-delimited text. Git passes spaces in filenames through unquoted, so a path
+  with a space was split and half of it formatted; the list is null-delimited now (`-z`
+  feeding `xargs -0`), which also stops GNU `xargs` running gofmt once on an empty list
+  with stdin attached.
+- The status line's waiting phrase is bucketed from when this run began rather than from
+  the wall clock, so every wait opens on the first phrase instead of wherever the epoch
+  happened to be.
+
 ## [0.2.1] — 2026-08-24
 
 ### Changed

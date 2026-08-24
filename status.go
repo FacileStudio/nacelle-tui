@@ -156,7 +156,7 @@ func (m *model) footer() []string {
 // answered, so that is the half that rewords itself — see waiting for what a
 // line that never changed its words was mistaken for.
 func (m *model) working() string {
-	doing := waitingVerb(time.Now())
+	doing := waitingVerb(time.Since(m.run.began))
 	switch len(m.run.running) {
 	case 0:
 	case 1:
@@ -170,17 +170,21 @@ func (m *model) working() string {
 	return m.spin.View() + " " + doing
 }
 
-// waitingVerb is the phrase for one moment.
+// waitingVerb is the phrase for one moment of this run.
 //
-// It buckets the clock instead of counting frames, which is what makes it a
-// function of an instant and nothing else. Counting would need somewhere to
-// keep the count, and a count kept anywhere outside the run would carry into
-// the next wait and start it mid-rotation; kept inside the run it would be a
-// second thing to reset in a function that already resets six. Nothing here
-// asks for a tick of its own either — the spinner's own tick is what redraws
-// the line, so the words change on the first frame after a bucket rolls over.
-func waitingVerb(at time.Time) string {
-	return waiting[at.UnixNano()/int64(rephrase)%int64(len(waiting))]
+// It buckets the time since the run began instead of counting frames, which
+// makes it a function of an instant and nothing else. Counting would need
+// somewhere to keep the count, and a count kept anywhere outside the run would
+// carry into the next wait and start it mid-rotation; kept inside the run it
+// would be a second thing to reset in a function that already resets six.
+// Bucketing from the run's own start also means every wait opens on the first
+// phrase — one bucketed from the wall clock would open wherever the epoch
+// happened to be, saying "waiting on the backend" two hundred milliseconds in.
+// Nothing here asks for a tick of its own either — the spinner's own tick is
+// what redraws the line, so the words change on the first frame after a bucket
+// rolls over.
+func waitingVerb(elapsed time.Duration) string {
+	return waiting[int(elapsed/rephrase)%len(waiting)]
 }
 
 // ongoing is how long the run in flight has been going, and the empty string
