@@ -1,5 +1,9 @@
 package main
 
+import (
+	tea "charm.land/bubbletea/v2"
+)
+
 // promptHistory is the sent-question list behind the arrow keys.
 //
 // Up recalls the previous question into the input and each further Up walks
@@ -75,4 +79,22 @@ func (m *model) setEntry(value string) {
 func (m *model) atFirstRow() bool {
 	position := m.prompt.Cursor()
 	return position == nil || position.Y <= 0
+}
+
+// historyKey owns the arrow keys' second job: walking the sent-question
+// history. Up recalls from the input's first row and Down walks back forward;
+// anywhere the walk has nothing to say — no history yet, the caret mid-wrap,
+// Down at the end of it — the press falls through unhandled to the textarea's
+// own cursor movement.
+func (m *model) historyKey(press tea.KeyPressMsg) (bool, tea.Cmd) {
+	switch press.String() {
+	case "up":
+		return m.atFirstRow() && m.recall(), nil
+	case "down":
+		if m.hist.index >= len(m.hist.past) {
+			return false, nil
+		}
+		return m.advance(), nil
+	}
+	return false, nil
 }
