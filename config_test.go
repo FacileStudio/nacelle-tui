@@ -175,6 +175,26 @@ func TestMyceliumAndProjectContextDefaultOn(t *testing.T) {
 	}
 }
 
+// Diffs is a display toggle with no cost when nothing edited a file, so it
+// defaults on like the discovery toggles above rather than off like bash.
+// This proves the default and that a layer can still turn it off — which is
+// how today's one-line rendering is restored.
+func TestDiffsDefaultOnAndTurnableOff(t *testing.T) {
+	fallback := defaults()
+	if !*fallback.Diffs {
+		t.Error("diffs = false, want it on by default")
+	}
+
+	written(t, "diffs: false\n")
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	if *config.Diffs {
+		t.Error("diffs = true, want the file's false to win")
+	}
+}
+
 // SkillDirs is the one setting that is a slice rather than a string or a
 // *bool, so it needed its own line in merge() — this proves that line
 // actually runs, the same way TestTheFileBeatsTheDefaults proves it for a

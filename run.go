@@ -45,6 +45,11 @@ import (
 // pending is set only when -approve-tools is on and a call is waiting on a
 // decision — nil otherwise, so status() and key() only change behaviour for
 // someone who asked for a gate at all.
+//
+// editState is embedded rather than named so its fields still read as
+// m.run.root, m.run.diffs and m.run.edits — the grouping exists only to keep
+// inflight's own field count under filet's cap, the same reason clock and
+// turn below are embedded.
 type inflight struct {
 	results   <-chan result
 	cancel    context.CancelFunc
@@ -55,7 +60,8 @@ type inflight struct {
 	busy      bool
 	pending   *approvalRequest
 	queued    []string
-	running   map[string]string
+
+	editState
 
 	// clock is embedded rather than named so its fields still read as
 	// m.run.began and m.run.interrupted — the grouping exists only to keep
@@ -84,6 +90,23 @@ type clock struct {
 type turn struct {
 	asked    []nacelle.Part
 	answered []nacelle.Part
+}
+
+// editState is what a run tracks per tool call, plus what drawing a diff for
+// its file edits needs: the directory the file tools work in, whether diffs
+// were asked for at all, and the before/after of every editing call in
+// flight, keyed by call id alongside the transcript line each call will
+// print. running lives here with edits because both are emptied by the same
+// two places — settle and stranded — and neither survives its run.
+//
+// The capture happens when the call is seen rather than when it finishes —
+// by then write_file has already replaced the very contents the diff's
+// before side needs.
+type editState struct {
+	root    string
+	diffs   bool
+	running map[string]string
+	edits   map[string]editChange
 }
 
 // send starts a run over text — a plain question as typed, or a

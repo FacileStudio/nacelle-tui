@@ -95,6 +95,11 @@ func (m *model) absorb(event nacelle.Event) {
 	case nacelle.KindToolCall:
 		m.thought()
 		m.run.running[event.Tool.ID] = toolLine(event.Tool.Name, event.Tool.Input, m.width)
+		if m.run.diffs {
+			if change, ok := captureEdit(m.run.root, event.Tool.Name, event.Tool.Input); ok {
+				m.run.edits[event.Tool.ID] = change
+			}
+		}
 	case nacelle.KindToolResult:
 		m.finished(event.Tool)
 	case nacelle.KindTurn:

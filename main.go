@@ -100,6 +100,7 @@ func run() error {
 	return launch(uiSession{
 		agent: agent, banner: banner(backend, config, found, mcp),
 		skills: found.skills, hookNotice: hookNotice, gate: approvalGate,
+		root: config.Root, diffs: *config.Diffs,
 	})
 }
 
@@ -111,6 +112,8 @@ type uiSession struct {
 	skills     []skill
 	hookNotice string
 	gate       *approvals
+	root       string
+	diffs      bool
 }
 
 // launch opens the program, delivers whatever was queued for the transcript
@@ -132,6 +135,8 @@ type uiSession struct {
 // even when both are on screen.
 func launch(c uiSession) error {
 	opened := newModel(c.agent, c.banner, c.skills)
+	opened.run.root = c.root
+	opened.run.diffs = c.diffs
 	if c.hookNotice != "" {
 		opened.say(fromClient, c.hookNotice)
 	}

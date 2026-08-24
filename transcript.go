@@ -30,6 +30,10 @@ const (
 	// fromResult is that tool having finished.
 	fromResult
 
+	// fromDiff is the before/after of a file edit, styled line by line by the
+	// renderer that produced it rather than painted again here.
+	fromDiff
+
 	// fromFailure is the run falling over.
 	fromFailure
 )
@@ -101,6 +105,8 @@ func (m *model) paint(who speaker, text string) string {
 		return m.theme.tool.Width(width).Render("⏺ " + text)
 	case fromResult:
 		return m.theme.result.Width(width).Render("  ⤷ " + text)
+	case fromDiff:
+		return text
 	case fromFailure:
 		return m.theme.failure.Width(width).Render(text)
 	default:

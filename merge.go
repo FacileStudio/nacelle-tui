@@ -81,4 +81,7 @@ func (c *Config) mergeToggles(over Config) {
 	if over.ApproveTools != nil {
 		c.ApproveTools = over.ApproveTools
 	}
+	if over.Diffs != nil {
+		c.Diffs = over.Diffs
+	}
 }

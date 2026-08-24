@@ -29,10 +29,13 @@ func fromEnv() Config {
 		Model:         os.Getenv(EnvPrefix + "MODEL"),
 		Root:          os.Getenv(EnvPrefix + "ROOT"),
 		System:        os.Getenv(EnvPrefix + "SYSTEM"),
-		Bash:          envBool(EnvPrefix + "BASH"),
-		ApproveTools:  envBool(EnvPrefix + "APPROVE_TOOLS"),
 		MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"),
 		Sources:       Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
+		Toggles: Toggles{
+			Bash:         envBool(EnvPrefix + "BASH"),
+			ApproveTools: envBool(EnvPrefix + "APPROVE_TOOLS"),
+			Diffs:        envBool(EnvPrefix + "DIFFS"),
+		},
 		Reasoning: Reasoning{
 			Effort:   os.Getenv(EnvPrefix + "EFFORT"),
 			Thinking: envBool(EnvPrefix + "THINKING"),
