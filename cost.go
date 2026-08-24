@@ -31,7 +31,7 @@ func (m *model) cost() tea.Cmd {
 		"session · " + lasted(time.Since(m.began)),
 	}
 	if m.tools > 0 {
-		pieces = append(pieces, fmt.Sprintf("%d tool%s", m.tools, plural(m.tools)))
+		pieces = append(pieces, countedNoun(m.tools, "tool"))
 	}
 	if m.failed > 0 {
 		pieces = append(pieces, fmt.Sprintf("%d failed", m.failed))
@@ -48,12 +48,4 @@ func (m *model) cost() tea.Cmd {
 
 	m.say(fromClient, strings.Join(pieces, " · "))
 	return nil
-}
-
-// plural is the letter a count of things takes when it is not one.
-func plural(n int) string {
-	if n == 1 {
-		return ""
-	}
-	return "s"
 }
