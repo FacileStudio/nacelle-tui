@@ -16,6 +16,11 @@ profiles and panes are what a product grows, not what a contract test needs.
 - Lets the model read and edit files under a root you choose, run commands when
   `-bash` is on, search and fetch the web, and call MCP server tools from files
   every other client already has (`-mcp ~/.claude/.mcp.json`)
+- Lets the model lay a large job out as steps and keep them current while it
+  works, drawn live above the prompt and scrolled to the step in flight
+- Delegates a self-contained side task to a nested run with `-subagents`, so a
+  wide search or a log dump costs the conversation one answer instead of its
+  whole output
 - Discovers project context (CLAUDE.md, AGENTS.md), skills and mycelium memory
   into the system prompt, each behind its own flag
 - Gates tool calls behind an approval prompt with `-approve-tools`, and trusts
@@ -72,6 +77,7 @@ environment variables, then flags. The useful ones:
 | `-root` | `NACELLE_ROOT` | directory the file tools may reach |
 | `-bash` | `NACELLE_BASH` | let the model run commands (off by default) |
 | `-approve-tools` | `NACELLE_APPROVE_TOOLS` | ask before every tool call runs |
+| `-subagents` | `NACELLE_SUBAGENTS` | give the model a delegate with its own context window (off by default) |
 | `-max-iterations` | `NACELLE_MAX_ITERATIONS` | how many times the model may be asked |
 | `-mcp` | — | MCP servers file (repeatable) |
 | `-skill-dir` | `NACELLE_SKILL_DIRS` | extra skills directory (repeatable) |
