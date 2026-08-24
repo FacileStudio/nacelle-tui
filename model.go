@@ -66,7 +66,7 @@ type model struct {
 	screen
 	thoughts
 	hist promptHistory
-	run inflight
+	run  inflight
 }
 
 // newModel builds the client. The banner names the backend and model, so
