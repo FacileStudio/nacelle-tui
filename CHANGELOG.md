@@ -6,6 +6,37 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-08-24
+
+### Fixed
+
+- A queued message being edited could still be sent. The offset naming it
+  counts from the end of the queue, which survives the queue draining from the
+  front — but skipping the edited line meant lines behind it were drained too,
+  and each of those shortened the queue without moving the edited line closer
+  to the end. The offset then pointed past the queue, nothing looked like it
+  was being edited, and the next line out was the one still being rewritten.
+  The reader's own edit then arrived behind it as a second, near-identical
+  message. Found by review, not by use.
+- The banner no longer wraps on terminals wider than 80 columns. It is painted
+  before any window size has been reported, so it was held to the 80 the model
+  starts at and put `· bash on` on a line of its own. What the client says
+  about itself is now left for the terminal to wrap, like everything else.
+- Session filenames are UTC and carry no punctuation. Local time is not in
+  chronological order across a DST boundary or a flight, and sorting the names
+  is the only index the directory has; RFC3339 also spells the offset with a
+  colon, which Windows and SMB refuse and the Finder renders as a slash.
+
+### Changed
+
+- The reader's own questions carry a background again, not just bold. An
+  answer is full of bold — every heading and emphasised phrase the model
+  writes — so the one bold line meaning "you said this" was competing with a
+  page of them, and scrolling back for your own question meant reading rather
+  than glancing.
+- The client separates clauses with `·` and no dashes, so the empty-run report
+  reads `no answer · nothing billed · try another model`.
+
 ## [0.4.2] — 2026-08-24
 
 ### Added

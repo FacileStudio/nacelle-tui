@@ -87,6 +87,14 @@ func (m *model) prints() tea.Cmd {
 // answer is the thing being read, so it gets none, and is rendered as the
 // markdown the model almost certainly wrote it in.
 //
+// What the client says about itself is the one thing not held to a width, and
+// the banner is why. It is painted in newModel, before any WindowSizeMsg has
+// arrived, so the only width available is the 80 the model starts at — and it
+// is now printed to stdout before the program starts, so it is never repainted
+// either. Held to 80 it wrapped "· bash on" onto a line of its own on every
+// terminal wider than that. Unconstrained, the terminal wraps it the way it
+// wraps everything else, which is what this file argues for everywhere else.
+//
 // Width is taken once, here, at the moment the line is printed. It can never
 // be re-taken: the line is in the terminal's scrollback from then on, and a
 // resize reflows it the way the terminal reflows everything else rather than
@@ -111,7 +119,7 @@ func (m *model) paint(who speaker, text string) string {
 	case fromFailure:
 		return m.theme.failure.Width(width).Render(text)
 	default:
-		return m.theme.client.Width(width).Render(text)
+		return m.theme.client.Render(text)
 	}
 }
 

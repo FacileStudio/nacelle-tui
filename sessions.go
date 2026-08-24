@@ -62,11 +62,18 @@ type sessionEntry struct {
 // are not world-readable on a shared host, and a mode set after the fact
 // leaves a window where they were.
 //
-// The name is a timestamp plus the pid. The timestamp sorts the directory
-// chronologically with no index to maintain, and the pid is what keeps two
-// clients started in the same second from appending into one file — RFC3339
-// has second resolution, and two shells launched from one command is a normal
+// The name is a timestamp plus the pid. The pid is what keeps two clients
+// started in the same second from appending into one file: the stamp has
+// second resolution, and two shells launched from one command is a normal
 // thing to do rather than a rare race.
+//
+// The stamp is UTC and carries no punctuation, which is two deliberate
+// departures from RFC3339. Local time sorts wrong: the offset changes at every
+// DST boundary and on every flight, so a directory named in local time is not
+// in chronological order however it looks, and sorting the names is the only
+// index this has. And RFC3339 spells the offset with a colon, which is a
+// character Windows refuses outright, SMB shares refuse for the same reason,
+// and the Finder renders as a slash.
 //
 // The header is written here rather than lazily on the first line, so an
 // abandoned session still leaves a file saying what it was going to be. A
@@ -82,7 +89,7 @@ func newSessionLog(backend, model, root string) *sessionLog {
 		return nil
 	}
 	now := time.Now()
-	name := now.Format(time.RFC3339) + "-" + strconv.Itoa(os.Getpid()) + ".jsonl"
+	name := now.UTC().Format("20060102T150405Z") + "-" + strconv.Itoa(os.Getpid()) + ".jsonl"
 	log := &sessionLog{path: filepath.Join(dir, name)}
 	if !log.write(sessionHeader{
 		Version: 1,
