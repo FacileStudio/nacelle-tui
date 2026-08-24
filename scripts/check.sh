@@ -42,15 +42,25 @@ if ! command -v "$GO" >/dev/null 2>&1; then
 fi
 
 if [ "$mode" = "format" ]; then
-  "$GOFMT" -w .
+  git ls-files -co --exclude-standard '*.go' | xargs "$GOFMT" -w
   echo "==> formatted"
   exit 0
 fi
 
 status=0
 
+# gofmt is pointed at this repository's own sources rather than at the tree,
+# because the tree is not only this repository. A git worktree checked out
+# below the root — which is where agent tooling puts one, under .claude/ — is
+# walked by `gofmt -l .` like any other directory, so somebody else's
+# half-written file failed this gate and the pre-push hook with it, naming a
+# path the person pushing had never opened.
+#
+# Tracked and untracked-but-not-ignored, so a source file written a minute ago
+# is still checked and anything .gitignore already excludes is not. That is the
+# same set every other tool here means by "this repository's files".
 echo "==> gofmt"
-unformatted="$("$GOFMT" -l .)"
+unformatted="$(git ls-files -co --exclude-standard '*.go' | xargs "$GOFMT" -l)"
 if [ -n "$unformatted" ]; then
   echo "gofmt: the following files are not formatted (run 'sh scripts/check.sh --format'):"
   echo "$unformatted"
