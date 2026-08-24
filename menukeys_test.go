@@ -201,8 +201,8 @@ func TestViewMenuSelectedRowAlignsWithUnselectedRows(t *testing.T) {
 	if !strings.HasPrefix(lines[0], "/clear") {
 		t.Errorf("first row = %q after moving selection away, want it to stay aligned", lines[0])
 	}
-	if !strings.HasPrefix(lines[1], "/help") {
-		t.Errorf("second row = %q once selected, want it to start with /help, not a leading space", lines[1])
+	if !strings.HasPrefix(lines[1], "/cost") {
+		t.Errorf("second row = %q once selected, want it to start with /cost, not a leading space", lines[1])
 	}
 }
 
