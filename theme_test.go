@@ -27,8 +27,8 @@ func TestAnAnswerIsRenderedAsMarkdownRatherThanShownRaw(t *testing.T) {
 }
 
 // Nobody on screen is labelled — "you:" or "nacelle:" spends the margin on
-// something the styling already carries. The question is found by its
-// background instead, which is why it is the one entry that gets one.
+// something the styling already carries. The question is the one entry set in
+// bold, which is how it is found again while scrolling back.
 func TestOnlyTheReaderSQuestionCarriesABackground(t *testing.T) {
 	m := sized()
 	m.say(fromReader, "what is in go.mod?")
@@ -37,36 +37,30 @@ func TestOnlyTheReaderSQuestionCarriesABackground(t *testing.T) {
 	question := m.unprinted[len(m.unprinted)-2]
 	answer := m.unprinted[len(m.unprinted)-1]
 
-	if !strings.Contains(question, "48;2;") {
-		t.Errorf("question = %q, want a background so it is findable while scrolling back", question)
+	if !strings.Contains(question, "\x1b[1m") {
+		t.Errorf("question = %q, want it bold so it is findable while scrolling back", question)
 	}
-	if strings.Contains(answer, "48;2;") {
-		t.Errorf("answer = %q, want no background — the answer is what the window is for", answer)
+	if strings.Contains(answer, "\x1b[1m") {
+		t.Errorf("answer = %q, want it plain — the answer is what the window is for", answer)
 	}
 	if strings.Contains(question, "you:") || strings.Contains(answer, "nacelle:") {
 		t.Error("an entry was labelled with who said it, which the styling already says")
 	}
 }
 
-// A palette picked for a dark terminal is grey on grey on a light one, so the
-// client asks rather than guesses.
-//
-// It changes what is said from then on, not what was said before. Lines
-// already printed belong to the terminal's scrollback and cannot be repainted
-// — the same reason a resize no longer reflows them, and the trade the
-// inline client makes to hand scrolling back to the terminal.
+// A palette of hex guesses picked for a dark terminal is grey on grey on a
+// light one. The palette is ANSI indices now, so the terminal's own scheme
+// answers the colour question and both backgrounds render the same styles —
+// what still changes with the background is the markdown renderer, which
+// picks a glamour theme by name.
 func TestTheTerminalSBackgroundPicksThePalette(t *testing.T) {
 	m := sized()
-	m.say(fromReader, "one question")
-	before := m.unprinted[len(m.unprinted)-1]
+	if m.theme.markdown != "dark" {
+		t.Errorf("markdown style = %q, want dark before anything is reported", m.theme.markdown)
+	}
 
 	m.Update(tea.BackgroundColorMsg{Color: color.White})
-	m.say(fromReader, "one question")
-	after := m.unprinted[len(m.unprinted)-1]
 
-	if before == after {
-		t.Error("the palette did not change once the terminal reported a light background")
-	}
 	if m.theme.markdown != "light" {
 		t.Errorf("markdown style = %q, want light for a light terminal", m.theme.markdown)
 	}
