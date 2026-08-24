@@ -134,7 +134,7 @@ func defaults() Config {
 		MaxIterations: &iterations,
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{
-			Mycelium:         &mycelium,
+			Mycelium:       &mycelium,
 			ProjectContext: &projectContext,
 			Skills:         &skills,
 			TrustSkills:    &trustSkills,

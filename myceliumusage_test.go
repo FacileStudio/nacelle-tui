@@ -131,11 +131,11 @@ func TestAnUnpricedTurnCarriesNoCost(t *testing.T) {
 
 func TestRepoNameFromRemote(t *testing.T) {
 	for url, want := range map[string]string{
-		"git@github.com:FacileStudio/Mycelium.git":  "Mycelium",
-		"https://github.com/FacileStudio/nacelle": "nacelle",
-		"https://github.com/FacileStudio/x.git/":  "x",
-		"":                                        "",
-		"/tmp/a repo":                             "",
+		"git@github.com:FacileStudio/Mycelium.git": "Mycelium",
+		"https://github.com/FacileStudio/nacelle":  "nacelle",
+		"https://github.com/FacileStudio/x.git/":   "x",
+		"":                                         "",
+		"/tmp/a repo":                              "",
 	} {
 		if got := repoNameFromRemote(url); got != want {
 			t.Errorf("repoNameFromRemote(%q) = %q, want %q", url, got, want)

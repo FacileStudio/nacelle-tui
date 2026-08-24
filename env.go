@@ -47,7 +47,7 @@ func fromEnv() Config {
 			Fetch:  envBool(EnvPrefix + "FETCH"),
 		},
 		Discovery: Discovery{
-			Mycelium:         envBool(EnvPrefix + "MYCELIUM"),
+			Mycelium:       envBool(EnvPrefix + "MYCELIUM"),
 			ProjectContext: envBool(EnvPrefix + "PROJECT_CONTEXT"),
 			Skills:         envBool(EnvPrefix + "SKILLS"),
 			TrustSkills:    envBool(EnvPrefix + "TRUST_SKILLS"),

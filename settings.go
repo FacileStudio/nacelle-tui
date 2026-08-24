@@ -31,7 +31,7 @@ type Web struct {
 // skills. See Config's own doc comment for why it is a separate type at
 // all.
 type Discovery struct {
-	Mycelium         *bool `yaml:"mycelium"`
+	Mycelium       *bool `yaml:"mycelium"`
 	ProjectContext *bool `yaml:"project_context"`
 	Skills         *bool `yaml:"skills"`
 	TrustSkills    *bool `yaml:"trust_skills"`

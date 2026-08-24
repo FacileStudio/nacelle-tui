@@ -162,7 +162,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"bash":             func(c *Config) { c.Bash = f.bash },
 		"subagents":        func(c *Config) { c.Subagents = f.subagents },
 		"thinking":         func(c *Config) { c.Thinking = f.thinking },
-		"mycelium":           func(c *Config) { c.Mycelium = f.mycelium },
+		"mycelium":         func(c *Config) { c.Mycelium = f.mycelium },
 		"project-context":  func(c *Config) { c.ProjectContext = f.projectContext },
 		"skills":           func(c *Config) { c.Skills = f.skills },
 		"trust-skills":     func(c *Config) { c.TrustSkills = f.trustSkills },
