@@ -30,6 +30,7 @@ func fromEnv() Config {
 		Root:          os.Getenv(EnvPrefix + "ROOT"),
 		System:        os.Getenv(EnvPrefix + "SYSTEM"),
 		Bash:          envBool(EnvPrefix + "BASH"),
+		Subagents:     envBool(EnvPrefix + "SUBAGENTS"),
 		ApproveTools:  envBool(EnvPrefix + "APPROVE_TOOLS"),
 		MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"),
 		Sources:       Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},

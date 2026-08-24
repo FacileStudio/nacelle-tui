@@ -6,6 +6,14 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+
+- `-subagents` / `subagents:` / `NACELLE_SUBAGENTS`, off by default. When on, the model
+  gets a `subagent` tool that delegates a self-contained task to a fresh nested run — its
+  own context window, the same backend and tools — and only the delegate's final answer
+  comes back. The nested run cannot delegate further and denies every tool call by
+  default; it runs unattended or not at all.
+
 ### Fixed
 
 - The gofmt pass in `scripts/check.sh` handed git's file list to `xargs` as

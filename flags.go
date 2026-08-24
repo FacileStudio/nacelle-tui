@@ -32,8 +32,8 @@ type declared struct {
 	backend, model, root, system *string
 	reasoningFlags
 	webFlags
-	bash, approveTools *bool
-	iterations         *int
+	bash, subagents, approveTools *bool
+	iterations                    *int
 	sourceFlags
 	discoveryFlags
 }
@@ -76,6 +76,7 @@ func declareFlags(fallback Config) declared {
 		reasoningFlags: declareReasoning(fallback),
 		webFlags:       declareWeb(fallback),
 		bash:           flag.Bool("bash", *fallback.Bash, "let the model run commands"),
+		subagents:      flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
 		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools,
 			"ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
@@ -152,6 +153,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"search":           func(c *Config) { c.Search = f.search },
 		"fetch":            func(c *Config) { c.Fetch = f.fetch },
 		"bash":             func(c *Config) { c.Bash = f.bash },
+		"subagents":        func(c *Config) { c.Subagents = f.subagents },
 		"thinking":         func(c *Config) { c.Thinking = f.thinking },
 		"mycelium":           func(c *Config) { c.Mycelium = f.mycelium },
 		"project-context":  func(c *Config) { c.ProjectContext = f.projectContext },

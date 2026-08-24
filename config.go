@@ -28,6 +28,7 @@ type Config struct {
 	Root          string `yaml:"root"`
 	System        string `yaml:"system"`
 	Bash          *bool  `yaml:"bash"`
+	Subagents     *bool  `yaml:"subagents"`
 	ApproveTools  *bool  `yaml:"approve_tools"`
 	MaxIterations *int   `yaml:"max_iterations"`
 
@@ -100,6 +101,7 @@ type Config struct {
 func defaults() Config {
 	bash, thinking, mycelium, projectContext, skills, trustSkills, approveTools, trustHooks :=
 		false, false, true, true, true, false, false, false
+	subagents := false
 	iterations, budget := 40, int64(0)
 	search, fetch := "", true
 	return Config{
@@ -108,6 +110,7 @@ func defaults() Config {
 		Root:          ".",
 		System:        defaultSystem,
 		Bash:          &bash,
+		Subagents:     &subagents,
 		ApproveTools:  &approveTools,
 		MaxIterations: &iterations,
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},

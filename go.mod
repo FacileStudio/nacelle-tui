@@ -12,6 +12,8 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 )
 
+replace github.com/FacileStudio/nacelle => ../nacelle-wt-subagents
+
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/anthropics/anthropic-sdk-go v1.63.1 // indirect
