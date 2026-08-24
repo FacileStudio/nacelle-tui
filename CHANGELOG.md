@@ -6,6 +6,14 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+
+- File edits draw a git-style diff under the tool's one-line report: removals in the
+  terminal's red, additions in its green, with three lines of context around each block and a
+  cap of four hundred lines. `edit_file` diffs from its own old/new arguments; `write_file`
+  from what the file held when the call was seen against the contents it wrote. Off with
+  `diffs: false` (`NACELLE_DIFFS`, `-diffs`), which restores the bare one-line report.
+
 ### Fixed
 
 - The gofmt pass in `scripts/check.sh` handed git's file list to `xargs` as

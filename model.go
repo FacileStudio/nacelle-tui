@@ -91,7 +91,11 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
 			skills: byName,
 			menu:   commandMenu{items: menuItems(byName)},
 		},
-		run: inflight{cancel: func() {}, running: map[string]string{}},
+		run: inflight{
+			cancel: func() {},
+			editState: editState{
+				running: map[string]string{}, edits: map[string]editChange{}},
+		},
 	}
 	m.pretty = prettier(m.theme.markdown, m.width)
 	m.say(fromClient, banner+"\n")

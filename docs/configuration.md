@@ -72,10 +72,10 @@ could tell apart.
 
 | Layer | Source | Notes |
 |---|---|---|
-| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-mycelium`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-max-iterations` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
-| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_MYCELIUM`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_SEARCH`, `NACELLE_FETCH` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories |
+| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-mycelium`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
+| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_MYCELIUM`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_SEARCH`, `NACELLE_FETCH` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `mycelium: true`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `max_iterations: 40`, `search: ""` (no web search), `fetch: true` |
+| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `mycelium: true`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 40`, `search: ""` (no web search), `fetch: true` |
 
 `mycelium`, `project_context` and `skills` default **on**, unlike `bash`: each fails soft to
 nothing when there is nothing to find — no `mycelium` on `PATH`, no `AGENTS.md`/`CLAUDE.md`
@@ -108,6 +108,7 @@ skill_dirs:
 mcp:
   - ~/.claude/.mcp.json
 approve_tools: false
+diffs: true
 max_iterations: 40
 search: https://searx.example
 fetch: true
@@ -416,6 +417,30 @@ past:
 
 What this replaced printed the raw JSON input and then a second `done in 12ms` line under it,
 so every transcript was twice as tall in order to report that nothing had gone wrong.
+
+**A file edit also draws its diff.** When `edit_file` or `write_file` changes a file, the
+one-line report is followed by what changed, git-style — removals in the terminal's red,
+additions in its green, with three unchanged lines around each block so the eye can find where
+in the file it is looking:
+
+```
+⏺ edit_file(toolline.go) · 4ms
+    func (m *model) finished(tool *nacelle.ToolEvent) {
+  -   line := m.run.running[tool.ID]
+  +   line, held := m.run.running[tool.ID]
+      delete(m.run.running, tool.ID)
+```
+
+The colours are ANSI indices rather than fixed values, so they follow the terminal's own scheme.
+The diff is cut to the window width so nothing wraps in scrollback, and capped at four hundred
+lines with a `… more` marker saying it was cut rather than pretending it wasn't. A wholesale
+rewrite too large to align line by line reads as one block of removals against additions.
+
+`edit_file` carries both sides of the change in its own input, so nothing is read from disk to
+draw it; `write_file` carries only the new contents, so what the file held when the call was seen
+becomes the before side — empty for a file being created, which shows as all additions. Only
+these two tools get a diff: search, commands and MCP tools render exactly as they did before.
+Turn it off with `diffs: false` (`NACELLE_DIFFS`, `-diffs`) to restore the bare one-line report.
 
 **Input with a repeated key is refused rather than summarised.** `encoding/json` keeps the last
 value of a duplicate key silently, so `{"command":"ls","command":"rm -rf /"}` can be shown as

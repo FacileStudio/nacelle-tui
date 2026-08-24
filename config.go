@@ -27,9 +27,13 @@ type Config struct {
 	Model         string `yaml:"model"`
 	Root          string `yaml:"root"`
 	System        string `yaml:"system"`
-	Bash          *bool  `yaml:"bash"`
-	ApproveTools  *bool  `yaml:"approve_tools"`
 	MaxIterations *int   `yaml:"max_iterations"`
+
+	// Toggles is embedded and inlined so Bash, ApproveTools and Diffs keep
+	// the keys they always had at the file's top level, and so this struct's
+	// own field count stops growing every time a switch joins them — the
+	// same reason Discovery below exists.
+	Toggles `yaml:",inline"`
 
 	// Reasoning is embedded and inlined for both of the reasons the three
 	// groups below are, and the inlining is load-bearing in a way it is
@@ -71,6 +75,22 @@ type Config struct {
 	Hooks hookConfig `yaml:"hooks"`
 }
 
+// Toggles is the on/off settings: whether the model may run commands, whether
+// a human is asked before tools run, and whether file edits are drawn as
+// diffs. One field per key, all pointers, for the reason Config's own doc
+// comment gives.
+type Toggles struct {
+	Bash         *bool `yaml:"bash"`
+	ApproveTools *bool `yaml:"approve_tools"`
+
+	// Diffs draws what an editing tool did to a file as a git-style diff
+	// under its one-line report. Purely a display choice, which is why it
+	// defaults on where Bash defaults off: it costs nothing when nothing
+	// edited a file, and `diffs: false` restores the bare one-line
+	// rendering.
+	Diffs *bool `yaml:"diffs"`
+}
+
 // defaults is the bottom layer, and the only one that answers everything.
 //
 // Mycelium, ProjectContext and Skills default on, unlike Bash: all three fail
@@ -98,8 +118,8 @@ type Config struct {
 // this is the layer that answers everything and every deref above it depends
 // on that being true.
 func defaults() Config {
-	bash, thinking, mycelium, projectContext, skills, trustSkills, approveTools, trustHooks :=
-		false, false, true, true, true, false, false, false
+	bash, thinking, mycelium, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
+		false, false, true, true, true, false, false, false, true
 	iterations, budget := 40, int64(0)
 	search, fetch := "", true
 	return Config{
@@ -107,8 +127,7 @@ func defaults() Config {
 		Backend:       "anthropic",
 		Root:          ".",
 		System:        defaultSystem,
-		Bash:          &bash,
-		ApproveTools:  &approveTools,
+		Toggles:       Toggles{Bash: &bash, ApproveTools: &approveTools, Diffs: &diffs},
 		MaxIterations: &iterations,
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{

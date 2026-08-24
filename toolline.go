@@ -139,6 +139,8 @@ func oneLine(raw json.RawMessage) string {
 func (m *model) finished(tool *nacelle.ToolEvent) {
 	line, held := m.run.running[tool.ID]
 	delete(m.run.running, tool.ID)
+	change, edited := m.run.edits[tool.ID]
+	delete(m.run.edits, tool.ID)
 
 	if tool.Discarded {
 		return
@@ -154,6 +156,11 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		return
 	}
 	m.say(fromTool, line+" · "+took(tool.Duration))
+	if edited {
+		if diff := renderDiff(change, m.width); diff != "" {
+			m.say(fromDiff, diff)
+		}
+	}
 }
 
 // stranded says the lines still being held for calls that never answered, and
@@ -179,6 +186,7 @@ func (m *model) stranded() {
 		m.say(fromTool, m.run.running[id])
 	}
 	m.run.running = map[string]string{}
+	m.run.edits = map[string]editChange{}
 }
 
 // failed is what a tool that fell over reads as. It is reported rather than

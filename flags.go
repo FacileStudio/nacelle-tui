@@ -33,6 +33,7 @@ type declared struct {
 	reasoningFlags
 	webFlags
 	bash, approveTools *bool
+	diffs              *bool
 	iterations         *int
 	sourceFlags
 	discoveryFlags
@@ -78,6 +79,8 @@ func declareFlags(fallback Config) declared {
 		bash:           flag.Bool("bash", *fallback.Bash, "let the model run commands"),
 		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools,
 			"ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
+		diffs: flag.Bool("diffs", *fallback.Diffs,
+			"show a git-style diff when the model edits a file; on by default"),
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
 		discoveryFlags: discoveryFlags{
 			mycelium: flag.Bool("mycelium", *fallback.Mycelium,
@@ -159,6 +162,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"trust-skills":     func(c *Config) { c.TrustSkills = f.trustSkills },
 		"trust-hooks":      func(c *Config) { c.TrustHooks = f.trustHooks },
 		"approve-tools":    func(c *Config) { c.ApproveTools = f.approveTools },
+		"diffs":            func(c *Config) { c.Diffs = f.diffs },
 		"max-iterations":   func(c *Config) { c.MaxIterations = f.iterations },
 		"reasoning-budget": func(c *Config) { c.Budget = f.budget },
 		"skill-dir":        func(c *Config) { c.SkillDirs = []string(*f.skillDirs) },
