@@ -49,15 +49,17 @@ import (
 func (m *model) View() tea.View {
 	above := append(m.streaming(), "", m.status())
 	above = append(above, m.viewQueued()...)
-	if menu := m.viewMenu(); menu != "" {
-		above = append(above, menu)
+	menu := m.viewMenu()
+	rows := append(append(above, ""), m.prompt.View())
+	if menu != "" {
+		rows = append(rows, "", menu)
 	}
-	body := strings.Join(append(above, m.prompt.View()), "\n")
+	body := strings.Join(rows, "\n")
 	m.frameRows = lipgloss.Height(body)
 
 	view := tea.NewView(body)
 	if position := m.prompt.Cursor(); position != nil {
-		position.Y += lipgloss.Height(strings.Join(above, "\n"))
+		position.Y += lipgloss.Height(strings.Join(above, "\n")) + 1
 		view.Cursor = position
 	}
 	return view

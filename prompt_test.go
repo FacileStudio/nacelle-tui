@@ -96,8 +96,8 @@ func TestSendingGivesThePromptsRowsBack(t *testing.T) {
 // A prompt string is drawn once per row, so repeating it down the left reads
 // as several stacked questions rather than one that did not fit.
 func TestOnlyTheFirstRowOfThePromptIsMarked(t *testing.T) {
-	if got := continuation(promptInfo(0)); got != "> " {
-		t.Errorf("first row marker = %q, want %q", got, "> ")
+	if got := continuation(promptInfo(0)); got != "  │ " {
+		t.Errorf("first row marker = %q, want %q", got, "  │ ")
 	}
 	if got := continuation(promptInfo(1)); strings.TrimSpace(got) != "" {
 		t.Errorf("wrapped row marker = %q, want it blank so the question reads as one", got)

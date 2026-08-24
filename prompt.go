@@ -44,7 +44,7 @@ func promptCap(height int) int {
 func newPrompt() textarea.Model {
 	prompt := textarea.New()
 	prompt.Placeholder = "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
-	prompt.SetPromptFunc(2, continuation)
+	prompt.SetPromptFunc(4, continuation)
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
 	prompt.MinHeight = 1
@@ -60,11 +60,11 @@ func newPrompt() textarea.Model {
 //
 // A prompt string is drawn once per row, so the plain one repeats itself all
 // the way down and reads as several questions stacked up rather than as one
-// that did not fit. The width is fixed at two either way, so the text still
-// lines up under itself.
+// that did not fit. The width is fixed either way, so the text still lines up
+// under itself.
 func continuation(info textarea.PromptInfo) string {
 	if info.LineNumber == 0 {
-		return "> "
+		return "  │ "
 	}
-	return "  "
+	return "    "
 }

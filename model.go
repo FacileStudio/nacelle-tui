@@ -93,7 +93,7 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
 		run: inflight{cancel: func() {}, running: map[string]string{}},
 	}
 	m.pretty = prettier(m.theme.markdown, m.width)
-	m.say(fromClient, banner)
+	m.say(fromClient, banner+"\n")
 	return m
 }
 
