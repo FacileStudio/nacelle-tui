@@ -7,9 +7,10 @@ import (
 )
 
 // delegations carries what every delegated run spends, from the tool's
-// goroutine to the update loop. It is buffered so a delegation is never
-// blocked by its own bookkeeping: an unbilled turn is a wrong total, but a
-// stalled one is a wedged agent.
+// goroutine to the update loop. It is buffered so a burst of nested turns
+// bridging two frames still lands, and the send in main.go blocks when it
+// is full: a dropped spend is a total that is quietly wrong forever, where
+// a blocked callback is one buffered turn arriving a frame late.
 var delegations = make(chan nacelle.Usage, 64)
 
 // spentDelegation says the session's totals grew by work the parent never
