@@ -1,6 +1,9 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
@@ -43,7 +46,7 @@ func (m *model) recordDelegation(spent spentDelegation) tea.Cmd {
 // branch per optional tool: the delegate shares the parent's wrapped backend,
 // system prompt, tools and iteration ceiling, and reports its spend to the
 // session the same way the parent's own turns do.
-func withSubagents(config Config, backend nacelle.Backend, local []nacelle.Tool) ([]nacelle.Tool, error) {
+func withSubagents(config Config, backend nacelle.Backend, local []nacelle.Tool, approve nacelle.Approve) ([]nacelle.Tool, error) {
 	if !*config.Subagents {
 		return local, nil
 	}
@@ -52,9 +55,42 @@ func withSubagents(config Config, backend nacelle.Backend, local []nacelle.Tool)
 		System:        config.System,
 		Tools:         local,
 		MaxIterations: *config.MaxIterations,
-	}, nacelle.SubAgentOptions{Usage: func(u nacelle.Usage) { delegations <- u }})
+	}, nacelle.SubAgentOptions{
+		Approve: delegateApprovals(approve),
+		Usage:   func(u nacelle.Usage) { delegations <- u },
+	})
 	if err != nil {
 		return nil, err
 	}
 	return append(local, sub), nil
+}
+
+// delegateApprovals is the policy the nested run answers to. It has to be
+// stated, because the SDK's default for a nil SubAgentOptions.Approve is
+// deny-all: leaving it unset hands the delegate the parent's whole tool set
+// and then refuses every call it makes, which is a tool whose description
+// promises wide searches and log dumps and which can do neither.
+//
+// A nil approve means the parent runs every call unasked, so the delegate
+// does too. It is the same process, against the same root, under the same
+// -bash setting; there is no power here the parent did not already have, and
+// anything stricter is a tool set the model may look at and never use.
+//
+// A non-nil approve is the parent's own prompt, and it is safe to ask from
+// inside a nested run. ask blocks the goroutine that called it and is
+// answered by the update loop, which is exactly what it already does for
+// every tool call the parent makes, and the asking mutex is released before
+// the tool runs, so nothing nests.
+//
+// The limitation is worth writing down rather than discovering: the prompt
+// names the tool and has no way to say a delegate asked for it, and answering
+// "allow for the session" widens that tool for the parent too, because the
+// allow-list is keyed by name. Same tool, same power, same root — so the
+// answer is the same answer either way — but the reader is not told which run
+// is asking.
+func delegateApprovals(approve nacelle.Approve) nacelle.Approve {
+	if approve != nil {
+		return approve
+	}
+	return func(context.Context, string, json.RawMessage) bool { return true }
 }

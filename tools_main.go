@@ -57,5 +57,18 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 	}
 	local = append(local, reaching...)
 
-	return opened, append(local, tasksTool{}), nil
+	return opened, local, nil
+}
+
+// withTasks mounts the plan tool, and it is deliberately not part of the set
+// localTools builds. The SDK gives a nested run the parent's tools minus only
+// the subagent tool itself, so anything localTools returns is inherited by a
+// delegate whether that makes sense or not. The plan is drawn above the prompt
+// on the one screen there is; a delegate calling this would replace what the
+// parent wrote, and nothing afterwards puts it back.
+//
+// So it goes on after withSubagents has taken its copy. Same set, one line
+// later, and the delegate never sees it.
+func withTasks(local []nacelle.Tool) []nacelle.Tool {
+	return append(local, tasksTool{})
 }

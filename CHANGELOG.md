@@ -6,6 +6,39 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-08-24
+
+### Changed
+
+- A delegate may now use the tools it was given. `-subagents` handed the nested
+  run the parent's tool set and then refused every call it made, which is the
+  library's default when the caller supplies no policy, so a delegate asked to
+  search wide or read a log could do neither and answered from its task
+  description alone. It now inherits the parent's own policy: where the parent
+  runs every call unasked, so does the delegate, and where `-approve-tools` is
+  on, the delegate's calls reach the same prompt. Two things worth knowing
+  before turning it on. The prompt names the tool and cannot say that a
+  delegate asked for it, and allowing a tool for the session allows it for the
+  parent too, because the allow-list is keyed by name.
+- `-approve-tools` no longer asks about the plan. The `tasks` tool writes
+  nothing outside this process, and everything it says is drawn on screen the
+  moment it is recorded, so the question bought nothing and cost a keypress per
+  step of every plan.
+
+### Fixed
+
+- The plan no longer outlives the session it belonged to. `/clear` reset the
+  conversation, the running total and the reasoning clock but not the steps, so
+  a cleared screen opened with the last session's plan still drawn above the
+  prompt, and a model with no memory of it never wrote over it. The rows it
+  held go back to the live region with it.
+- A delegate can no longer replace the plan on screen. The nested run inherits
+  the parent's tools minus only the sub-agent tool, so it inherited `tasks` as
+  well: a delegate that reported its own steps overwrote the plan the parent
+  was working to, and nothing corrected the screen when the delegation ended.
+  The tool is now mounted after the delegate has taken its copy, which is where
+  anything that draws belongs. Only reachable with `-subagents` on.
+
 ## [0.4.3] — 2026-08-24
 
 ### Fixed
@@ -231,7 +264,8 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.5.0
 [0.2.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.1.0
