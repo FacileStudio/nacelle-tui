@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"charm.land/lipgloss/v2"
@@ -70,6 +71,39 @@ func (m *model) status() string {
 		line += fmt.Sprintf(" · %d trimmed", m.trimmed)
 	}
 	return lipgloss.NewStyle().Faint(true).Render(truncate(line, max(m.width, 1)))
+}
+
+// working is what a busy run is doing, spun so the line moves even when
+// nothing else on screen does.
+//
+// The spinner lives on the status line because that is a row this client
+// still owns. It covered only the gap before the first event once: after that
+// the screen went still for every gap that followed — a tool running, the
+// model called again with its result — and a client that has stopped moving
+// is indistinguishable from one that has stopped working.
+//
+// Naming the tool is the difference between knowing something is happening
+// and knowing what. A run_command waiting on a slow build and a wedged client
+// look identical without it, and this client's own timeout is measured in
+// minutes.
+//
+// What run.running holds is the whole line the call will print, so the name is
+// cut back off it here. That is one map rather than two for a reason bigger
+// than tidiness: the held line and the tool named as running are the same fact
+// about the same call, and two maps are two places to forget it.
+func (m *model) working() string {
+	doing := "waiting for a response"
+	switch len(m.run.running) {
+	case 0:
+	case 1:
+		for _, line := range m.run.running {
+			name, _, _ := strings.Cut(line, "(")
+			doing = "running " + name
+		}
+	default:
+		doing = fmt.Sprintf("running %d tools", len(m.run.running))
+	}
+	return m.spin.View() + " " + doing
 }
 
 // shortTokens renders a token count the way a status line wants it: exact
