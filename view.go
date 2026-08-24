@@ -50,7 +50,7 @@ func (m *model) View() tea.View {
 	above := append(m.streaming(), "", m.status())
 	above = append(above, m.viewQueued()...)
 	menu := m.viewMenu()
-	rows := append(append(above, ""), m.prompt.View())
+	rows := append(above, m.prompt.View())
 	if menu != "" {
 		rows = append(rows, "", menu)
 	}
@@ -59,7 +59,7 @@ func (m *model) View() tea.View {
 
 	view := tea.NewView(body)
 	if position := m.prompt.Cursor(); position != nil {
-		position.Y += lipgloss.Height(strings.Join(above, "\n")) + 1
+		position.Y += lipgloss.Height(strings.Join(above, "\n"))
 		view.Cursor = position
 	}
 	return view

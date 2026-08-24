@@ -47,8 +47,8 @@ const durationRoom = 10
 // `name()` rather than to a guess. Empty parentheses read as "this call had no
 // argument worth showing", which is true and short; the raw blob read as noise.
 func toolLine(name, input string, width int) string {
-	room := width - lipgloss.Width(name) - durationRoom - len("⏺ ()")
-	return name + "(" + truncate(primaryArg(input), room) + ")"
+	room := width - lipgloss.Width(name) - durationRoom - len("• ()")
+	return toolGlyph(name) + " " + name + "(" + truncate(primaryArg(input), room) + ")"
 }
 
 // primaryArg is the argument a call is named by, rendered for a single line.

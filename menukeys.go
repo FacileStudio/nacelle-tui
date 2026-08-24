@@ -97,7 +97,7 @@ func (m *model) viewMenu() string {
 		style := m.theme.plain
 		marker := "  "
 		if i == m.menu.selected {
-			style = m.theme.question.Padding(0, 0)
+			style = m.theme.menu
 			marker = "→ "
 		}
 		rows[i] = style.Width(width).Render(marker + menuRow(it, width-2))

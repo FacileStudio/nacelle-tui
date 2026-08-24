@@ -102,7 +102,7 @@ func (m *model) paint(who speaker, text string) string {
 	case fromThinking:
 		return m.theme.thinking.Width(width).Render(text)
 	case fromTool:
-		return m.theme.tool.Width(width).Render("⏺ " + text)
+		return toolLinePainted(text)
 	case fromResult:
 		return m.theme.result.Width(width).Render("  ⤷ " + text)
 	case fromDiff:

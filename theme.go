@@ -17,6 +17,7 @@ import (
 // dark one is only the assumption held until then.
 type palette struct {
 	question lipgloss.Style
+	menu     lipgloss.Style
 	thinking lipgloss.Style
 	tool     lipgloss.Style
 	result   lipgloss.Style
@@ -34,6 +35,7 @@ type palette struct {
 // through an answer, not to decorate. Everything that is not the answer is
 // dimmed instead, because the answer is what the window is for.
 func themed(dark bool) palette {
+	pick := lipgloss.LightDark(dark)
 	quiet := lipgloss.Color("8")
 
 	style := "light"
@@ -45,6 +47,9 @@ func themed(dark bool) palette {
 		question: lipgloss.NewStyle().
 			Bold(true).
 			PaddingLeft(1),
+		menu: lipgloss.NewStyle().
+			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
+			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
 		thinking: lipgloss.NewStyle().Foreground(quiet).Italic(true).PaddingLeft(1),
 		tool:     lipgloss.NewStyle().Foreground(lipgloss.Color("4")),
 		result:   lipgloss.NewStyle().Foreground(quiet),

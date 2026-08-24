@@ -26,7 +26,7 @@ const promptRows = 10
 // and the prompt both real at any size, and never returns less than the one
 // row a prompt has to have.
 func promptCap(height int) int {
-	return max(1, min(promptRows, (height-4)/2))
+	return max(1, min(promptRows, (height-3)/2))
 }
 
 // newPrompt builds the question box.
@@ -46,7 +46,7 @@ func promptCap(height int) int {
 func newPrompt() textarea.Model {
 	prompt := textarea.New()
 	prompt.Placeholder = "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
-	prompt.SetPromptFunc(4, continuation)
+	prompt.SetPromptFunc(2, continuation)
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
 	prompt.MinHeight = 1
@@ -66,7 +66,7 @@ func newPrompt() textarea.Model {
 // under itself.
 func continuation(info textarea.PromptInfo) string {
 	if info.LineNumber == 0 {
-		return "  │ "
+		return "> "
 	}
-	return "    "
+	return "  "
 }
