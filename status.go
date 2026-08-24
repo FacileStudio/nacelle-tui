@@ -155,8 +155,13 @@ func (m *model) footer() []string {
 // With no tool to name there is nothing to say but that the model has not
 // answered, so that is the half that rewords itself — see waiting for what a
 // line that never changed its words was mistaken for.
+// working is what the status line says while a run is busy: the spinner and
+// one phrase for the phase. The spinner takes its colour from the phase — a
+// quiet shade while the model thinks, the tool colour once something runs —
+// so the same glyph reads as a different state without changing shape.
 func (m *model) working() string {
 	doing := waitingVerb(time.Since(m.run.began))
+	spin := m.theme.waiting.Render(m.spin.View())
 	switch len(m.run.running) {
 	case 0:
 	case 1:
@@ -164,10 +169,12 @@ func (m *model) working() string {
 			name, _, _ := strings.Cut(line, "(")
 			doing = "running " + name
 		}
+		spin = m.theme.tool.Render(m.spin.View())
 	default:
 		doing = fmt.Sprintf("running %d tools", len(m.run.running))
+		spin = m.theme.tool.Render(m.spin.View())
 	}
-	return m.spin.View() + " " + doing
+	return spin + " " + doing
 }
 
 // waitingVerb is the phrase for one moment of this run.
