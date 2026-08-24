@@ -80,11 +80,11 @@ func (m *model) selectMenuItem() {
 // keystroke that does not start a line with '/' would otherwise insert a
 // blank line into View() for no reason.
 //
-// The selected row highlights via theme.question, unpadded: that style
-// carries Padding(0, 1) for its other job, the transcript's quoted-question
-// pill, and left as-is here it shifted only the selected row's text one
-// column right of every unselected row's, which render through theme.plain
-// and have no padding at all.
+// The selected row carries an arrow marker and the bold question style,
+// unpadded: that style carries Padding(0, 1) for its other job, the
+// transcript's quoted-question pill, and left as-is here it shifted only
+// the selected row's text one column right of every unselected row's, which
+// render through theme.plain and have no padding at all.
 func (m *model) viewMenu() string {
 	if !m.menu.open() {
 		return ""
@@ -95,10 +95,12 @@ func (m *model) viewMenu() string {
 	rows := make([]string, len(items))
 	for i, it := range items {
 		style := m.theme.plain
+		marker := "  "
 		if i == m.menu.selected {
 			style = m.theme.question.Padding(0, 0)
+			marker = "→ "
 		}
-		rows[i] = style.Width(width).Render(menuRow(it, width))
+		rows[i] = style.Width(width).Render(marker + menuRow(it, width-2))
 	}
 	return strings.Join(rows, "\n")
 }

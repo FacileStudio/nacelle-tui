@@ -192,17 +192,17 @@ func TestViewMenuSelectedRowAlignsWithUnselectedRows(t *testing.T) {
 	m.refreshMenu()
 
 	first := strings.Split(visible(m.viewMenu()), "\n")[0]
-	if !strings.HasPrefix(first, "/clear") {
-		t.Errorf("first row = %q, want it to start with /clear, not a leading space", first)
+	if !strings.HasPrefix(first, "→ /clear") {
+		t.Errorf("first row = %q, want the selected row marked with an arrow", first)
 	}
 
 	m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyDown})
 	lines := strings.Split(visible(m.viewMenu()), "\n")
-	if !strings.HasPrefix(lines[0], "/clear") {
-		t.Errorf("first row = %q after moving selection away, want it to stay aligned", lines[0])
+	if !strings.HasPrefix(lines[0], "  /clear") {
+		t.Errorf("first row = %q after moving selection away, want it indented to the arrow", lines[0])
 	}
-	if !strings.HasPrefix(lines[1], "/help") {
-		t.Errorf("second row = %q once selected, want it to start with /help, not a leading space", lines[1])
+	if !strings.HasPrefix(lines[1], "→ /help") {
+		t.Errorf("second row = %q once selected, want the arrow on it", lines[1])
 	}
 }
 

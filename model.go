@@ -65,6 +65,7 @@ type model struct {
 	commandState
 	screen
 	thoughts
+	hist promptHistory
 	run inflight
 }
 
@@ -228,6 +229,14 @@ func (m *model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		return m.escaped()
 	case "enter":
 		return true, m.ask()
+	case "up":
+		if m.atFirstRow() && m.recall() {
+			return true, nil
+		}
+	case "down":
+		if m.hist.index < len(m.hist.past) && m.advance() {
+			return true, nil
+		}
 	}
 	return false, nil
 }

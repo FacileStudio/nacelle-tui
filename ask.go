@@ -27,6 +27,7 @@ func (m *model) ask() tea.Cmd {
 		return nil
 	}
 	m.prompt.Reset()
+	m.remember(question)
 
 	if m.run.busy {
 		m.run.queued = append(m.run.queued, question)

@@ -66,6 +66,9 @@ func (m *model) status() string {
 	}
 	if m.run.busy {
 		state = m.working()
+		if since := m.ongoing(); since != "" {
+			state += " · " + since
+		}
 		if time.Since(m.run.interrupted) < forceQuit {
 			state = "stopping · ctrl+c or ctrl+\\ to quit now"
 		}
@@ -75,12 +78,12 @@ func (m *model) status() string {
 			m.run.pending.name, truncate(string(m.run.pending.input), 60))
 	}
 
-	line := strings.Join(append([]string{state}, m.footer()...), " · ")
-	return lipgloss.NewStyle().Faint(true).Render(truncate(line, max(m.width, 1)))
+	counts := strings.Join(m.footer(), " · ")
+	return truncate(state, max(m.width, 1)) + "\n" + lipgloss.NewStyle().Faint(true).Render(truncate(counts, max(m.width, 1)))
 }
 
-// footer is what the session has spent so far, as the pieces the status line
-// puts after the state.
+// footer is what the session has spent so far, as the pieces the counts row
+// puts under the state.
 //
 // The total is spent plus the run in flight, which is the session total.
 // Anything else jumps around: a per-run counter that survives into the next
@@ -115,9 +118,6 @@ func (m *model) footer() []string {
 	total := m.spent.Add(m.run.usage)
 
 	var spent []string
-	if since := m.ongoing(); since != "" {
-		spent = append(spent, since)
-	}
 	if total.Cost > 0 {
 		spent = append(spent, fmt.Sprintf("$%.4f", total.Cost))
 	}
