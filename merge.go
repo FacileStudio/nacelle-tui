@@ -66,9 +66,6 @@ func (c *Config) mergeToggles(over Config) {
 	if over.Thinking != nil {
 		c.Thinking = over.Thinking
 	}
-	if over.Mycelium != nil {
-		c.Mycelium = over.Mycelium
-	}
 	if over.ProjectContext != nil {
 		c.ProjectContext = over.ProjectContext
 	}

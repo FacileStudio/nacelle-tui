@@ -27,11 +27,9 @@ type Web struct {
 }
 
 // Discovery is every toggle for something this client finds on its own
-// rather than being told: mycelium's tools, project and global context,
-// skills. See Config's own doc comment for why it is a separate type at
-// all.
+// rather than being told: project and global context, skills. See Config's
+// own doc comment for why it is a separate type at all.
 type Discovery struct {
-	Mycelium       *bool `yaml:"mycelium"`
 	ProjectContext *bool `yaml:"project_context"`
 	Skills         *bool `yaml:"skills"`
 	TrustSkills    *bool `yaml:"trust_skills"`

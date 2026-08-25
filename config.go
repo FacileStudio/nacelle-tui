@@ -55,7 +55,7 @@ type Config struct {
 	Web `yaml:",inline"`
 
 	// Discovery is embedded rather than named so every field on it is still
-	// reached as config.Mycelium, not config.Discovery.Mycelium — the grouping
+	// reached as config.Skills, not config.Discovery.Skills — the grouping
 	// exists only to keep this struct's own field count from growing by one
 	// every time that list does, not to change how anything reads it.
 	// yaml:",inline" is load-bearing for the same reason on the file side:
@@ -95,12 +95,11 @@ type Toggles struct {
 
 // defaults is the bottom layer, and the only one that answers everything.
 //
-// Mycelium, ProjectContext and Skills default on, unlike Bash: all three fail
-// soft with nothing to show for it when there is nothing to find — no
-// mycelium on PATH, no CLAUDE.md or AGENTS.md anywhere above Root, no
-// ~/.agents/skills/ — so a machine without any of them is no worse off for
-// asking, and a machine with them gets the benefit without a flag to
-// discover first.
+// ProjectContext and Skills default on, unlike Bash: both fail soft with
+// nothing to show for it when there is nothing to find — no CLAUDE.md or
+// AGENTS.md anywhere above Root, no ~/.agents/skills/ — so a machine without
+// either is no worse off for asking, and a machine with them gets the benefit
+// without a flag to discover first.
 //
 // TrustSkills and ApproveTools default off, and neither is the reasoning
 // above. Loading skills found globally or already trusted is one thing; a
@@ -120,8 +119,8 @@ type Toggles struct {
 // this is the layer that answers everything and every deref above it depends
 // on that being true.
 func defaults() Config {
-	bash, thinking, mycelium, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
-		false, false, true, true, true, false, false, false, true
+	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
+		false, false, true, true, false, false, false, true
 	subagents := false
 	iterations, budget := 40, int64(0)
 	search, fetch := "", true
@@ -134,7 +133,6 @@ func defaults() Config {
 		MaxIterations: &iterations,
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{
-			Mycelium:       &mycelium,
 			ProjectContext: &projectContext,
 			Skills:         &skills,
 			TrustSkills:    &trustSkills,

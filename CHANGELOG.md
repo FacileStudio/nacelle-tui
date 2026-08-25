@@ -6,6 +6,28 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Removed
+
+- **`mycelium: true` in `~/.nacelle.yml` is now a startup error. Delete the key.** The
+  `-mycelium` flag, the `NACELLE_MYCELIUM` variable and the `mycelium:` setting are gone, along
+  with the `list_flows`, `run_flow` and `search_memory` tools they mounted. This client reads
+  `~/.nacelle.yml` with `KnownFields(true)`, which refuses a key it does not recognise rather
+  than ignoring it, so a config that still carries the line will not load until the line goes.
+  That strictness is deliberate and it is why this is called out here.
+
+  Nothing is lost. `mycelium mcp` serves the same three tools over stdio, so add mycelium's
+  server to a file in your `mcp:` list and they come back through the path every other MCP
+  server already uses — gated by `-approve-tools` like any other tool, and working on either
+  backend. `mycelium install` writes that `mcpServers` entry for you.
+
+  The reason for the change is layering, not the tools. The switch mounted
+  `nacelle/tools.Mycelium()`, which made a general-purpose Go SDK depend on one company's
+  binary; the SDK dropped the package in the same round.
+
+- Reading mycelium's usage feed is **not** affected. Each finished turn is still appended to
+  `~/.mycelium/events/nacelle/`, gated on that directory existing rather than on any setting,
+  and the dashboard still shows a live session. That is a separate integration from the tools.
+
 ## [0.5.0] — 2026-08-24
 
 ### Changed

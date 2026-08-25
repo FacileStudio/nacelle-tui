@@ -21,8 +21,8 @@ profiles and panes are what a product grows, not what a contract test needs.
 - Delegates a self-contained side task to a nested run with `-subagents`, so a
   wide search or a log dump costs the conversation one answer instead of its
   whole output
-- Discovers project context (CLAUDE.md, AGENTS.md), skills and mycelium memory
-  into the system prompt, each behind its own flag
+- Discovers project context (CLAUDE.md, AGENTS.md) and skills into the system
+  prompt, each behind its own flag
 - Gates tool calls behind an approval prompt with `-approve-tools`, and trusts
   project hook files only after an explicit, remembered decision
 
@@ -81,7 +81,6 @@ environment variables, then flags. The useful ones:
 | `-max-iterations` | `NACELLE_MAX_ITERATIONS` | how many times the model may be asked |
 | `-mcp` | — | MCP servers file (repeatable) |
 | `-skill-dir` | `NACELLE_SKILL_DIRS` | extra skills directory (repeatable) |
-| `-mycelium` | `NACELLE_MYCELIUM` | let the model use mycelium flows and memory |
 
 `nacelle -version` prints exactly `nacelle <semver>`. See `-h` for the full set:
 reasoning effort and budget, web search/fetch, project-context and skill

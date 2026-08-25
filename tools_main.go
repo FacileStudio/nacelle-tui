@@ -7,8 +7,8 @@ import (
 	"github.com/FacileStudio/nacelle/tools"
 )
 
-// localTools opens the file/search/command tools and, when asked, adds
-// mycelium's and the web search — the caller owns closing the returned Set.
+// localTools opens the file/search/command tools and, when asked, adds the
+// web ones — the caller owns closing the returned Set.
 //
 // The two internet tools are built together in webTools, which is also where
 // the reason WebSearch's error goes back unwrapped is written down.
@@ -42,13 +42,6 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 	local, err = opened.Tools()
 	if err != nil {
 		return nil, nil, fmt.Errorf("building the tool set: %w", err)
-	}
-	if *config.Mycelium {
-		var myceliumTools []nacelle.Tool
-		if myceliumTools, err = tools.Mycelium(); err != nil {
-			return nil, nil, fmt.Errorf("building mycelium's tools: %w", err)
-		}
-		local = append(local, myceliumTools...)
 	}
 
 	var reaching []nacelle.Tool

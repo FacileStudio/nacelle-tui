@@ -72,20 +72,19 @@ could tell apart.
 
 | Layer | Source | Notes |
 |---|---|---|
-| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-mycelium`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
-| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_MYCELIUM`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_SEARCH`, `NACELLE_FETCH` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories |
+| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
+| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_SEARCH`, `NACELLE_FETCH` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `mycelium: true`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 40`, `search: ""` (no web search), `fetch: true` |
+| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 40`, `search: ""` (no web search), `fetch: true` |
 
-`mycelium`, `project_context` and `skills` default **on**, unlike `bash`: each fails soft to
-nothing when there is nothing to find — no `mycelium` on `PATH`, no `AGENTS.md`/`CLAUDE.md`
-anywhere above `root`, no `~/.agents/skills/` — so a machine without any of them is no worse
-off for asking. `trust_skills` and `approve_tools` both default **off**, and for the same
+`project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
+there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
+`~/.agents/skills/` — so a machine without either is no worse off for asking. `trust_skills` and `approve_tools` both default **off**, and for the same
 underlying reason: a project's own `.agents/skills/` can carry instructions to run arbitrary
 scripts, and asking before every tool call is a decision that changes how the client feels to
 use — blanket-trusting a directory, or blanket-interrupting every call, are both decisions only
 the person running this should opt into, not defaults sprung on them. See
-[Context, skills and mycelium tools](#context-skills-and-mycelium-tools) and
+[Context and skills](#context-and-skills) and
 [Tool approval](#tool-approval) below.
 
 ### `~/.nacelle.yml`
@@ -99,7 +98,6 @@ root: .
 system: You are a terminal coding assistant.
 bash: true
 thinking: true
-mycelium: true
 project_context: true
 skills: true
 trust_skills: false
@@ -121,7 +119,7 @@ setting carefully written is simply not in effect and nothing says so.
 **No per-project `./.nacelle.yml` yet.** A second precedence layer before the first has real
 users is a layer nobody has asked for the shape of.
 
-## Context, skills and mycelium tools
+## Context and skills
 
 Four things the TUI adds beyond flags and the model's own tools, all client-side, none of them
 in the core `nacelle` package — the same "the library must never read configuration from disk"
@@ -202,10 +200,6 @@ without moving or copying anything into its own — the same problem pi itself s
 `skills` array in `settings.json` pointed at `~/.claude/skills` or `~/.codex/skills`. No trust
 gate applies to it, same reasoning as `~/.agents/skills/` above: naming a directory here is
 something only the person running nacelle, on their own machine, can do in the first place.
-
-**Mycelium tools** (`-mycelium`, `tools.Mycelium`, [api.md](api.md#tools)). `list_flows`, `run_flow`
-and `search_memory`, when the `mycelium` binary is on `PATH`. Narrower and more legible than
-reaching the same commands through `run_command`, and available even with `-bash=false`.
 
 **The banner** (`main.go`'s `banner`) is how much of this is actually visible before typing
 anything: line one names the backend and model, line two the resolved `-root`, how many skills

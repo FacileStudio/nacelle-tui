@@ -160,18 +160,18 @@ func TestAnUnresolvableHomeMeansNoConfigFileRatherThanNoProgram(t *testing.T) {
 }
 
 // Unlike Bash, both default on: neither costs anything to ask for when there
-// is nothing to find — no mycelium on PATH, no CLAUDE.md or AGENTS.md anywhere
-// above root — so a machine without either is no worse off, and a machine
-// with them benefits without a flag to discover first. The precedence chain
-// itself is already proven generic by the Bash and Thinking tests above;
+// is nothing to find — no CLAUDE.md or AGENTS.md anywhere above root, no
+// ~/.agents/skills — so a machine without either is no worse off, and a
+// machine with them benefits without a flag to discover first. The precedence
+// chain itself is already proven generic by the Bash and Thinking tests above;
 // this only has to prove these two default to the right value.
-func TestMyceliumAndProjectContextDefaultOn(t *testing.T) {
+func TestProjectContextAndSkillsDefaultOn(t *testing.T) {
 	fallback := defaults()
-	if !*fallback.Mycelium {
-		t.Error("mycelium = false, want it on by default")
-	}
 	if !*fallback.ProjectContext {
 		t.Error("project context = false, want it on by default")
+	}
+	if !*fallback.Skills {
+		t.Error("skills = false, want it on by default")
 	}
 }
 
@@ -229,15 +229,15 @@ func TestSkillDirsFromTheEnvironmentAreColonSeparatedAndBeatTheFile(t *testing.T
 
 // The same turned-off-is-not-unset guarantee TestATurnedOffToggleIsNotMistakenForAnUnsetOne
 // proves for thinking, checked against a toggle that defaults the other way.
-func TestMyceliumCanBeTurnedOffByTheFile(t *testing.T) {
-	written(t, "mycelium: false\nproject_context: false\n")
+func TestDiscoveryCanBeTurnedOffByTheFile(t *testing.T) {
+	written(t, "skills: false\nproject_context: false\n")
 
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if *config.Mycelium {
-		t.Error("mycelium = true, want the file's false to survive a default that had it on")
+	if *config.Skills {
+		t.Error("skills = true, want the file's false to survive a default that had it on")
 	}
 	if *config.ProjectContext {
 		t.Error("project context = true, want the file's false to survive a default that had it on")

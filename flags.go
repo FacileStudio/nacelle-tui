@@ -25,8 +25,8 @@ func (p *pathList) Set(v string) error { *p = append(*p, v); return nil }
 // set to typedSetters rather than threading ten variables through it by hand.
 //
 // The embedded groups mirror the ones Config has, for the reason Config has
-// them: every field on them is still reached as f.mycelium or f.effort, not as
-// f.discoveryFlags.mycelium, and grouping only keeps this struct's own field
+// them: every field on them is still reached as f.skills or f.effort, not as
+// f.discoveryFlags.skills, and grouping only keeps this struct's own field
 // count from growing by one every time one of those lists does.
 type declared struct {
 	backend, model, root, system *string
@@ -66,7 +66,7 @@ type sourceFlags struct {
 // discoveryFlags is declared's half of Discovery — one flag pointer per
 // field there.
 type discoveryFlags struct {
-	mycelium, projectContext, skills, trustSkills, trustHooks *bool
+	projectContext, skills, trustSkills, trustHooks *bool
 }
 
 // declareFlags registers every flag against fallback's values and returns
@@ -88,8 +88,6 @@ func declareFlags(fallback Config) declared {
 		},
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
 		discoveryFlags: discoveryFlags{
-			mycelium: flag.Bool("mycelium", *fallback.Mycelium,
-				"let the model run mycelium flows and search its memory, when mycelium is installed"),
 			projectContext: flag.Bool("project-context", *fallback.ProjectContext,
 				"read CLAUDE.md and AGENTS.md from root upward into the system prompt"),
 			skills: flag.Bool("skills", *fallback.Skills,
@@ -162,7 +160,6 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"bash":             func(c *Config) { c.Bash = f.bash },
 		"subagents":        func(c *Config) { c.Subagents = f.subagents },
 		"thinking":         func(c *Config) { c.Thinking = f.thinking },
-		"mycelium":         func(c *Config) { c.Mycelium = f.mycelium },
 		"project-context":  func(c *Config) { c.ProjectContext = f.projectContext },
 		"skills":           func(c *Config) { c.Skills = f.skills },
 		"trust-skills":     func(c *Config) { c.TrustSkills = f.trustSkills },
