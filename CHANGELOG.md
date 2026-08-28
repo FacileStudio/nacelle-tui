@@ -6,15 +6,46 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.6.1] — 2026-08-28
+
+### Fixed
+
+- **`scripts/check.sh` ran golangci-lint against a toolchain it had not chosen.** The build, vet
+  and test passes go through `$GO`, resolved from `GOROOT` so they honour the version this
+  repository pins. The lint pass called `golangci-lint` bare, and golangci-lint type-checks with
+  whatever `go` it finds on `PATH`. Where a newer one sat there, a Homebrew install ahead of the
+  pinned one being the ordinary way, the pass died mid-run on `file requires newer Go version
+  go1.27 (application built with go1.26)` under two hundred lines of goroutine dump. It now runs
+  under the same toolchain as everything else.
+
+  The failure mode is worse than a broken lint pass, which is why it is worth the paragraph:
+  `lefthook` runs this script on `pre-push` and resets the environment, so the gate could not be
+  repaired from the calling shell, and the message pointed at nothing the reader could act on. A
+  gate that fails for an unactionable reason is a gate that gets pushed past with `--no-verify`,
+  which is what happened to 0.6.0.
+
+- **The 0.6.0 note on batching overstated what it saves, and is corrected in place.** It said the
+  harness already ran a turn's calls concurrently. That holds on `anthropic`, whose backend hands
+  the turn to the SDK's runner; it does not hold on `openrouter`, whose backend runs a turn's
+  calls in order. The rule is still worth having on both, because the model round trip is the
+  expensive part, but the entry now says which backend does which.
+
+- **The 0.6.0 note on `max_iterations` described the risk without naming the case that carries
+  it**, and is likewise corrected in place. The SDK conditions "zero means no cap" on every tool
+  being read-only and cheap. `bash: true` mounts a real shell, which is neither, and that is the
+  configuration the no-cap default is least safe under.
+
 ## [0.6.0] — 2026-08-28
 
 ### Added
 
 - **The model is told to batch independent tool calls.** When several calls need nothing from one
   another, it makes them in a single turn rather than one after another, and waits only where a
-  later call needs an earlier one's output. The harness already ran a turn's calls concurrently;
-  nothing said so, and a model that does not know it serialises work it could have finished at
-  once. The rule lives in the environment preamble rather than the default system prompt, because
+  later call needs an earlier one's output. What that saves depends on the backend: `anthropic`
+  hands a turn's calls to the SDK's own runner, which executes them together, while `openrouter`
+  runs them in order. Batching earns its place on both, because the round trip to the model costs
+  more than the tools do. The rule lives in the environment preamble rather than the default
+  system prompt, because
   `-system` replaces that prompt outright and this is the one piece of working advice that has to
   survive a custom persona.
 
@@ -26,8 +57,10 @@ while on `v0`, a breaking change bumps the minor.
   until the model stops asking for another turn. Put a ceiling back with `max_iterations` in
   `~/.nacelle.yml`, the `-max-iterations` flag or `NACELLE_MAX_ITERATIONS`, all unchanged.
 
-  The trade is worth stating plainly: with no cap, a model looping on a failing tool loops until
-  you interrupt it. Keep a cap where the tools are expensive or the run is unattended.
+  The trade is worth stating plainly. The SDK conditions "zero means no cap" on every tool being
+  read-only and cheap, and `bash: true` mounts `run_command`, which is neither: with no cap, a
+  model looping on a failing shell command loops until you interrupt it. Keep a cap where the
+  shell is mounted, where the tools are expensive, or where the run is unattended.
 
 ### Removed
 
@@ -309,7 +342,8 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.6.1
 [0.6.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.6.0
 [0.5.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.5.0
 [0.4.3]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.4.3

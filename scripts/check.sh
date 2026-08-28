@@ -33,8 +33,16 @@ cd "$root"
 # the version this repo pins while leaving an unrelated `go` earlier on PATH,
 # and a go binary driving a different GOROOT fails with
 # `compile: version "X" does not match go tool version "Y"`.
+#
+# golangci-lint needs the same treatment for a different reason: it type-checks
+# with whatever `go` it finds on PATH rather than with $GO, so a newer one
+# there loads sources the linter's own go/types cannot parse and the pass dies
+# on `file requires newer Go version goX (application built with goY)`. That
+# reads as a broken gate rather than as a toolchain nobody lined up, which is
+# how it ends up bypassed with --no-verify.
 if [ -n "${GOROOT:-}" ] && [ -x "$GOROOT/bin/go" ]; then GO="$GOROOT/bin/go"; else GO=go; fi
 if [ -n "${GOROOT:-}" ] && [ -x "$GOROOT/bin/gofmt" ]; then GOFMT="$GOROOT/bin/gofmt"; else GOFMT=gofmt; fi
+if [ -n "${GOROOT:-}" ] && [ -x "$GOROOT/bin/go" ]; then LINT_PATH="$GOROOT/bin:$PATH"; else LINT_PATH="$PATH"; fi
 
 if ! command -v "$GO" >/dev/null 2>&1; then
   echo "check: no usable go ('$GO')" >&2
@@ -87,7 +95,7 @@ echo "==> go test"
 if [ "$mode" != "nolint" ]; then
   echo "==> golangci-lint"
   if golangci-lint version >/dev/null 2>&1; then
-    golangci-lint run ./... || status=1
+    PATH="$LINT_PATH" golangci-lint run ./... || status=1
   else
     echo "check: no usable 'golangci-lint', skipping the lint pass (CI still runs it)" >&2
   fi
