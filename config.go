@@ -122,7 +122,7 @@ func defaults() Config {
 	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
 		false, false, true, true, false, false, false, true
 	subagents := false
-	iterations, budget := 40, int64(0)
+	iterations, budget := 0, int64(0)
 	search, fetch := "", true
 	return Config{
 		Web:           Web{Search: &search, Fetch: &fetch},

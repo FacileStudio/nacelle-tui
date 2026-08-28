@@ -6,6 +6,17 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Changed
+
+- **`max_iterations` now defaults to `0`, which is no cap.** The old default of 40 ended a long
+  run with `Stop: StopIterations` partway through the work, and 40 was never a number chosen for
+  a particular task; it was a guess that any genuine multi-step job outgrows. A run now continues
+  until the model stops asking for another turn. Put a ceiling back with `max_iterations` in
+  `~/.nacelle.yml`, the `-max-iterations` flag or `NACELLE_MAX_ITERATIONS`, all unchanged.
+
+  The trade is worth stating plainly: with no cap, a model looping on a failing tool loops until
+  you interrupt it. Keep a cap where the tools are expensive or the run is unattended.
+
 ### Removed
 
 - **`mycelium: true` in `~/.nacelle.yml` is now a startup error. Delete the key.** The
