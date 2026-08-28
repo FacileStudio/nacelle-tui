@@ -67,7 +67,7 @@ func environment(config Config, now time.Time) string {
 	body.WriteString("What you write is rendered as markdown in a terminal.\n")
 
 	body.WriteString("\nWhen several tool calls are independent — none needs another's result — make them together in " +
-		"one turn instead of one after another; wait only where a later call needs an earlier one's output.")
+		"one turn instead of one after another; wait only where a later call needs an earlier one's output.\n")
 
 	if *config.ApproveTools {
 		body.WriteString("\nEvery tool call is shown to the person running this before it runs. A " +
