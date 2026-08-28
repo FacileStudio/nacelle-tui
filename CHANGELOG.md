@@ -6,6 +6,18 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-08-28
+
+### Added
+
+- **The model is told to batch independent tool calls.** When several calls need nothing from one
+  another, it makes them in a single turn rather than one after another, and waits only where a
+  later call needs an earlier one's output. The harness already ran a turn's calls concurrently;
+  nothing said so, and a model that does not know it serialises work it could have finished at
+  once. The rule lives in the environment preamble rather than the default system prompt, because
+  `-system` replaces that prompt outright and this is the one piece of working advice that has to
+  survive a custom persona.
+
 ### Changed
 
 - **`max_iterations` now defaults to `0`, which is no cap.** The old default of 40 ended a long
@@ -297,8 +309,14 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.6.0
 [0.5.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.5.0
+[0.4.3]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.4.3
+[0.4.2]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.4.2
+[0.4.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.4.1
+[0.4.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.4.0
+[0.3.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.3.0
 [0.2.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.1.0
