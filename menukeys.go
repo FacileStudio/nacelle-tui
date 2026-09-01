@@ -6,21 +6,35 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// commandWord is the text after the last '/' in the prompt, up to the next
-// whitespace. It is the query the dropdown filters on — a command typed
-// mid-message completes the same way one typed at the start does, because
-// the filter only ever reads the word after the slash. "" when the prompt
-// holds no '/' at all.
+// commandWord is the text after the '/' at the start of the prompt, up to
+// the first whitespace. It is the query the dropdown filters on. Only the
+// start-of-line position triggers the menu, so typing "/clear" mid-sentence
+// never opens it.
 func commandWord(value string) string {
-	slash := strings.LastIndex(value, "/")
-	if slash < 0 {
+	if !strings.HasPrefix(value, "/") {
 		return ""
 	}
-	rest := value[slash:]
+	rest := value[1:]
 	if i := strings.IndexAny(rest, " \t\n"); i >= 0 {
 		rest = rest[:i]
 	}
-	return rest
+	return "/" + rest
+}
+
+// anyCommand returns the first /command found anywhere in value, or ""
+// when there is none. Used for highlighting — a /command mid-sentence is
+// styled the same way as one at the start of the line, even though only
+// a start-of-line / opens the dropdown menu.
+func anyCommand(value string) string {
+	idx := strings.Index(value, "/")
+	if idx < 0 {
+		return ""
+	}
+	rest := value[idx+1:]
+	if i := strings.IndexAny(rest, " \t\n"); i >= 0 {
+		rest = rest[:i]
+	}
+	return "/" + rest
 }
 
 // refreshMenu recomputes what the dropdown shows from the prompt's current
@@ -39,7 +53,16 @@ func (m *model) refreshMenu() {
 	if word == "" {
 		m.menu.filtered = nil
 		m.menu.dismissed = false
-		m.prompt.SetStyles(m.promptStyles)
+		if cmd := anyCommand(m.prompt.Value()); cmd != "" {
+			hl := m.promptStyles
+			hl.Focused.Text = m.theme.command
+			hl.Focused.CursorLine = m.theme.command
+			hl.Blurred.Text = m.theme.command
+			hl.Blurred.CursorLine = m.theme.command
+			m.prompt.SetStyles(hl)
+		} else {
+			m.prompt.SetStyles(m.promptStyles)
+		}
 	} else {
 		m.menu.filtered = filterMenu(m.menu.items, word)
 		if typedOut(m.menu.filtered, word) {
@@ -107,27 +130,13 @@ func (m *model) selectMenuItem() {
 	m.menu.dismissed = true
 }
 
-// insertPick replaces the word after the last '/' in the prompt with the
-// selected command, keeping any text before and after it intact. When there
-// is no '/' the whole value is replaced, matching the start-of-line use.
+// insertPick replaces the whole prompt value with the selected command,
+// because the menu only opens when the prompt starts with '/'. The trailing
+// space is what distinguishes a picked command from a typed one — enter being
+// pressed right after the pick finishes the command, and an extra space awaits
+// an argument.
 func insertPick(value, pick string) string {
-	slash := strings.LastIndex(value, "/")
-	if slash < 0 {
-		return pick + " "
-	}
-	rest := value[slash:]
-	end := len(rest)
-	for i, r := range rest {
-		if r == ' ' || r == '\t' || r == '\n' {
-			end = i
-			break
-		}
-	}
-	after := rest[end:]
-	if after == "" {
-		pick += " "
-	}
-	return value[:slash] + pick + after
+	return pick + " "
 }
 
 // viewMenu draws the dropdown, or "" when it has nothing to show — every

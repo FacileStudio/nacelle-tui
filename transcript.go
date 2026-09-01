@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -37,6 +38,12 @@ const (
 
 	// fromFailure is the run falling over.
 	fromFailure
+
+	// fromToolOk is a finished tool that succeeded — green.
+	fromToolOk
+
+	// fromToolFail is a tool that failed — red.
+	fromToolFail
 )
 
 // say commits one finished thing to the terminal's own scrollback.
@@ -110,9 +117,13 @@ func (m *model) paint(who speaker, text string) string {
 	case fromModel:
 		return m.markdown(text)
 	case fromThinking:
-		return m.theme.thinking.Width(width).Render(text)
+		return m.markdown(text)
 	case fromTool:
 		return toolLinePainted(text)
+	case fromToolOk:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Width(width).Render(text)
+	case fromToolFail:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Width(width).Render(text)
 	case fromResult:
 		return m.theme.result.Width(width).Render("  ⤷ " + text)
 	case fromDiff:
@@ -135,9 +146,10 @@ func (m *model) paint(who speaker, text string) string {
 // the top is not lost: the whole answer is printed, rendered, the moment it
 // finishes.
 //
-// Both are drawn plainly, not as markdown. Half a fenced code block is not a
-// document, and a parser run over the answer again on every arriving
-// character is a cost this pays once, at the end, instead.
+// The answer is rendered through the markdown renderer live, because reading
+// raw asterisks in the streaming region is worse than a slight reflow when a
+// new character arrives. Half a code block falls back to plain text — glamour
+// is lenient with incomplete markdown.
 //
 // It stamps the moment reasoning started on its way past. Drawing is not where
 // a clock belongs, but this is the only thing that runs after every absorbed
@@ -150,10 +162,10 @@ func (m *model) streaming() []string {
 
 	var live []string
 	if reasoning := m.run.reasoning.String(); reasoning != "" {
-		live = append(live, m.theme.thinking.Width(max(m.width, 1)).Render(reasoning))
+		live = append(live, m.markdown(reasoning))
 	}
 	if answer := m.run.answer.String(); answer != "" {
-		live = append(live, m.theme.plain.Width(max(m.width, 1)).Render(answer))
+		live = append(live, m.markdown(answer))
 	}
 	if len(live) == 0 {
 		return nil

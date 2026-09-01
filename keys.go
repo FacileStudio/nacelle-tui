@@ -75,6 +75,16 @@ func (m *model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		return m.reveal()
 	case "esc":
 		return m.escaped()
+	case "tab":
+		if cmd := anyCommand(m.prompt.Value()); cmd != "" {
+			matches := filterMenu(m.menu.items, cmd)
+			if len(matches) > 0 {
+				m.prompt.SetValue(insertPick(m.prompt.Value(), matches[0].value))
+				m.prompt.CursorEnd()
+				return true, nil
+			}
+		}
+		return false, nil
 	case "enter":
 		return true, m.ask()
 	}

@@ -100,6 +100,7 @@ func run() error {
 		skills: found.skills, hookNotice: hookNotice, gate: approvalGate,
 		root: config.Root, model: config.Model, backend: config.Backend,
 		diffs: *config.Diffs, groupTools: config.UI.GroupTools,
+		showThinking: *config.UI.ShowThinking,
 	})
 }
 
@@ -116,6 +117,7 @@ type uiSession struct {
 	backend    string
 	diffs      bool
 	groupTools *bool
+	showThinking bool
 }
 
 // launch opens the program, delivers whatever was queued for the transcript
@@ -148,6 +150,7 @@ type uiSession struct {
 func launch(c uiSession) error {
 	opened := newModel(c.agent, c.banner, c.skills)
 	opened.look.groupTools = derefBool(c.groupTools)
+		opened.expanded = c.showThinking
 	opened.run.root = c.root
 	opened.run.diffs = c.diffs
 	opened.sink = newUsageSink(c.root, c.model)

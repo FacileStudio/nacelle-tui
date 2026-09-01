@@ -104,8 +104,14 @@ type Toggles struct {
 // same read ten times in a row is the common case, and ten lines of identical
 // icon are noise; turning it off is for the session where you want to watch
 // every call land.
+//
+// ShowThinking controls whether thinking traces are expanded by default. When
+// true (the default), every turn's chain of thought is printed in full rather
+// than collapsed to "thought for 2.9s". The ctrl+t key still toggles per-session
+// either way, and show_thinking only sets the starting position.
 type UI struct {
-	GroupTools *bool `yaml:"group_tools"`
+	GroupTools   *bool `yaml:"group_tools"`
+	ShowThinking *bool `yaml:"show_thinking"`
 }
 
 // defaults is the bottom layer, and the only one that answers everything.
@@ -148,7 +154,7 @@ func defaults() Config {
 	subagents := false
 	iterations, budget := 0, int64(0)
 	search, fetch := "", true
-	groupTools := true
+	groupTools, showThinking := true, true
 	return Config{
 		Web:           Web{Search: &search, Fetch: &fetch},
 		Backend:       "anthropic",
@@ -163,7 +169,7 @@ func defaults() Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{GroupTools: &groupTools},
+		UI: UI{GroupTools: &groupTools, ShowThinking: &showThinking},
 	}
 }
 

@@ -70,15 +70,13 @@ func themed(dark bool) palette {
 
 	return palette{
 		question: lipgloss.NewStyle().
-			Bold(true).
 			PaddingLeft(1).
-			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
 		menu: lipgloss.NewStyle().
 			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
 		command:  lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
-		thinking: lipgloss.NewStyle().Foreground(quiet).Italic(true).PaddingLeft(1),
+		thinking: lipgloss.NewStyle().Foreground(quiet).Italic(true),
 		tool:     plainTool,
 		result:   lipgloss.NewStyle().Foreground(quiet),
 		failure:  lipgloss.NewStyle().Foreground(lipgloss.Color("1")),

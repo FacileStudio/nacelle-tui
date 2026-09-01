@@ -47,7 +47,13 @@ const durationRoom = 10
 // argument worth showing", which is true and short; the raw blob read as noise.
 func toolLine(name, input string, width int) string {
 	room := width - lipgloss.Width(name) - durationRoom - len("• ()")
-	return toolGlyph(name) + " " + name + "(" + truncate(unstyled(primaryArg(input)), room) + ")"
+	glyph := toolGlyph(name)
+	// Pad 1-cell-wide glyphs with an extra space so every tool line's name
+	// starts at the same column — ✎ and $ at the same visual position.
+	if lipgloss.Width(glyph) == 1 {
+		glyph += " "
+	}
+	return glyph + " " + name + "(" + truncate(unstyled(primaryArg(input)), room) + ")"
 }
 
 // primaryArg is the argument a call is named by, rendered for a single line.
@@ -151,25 +157,30 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			m.say(fromTool, line)
+			m.say(fromToolFail, line)
 			m.say(fromResult, failed(tool))
 			return
 		}
-		m.say(fromTool, line+" · "+took(tool.Duration))
+		m.say(fromToolOk, line+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	} else {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			m.say(fromTool, line)
+			m.say(fromToolFail, line)
 			m.say(fromResult, failed(tool))
 			return
 		}
-		m.say(fromTool, line+" · "+took(tool.Duration))
+		m.say(fromToolOk, line+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	}
 	if change, edited := m.run.edits[tool.ID]; edited {
 		delete(m.run.edits, tool.ID)
+		// run_command edits only capture the before content at call time;
+		// read the file now that the command has finished to get the after.
+		if change.after == "" && change.before != "" {
+			change.after = priorContents(m.run.root, change.path)
+		}
 		if diff := renderDiff(change, m.width, m.theme.muted); diff != "" {
 			m.say(fromDiff, diff)
 		}

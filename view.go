@@ -50,6 +50,9 @@ import (
 func (m *model) View() tea.View {
 	above := append(m.streaming(), "")
 	above = append(above, m.tasks.view(max(m.width, 1), m.theme.muted)...)
+	if m.tasks != nil {
+		above = append(above, "")
+	}
 	above = append(above, m.status())
 	above = append(above, m.viewQueued()...)
 	above = append(above, m.groups()...)

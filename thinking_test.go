@@ -29,7 +29,7 @@ func TestReasoningCommitsAsOneCollapsedLine(t *testing.T) {
 	m.flush()
 
 	said := strings.Join(spoken(m), "\n")
-	if !strings.Contains(said, "· thought for 4.2s") {
+	if !strings.Contains(said, "▶ thought for 4.2s") {
 		t.Errorf("said = %q, want the collapsed line with its duration", said)
 	}
 	if strings.Contains(said, "and then again") {
@@ -69,7 +69,7 @@ func TestUnmeasuredThinkingReportsNoDuration(t *testing.T) {
 	m.flush()
 
 	said := strings.Join(spoken(m), "\n")
-	if !strings.Contains(said, "· thought") || strings.Contains(said, "for") {
+	if !strings.Contains(said, "▶ thought") || strings.Contains(said, "for") {
 		t.Errorf("said = %q, want the collapsed line with no duration on it", said)
 	}
 }
@@ -141,7 +141,7 @@ func TestExpandingSticksForTheTurnsAfterIt(t *testing.T) {
 	if !strings.Contains(said, "the second turn's reasoning") {
 		t.Errorf("said = %q, want the next turn shown in full without a second press", said)
 	}
-	if strings.Contains(said, "· thought for") {
+	if strings.Contains(said, "▶ thought for") {
 		t.Errorf("said = %q, want no collapsed line while expanded", said)
 	}
 }
@@ -158,7 +158,7 @@ func TestPressingItAgainCollapsesAgain(t *testing.T) {
 	m.begun = time.Now().Add(-time.Second)
 	m.flush()
 
-	if said := visible(strings.Join(m.unprinted, "\n")); !strings.Contains(said, "· thought for") {
+	if said := visible(strings.Join(m.unprinted, "\n")); !strings.Contains(said, "▶ thought for") {
 		t.Errorf("said = %q, want the collapsed line back", said)
 	}
 }

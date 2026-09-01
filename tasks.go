@@ -124,7 +124,7 @@ func taskGlyph(status string) string {
 	case statusDone:
 		return "✓"
 	case statusActive:
-		return "▶"
+		return "●"
 	}
 	return "○"
 }

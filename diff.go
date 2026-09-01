@@ -15,6 +15,7 @@ import (
 var editTools = map[string]bool{
 	"edit_file":  true,
 	"write_file": true,
+	"run_command": true,
 }
 
 // contextLines is how many unchanged lines surround each block of changes,
@@ -81,14 +82,12 @@ func captureEdit(root, name, input string) (editChange, bool) {
 
 // changeFrom reads the arguments one editing call diffs over, tool by tool.
 func changeFrom(root, name string, fields map[string]json.RawMessage) (editChange, bool) {
-	path, ok := fieldString(fields, "path")
-	if !ok {
-		return editChange{}, false
-	}
-	change := editChange{path: path}
-
 	switch name {
 	case "edit_file":
+		path, ok := fieldString(fields, "path")
+		if !ok {
+			return editChange{}, false
+		}
 		before, ok := fieldString(fields, "old")
 		if !ok {
 			return editChange{}, false
@@ -97,18 +96,31 @@ func changeFrom(root, name string, fields map[string]json.RawMessage) (editChang
 		if !ok {
 			return editChange{}, false
 		}
-		change.before, change.after = before, after
+		return editChange{path: path, before: before, after: after}, true
+
 	case "write_file":
+		path, ok := fieldString(fields, "path")
+		if !ok {
+			return editChange{}, false
+		}
 		after, ok := fieldString(fields, "content")
 		if !ok {
 			return editChange{}, false
 		}
-		change.after = after
-		change.before = priorContents(root, path)
-	default:
-		return editChange{}, false
+		return editChange{path: path, before: priorContents(root, path), after: after}, true
+
+	case "run_command":
+		cmd, ok := fieldString(fields, "command")
+		if !ok {
+			return editChange{}, false
+		}
+		path, ok := extractEditPath(cmd)
+		if !ok {
+			return editChange{}, false
+		}
+		return editChange{path: path, before: priorContents(root, path)}, true
 	}
-	return change, true
+	return editChange{}, false
 }
 
 // fieldString reads one string argument out of already-parsed input.
@@ -134,6 +146,72 @@ func priorContents(root, path string) string {
 		return ""
 	}
 	return string(raw)
+}
+
+// extractEditPath looks for a sed -i or similar in-place edit command and
+// returns the file path it targets. It is deliberately heuristic — only the
+// most common patterns are caught, and a command that does not match simply
+// produces no diff, which is always safe.
+//
+// Detected patterns:
+//
+//	sed -i 'expression' path
+//	sed -i 'expression' path args...
+//	sed -i '' 'expression' path
+//	sed -i.bak 'expression' path
+//	sed -i -e 'expression' path
+//
+// Other file-modifying commands (awk -i inplace, perl -i) use the same
+// flag-before-expression-before-path order, so they are caught too.
+func extractEditPath(cmd string) (string, bool) {
+	// Look for a known in-place editing command.
+	markers := []string{"sed -i", "awk -i", "perl -i"}
+	var after string
+	matched := false
+	for _, m := range markers {
+		if idx := strings.Index(cmd, m); idx >= 0 {
+			after = cmd[idx+len(m):]
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return "", false
+	}
+
+	fields := strings.Fields(after)
+	for i, f := range fields {
+		// Skip the -i suffix: -i.bak, -i '', -i "".
+		if i == 0 {
+			if f == `''` || f == `""` {
+				// sed -i '' -> the next field is the expression
+				continue
+			}
+			if !strings.HasPrefix(f, "-") && !strings.HasPrefix(f, "'") && !strings.HasPrefix(f, `"`) {
+				// -i.bak case, the suffix was absorbed into the flag
+				continue
+			}
+		}
+		// Skip flags (-e, --expression, etc.).
+		if strings.HasPrefix(f, "-") {
+			// The next field may be the expression value.
+			if f == "-e" || f == "--expression" {
+				continue
+			}
+			continue
+		}
+		// Skip quoted sed/awk expressions.
+		if (strings.HasPrefix(f, "'") || strings.HasPrefix(f, `"`)) && len(f) > 2 {
+			continue
+		}
+		// Skip "inplace" following "awk -i".
+		if f == "inplace" {
+			continue
+		}
+		// This looks like a file path.
+		return strings.Trim(f, `"'`), true
+	}
+	return "", false
 }
 
 // renderDiff draws one change the way git would: removals in the terminal's

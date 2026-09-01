@@ -82,6 +82,10 @@ func environment(config Config, now time.Time) string {
 			"git reset --hard, git checkout --, a force push, rm on a path you did not create — " +
 			"is worth a sentence to the person first rather than an apology after. Uncommitted " +
 			"changes you did not make are theirs, not yours to tidy up.\n")
+
+		body.WriteString("\nNEVER use sed, awk, perl -i or any other shell command to edit files. " +
+			"Always use the edit_file or write_file tool for file edits — they produce a " +
+			"visible diff I can review, and shell commands do not.\n")
 	}
 	return body.String()
 }

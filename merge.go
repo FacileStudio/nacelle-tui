@@ -12,6 +12,7 @@ package main
 func (c *Config) merge(over Config) {
 	c.mergeStrings(over)
 	c.mergeToggles(over)
+	c.mergeUI(over)
 	if over.MaxIterations != nil {
 		c.MaxIterations = over.MaxIterations
 	}
@@ -83,5 +84,17 @@ func (c *Config) mergeToggles(over Config) {
 	}
 	if over.Diffs != nil {
 		c.Diffs = over.Diffs
+	}
+}
+
+// mergeUI overwrites every pointer field in UI that over actually mentions,
+// for the same reason mergeToggles uses pointers: an absent value and a false
+// one are different answers.
+func (c *Config) mergeUI(over Config) {
+	if over.UI.GroupTools != nil {
+		c.UI.GroupTools = over.UI.GroupTools
+	}
+	if over.UI.ShowThinking != nil {
+		c.UI.ShowThinking = over.UI.ShowThinking
 	}
 }
