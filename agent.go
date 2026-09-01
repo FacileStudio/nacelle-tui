@@ -5,6 +5,8 @@ import (
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle/anthropic"
+	"github.com/FacileStudio/nacelle/google"
+	"github.com/FacileStudio/nacelle/openai"
 	"github.com/FacileStudio/nacelle/openrouter"
 )
 
@@ -63,12 +65,16 @@ func chosen(config Config) (nacelle.Backend, error) {
 	switch config.Backend {
 	case "anthropic":
 		return anthropic.New(anthropic.Config{Model: config.Model}), nil
+	case "google":
+		return google.New(google.Config{Model: config.Model})
+	case "openai":
+		return openai.New(openai.Config{Model: config.Model})
 	case "openrouter":
 		if config.Model == "" {
 			return nil, fmt.Errorf("openrouter needs a model: pass -model, or set model in ~/%s", ConfigFile)
 		}
 		return openrouter.New(openrouter.Config{Model: config.Model})
 	default:
-		return nil, fmt.Errorf("unknown backend %q, want anthropic or openrouter", config.Backend)
+		return nil, fmt.Errorf("unknown backend %q, want anthropic, google, openai, or openrouter", config.Backend)
 	}
 }

@@ -56,7 +56,11 @@ import (
 func banner(backend nacelle.Backend, config Config, found loaded, mcp connected) string {
 	model := config.Model
 	if model == "" {
-		model = anthropic.DefaultModel
+		if withModel, ok := backend.(interface{ Model() string }); ok && withModel.Model() != "" {
+			model = withModel.Model()
+		} else {
+			model = anthropic.DefaultModel
+		}
 	}
 	root := absolute(config.Root)
 	bash := "bash off"

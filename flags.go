@@ -74,7 +74,7 @@ type discoveryFlags struct {
 func declareFlags(fallback Config) declared {
 	return declared{
 		sourceFlags:    declareSources(),
-		backend:        flag.String("backend", fallback.Backend, "anthropic or openrouter"),
+		backend:        flag.String("backend", fallback.Backend, "anthropic, google, openai, or openrouter"),
 		model:          flag.String("model", fallback.Model, "model id, defaulting to the backend's own"),
 		root:           flag.String("root", fallback.Root, "directory the file tools may reach"),
 		system:         flag.String("system", fallback.System, "system prompt"),

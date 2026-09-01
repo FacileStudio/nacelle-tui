@@ -6,6 +6,15 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-09-01
+
+### Added
+
+- **`google` and `openai` backends**: `-backend google` runs on Google Gemini
+  (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, defaulting to `gemini-3.7-flash`), and `-backend openai`
+  runs on OpenAI (`OPENAI_API_KEY`, defaulting to `gpt-5.4`). Both support streaming, tool
+  calling, and reasoning.
+
 ## [0.6.1] — 2026-08-28
 
 ### Fixed
