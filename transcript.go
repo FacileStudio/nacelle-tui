@@ -109,7 +109,7 @@ func (m *model) paint(who speaker, text string) string {
 	case fromModel:
 		return m.markdown(text)
 	case fromThinking:
-		return m.theme.thinking.Width(width).Render(text)
+		return m.markdown(text)
 	case fromTool:
 		return toolLinePainted(text)
 	case fromResult:
@@ -151,7 +151,7 @@ func (m *model) streaming() []string {
 	var live []string
 	if reasoning := m.run.reasoning.String(); reasoning != "" {
 		if m.expanded {
-			live = append(live, m.theme.thinking.Render(reasoning))
+			live = append(live, m.markdown(reasoning))
 		} else {
 			live = append(live, m.theme.thinking.Render(m.collapsed(m.elapsed())))
 		}

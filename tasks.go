@@ -2,25 +2,29 @@ package main
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
-// The three states a step can be in. They are the model's vocabulary, not
+// The five states a step can be in. They are the model's vocabulary, not
 // this client's: they travel in the tool's JSON and are checked against these
 // exact strings, so renaming one here renames it in every prompt the model
 // has already been given.
 const (
-	statusTodo   = "pending"
-	statusActive = "in_progress"
-	statusDone   = "completed"
+	statusTodo    = "pending"
+	statusActive  = "in_progress"
+	statusDone    = "completed"
+	statusBlocked = "blocked"
+	statusFailed  = "failed"
 )
 
 // taskItem is one step of the plan the model laid out.
 type taskItem struct {
 	Title  string `json:"title"`
 	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // taskList is the whole plan, in the order the model wrote it.
@@ -41,6 +45,16 @@ type taskUpdate taskList
 // showing a step as still running that finished minutes ago, and nothing
 // later ever corrects it. A blocked tool call is one turn arriving late.
 var reports = make(chan taskUpdate, 16)
+
+// currentPlan shares the latest plan across goroutines so the task tool
+// can read it for incremental updates. Written by the update loop on every
+// taskUpdate, read by the tool's goroutine on a step_update call.
+//
+// An atomic.Value is the right shape here because both sides are goroutines
+// that never yield to each other's scheduler — the tool runs on the agent's
+// goroutine while the model runs on bubbletea's. The value is nil until the
+// first plan arrives, and callers check that.
+var currentPlan atomic.Value
 
 // taskRows is how many steps are drawn before the rest are counted in one
 // line instead, for the reason queuedRows spells out: layout reserves a row
@@ -125,20 +139,28 @@ func taskGlyph(status string) string {
 		return "✓"
 	case statusActive:
 		return "●"
+	case statusFailed:
+		return "⊗"
+	case statusBlocked:
+		return "⊘"
 	}
 	return "○"
 }
 
 // taskGlyphStyle returns the colour for a step's marker, so a completed step
-// shows green and a running step shows cyan. Pending steps have no colour of
-// their own — they fall through to the muted style the whole line already
-// inherits.
+// shows green and a running step shows cyan, a failed step shows red and a
+// blocked step shows yellow. Pending steps have no colour of their own —
+// they fall through to the muted style the whole line already inherits.
 func taskGlyphStyle(status string) lipgloss.Style {
 	switch status {
 	case statusDone:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	case statusActive:
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	case statusFailed:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+	case statusBlocked:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	}
 	return lipgloss.NewStyle()
 }
@@ -166,6 +188,7 @@ func watchTasks() tea.Cmd {
 // that pushes the next one over.
 func (m *model) recordTasks(reported taskUpdate) tea.Cmd {
 	m.tasks = taskList(reported)
+	currentPlan.Store(taskList(reported))
 	m.layout(m.windowHeight)
 	return watchTasks()
 }

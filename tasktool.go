@@ -42,33 +42,44 @@ func (tasksTool) Description() string {
 		"use it for a job of one or two steps, or for something purely",
 		"conversational — a plan for trivial work is noise on the screen.",
 		"",
-		"Each call replaces the whole list. Send every step every time, not",
-		"just the ones that changed.",
+		"Two calling modes:",
+		"",
+		"1. tasks — the full list of steps. Send this to create or replace the",
+		"   whole plan. Call once to set up the plan.",
+		"",
+		"2. step_update — change one step by its 0-based index. Send only the",
+		"   fields that changed (status, title, reason). Much lighter than",
+		"   sending the whole list every call.",
 		"",
 		"Exactly one step is in_progress at any moment, never two and never",
 		"none while there is work left. Mark a step in_progress before you",
 		"start it, and mark it completed the moment it is really finished.",
 		"",
-		"Only completed means done. If a step is blocked, failed, or waiting",
-		"on something, leave it in_progress and add a new step describing what",
-		"is in the way. Never mark work completed that you have not done.",
+		"If a step cannot proceed, mark it blocked or failed with a reason",
+		"telling why. Then adjust the plan — add steps, change approach — and",
+		"mark the next one in_progress. The list on screen always reflects",
+		"reality. Never mark work completed that you have not done.",
 	}, "\n")
 }
 
 // Schema is the JSON Schema of the tool's input. The status enum is stated
 // here as well as checked in Run, because a model that is told the three
 // words rarely invents a fourth — the check is what happens when it does.
+//
+// Two modes: send the full tasks list to set the whole plan, or send a
+// step_update with an index to change one step. step_update is lighter for
+// status changes and costs fewer tokens per call.
 func (tasksTool) Schema() map[string]any {
 	return map[string]any{
 		"type": "object",
 		"properties": map[string]any{
 			"tasks": map[string]any{
 				"type":        "array",
-				"description": "The full list of steps, in order.",
+				"description": "The full list of steps, in order. Provide this to set or replace the whole plan.",
 				"items":       stepSchema(),
 			},
+			"step_update": stepUpdateSchema(),
 		},
-		"required": []string{"tasks"},
 	}
 }
 
@@ -81,9 +92,26 @@ func stepSchema() map[string]any {
 		"type": "object",
 		"properties": map[string]any{
 			"title":  map[string]any{"type": "string", "description": "What the step does, in a few words."},
-			"status": map[string]any{"type": "string", "enum": []string{statusTodo, statusActive, statusDone}},
+			"status": map[string]any{"type": "string", "enum": []string{statusTodo, statusActive, statusDone, statusBlocked, statusFailed}},
+			"reason": map[string]any{"type": "string", "description": "Why the step is blocked or failed. Only needed for those statuses."},
 		},
 		"required": []string{"title", "status"},
+	}
+}
+
+// stepUpdateSchema is the single-step update shape, separate from stepSchema
+// because it is not an element of an array — the model sends one at a time,
+// keyed by the step's 0-based index in the plan.
+func stepUpdateSchema() map[string]any {
+	return map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"index":  map[string]any{"type": "integer", "description": "The step's 0-based position in the plan."},
+			"status": map[string]any{"type": "string", "enum": []string{statusTodo, statusActive, statusDone, statusBlocked, statusFailed}},
+			"title":  map[string]any{"type": "string", "description": "New title for the step, if changing it."},
+			"reason": map[string]any{"type": "string", "description": "Why the step is blocked or failed. Only needed for those statuses."},
+		},
+		"required": []string{"index"},
 	}
 }
 
@@ -94,6 +122,10 @@ func stepSchema() map[string]any {
 // the last list between calls, which is state, which is a lock, which is the
 // thing the doc comment on tasksTool exists to avoid.
 //
+// When step_update is provided instead of tasks, it is merged with the current
+// plan held in currentPlan so the model does not have to repeat the whole list
+// for a single status change.
+//
 // The send is guarded by the context rather than left to block forever. It
 // blocks while the update loop is alive, which is the point — a dropped plan
 // is a screen that is quietly wrong — but a cancelled run is a loop that may
@@ -101,18 +133,59 @@ func stepSchema() map[string]any {
 // outlives the run that started it.
 func (t tasksTool) Run(ctx context.Context, input json.RawMessage) (string, error) {
 	var reported struct {
-		Tasks taskList `json:"tasks"`
+		Tasks      taskList `json:"tasks,omitempty"`
+		StepUpdate *struct {
+			Index  int     `json:"index"`
+			Status *string `json:"status,omitempty"`
+			Title  *string `json:"title,omitempty"`
+			Reason *string `json:"reason,omitempty"`
+		} `json:"step_update,omitempty"`
 	}
 	if err := json.Unmarshal(input, &reported); err != nil {
 		return "", fmt.Errorf("tasks: input is not the expected object: %w", err)
 	}
-	if err := validate(reported.Tasks); err != nil {
+
+	var merged taskList
+	var ok bool
+	switch {
+	case len(reported.Tasks) > 0:
+		merged = reported.Tasks
+	case reported.StepUpdate != nil:
+		cur := currentPlan.Load()
+		if cur == nil {
+			return "", fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
+		}
+		merged, ok = cur.(taskList)
+		if !ok {
+			return "", fmt.Errorf("tasks: internal error — plan is not a taskList")
+		}
+		if len(merged) == 0 {
+			return "", fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
+		}
+		idx := reported.StepUpdate.Index
+		if idx < 0 || idx >= len(merged) {
+			return "", fmt.Errorf("tasks: step_update index %d is out of range (plan has %d steps)", idx, len(merged))
+		}
+		if reported.StepUpdate.Status != nil {
+			merged[idx].Status = *reported.StepUpdate.Status
+		}
+		if reported.StepUpdate.Title != nil {
+			merged[idx].Title = *reported.StepUpdate.Title
+		}
+		if reported.StepUpdate.Reason != nil {
+			merged[idx].Reason = *reported.StepUpdate.Reason
+		}
+	default:
+		return "", fmt.Errorf("tasks: provide either tasks (full plan) or step_update (single step)")
+	}
+
+	if err := validate(merged); err != nil {
 		return "", err
 	}
 
 	select {
-	case reports <- taskUpdate(reported.Tasks):
-		return summarise(reported.Tasks), nil
+	case reports <- taskUpdate(merged):
+		return summarise(merged), nil
 	case <-ctx.Done():
 		return "", ctx.Err()
 	}
@@ -133,11 +206,11 @@ func validate(list taskList) error {
 			return fmt.Errorf("tasks: every step needs a title")
 		}
 		switch item.Status {
-		case statusTodo, statusDone:
+		case statusTodo, statusDone, statusBlocked, statusFailed:
 		case statusActive:
 			active++
 		default:
-			return fmt.Errorf("tasks: %q is not a status, use %s, %s or %s", item.Status, statusTodo, statusActive, statusDone)
+			return fmt.Errorf("tasks: %q is not a status, use %s, %s, %s, %s or %s", item.Status, statusTodo, statusActive, statusDone, statusBlocked, statusFailed)
 		}
 	}
 	if active > 1 {
@@ -150,17 +223,32 @@ func validate(list taskList) error {
 // it is meant to be on, short enough that repeating it every call costs
 // nothing in context.
 func summarise(list taskList) string {
-	done, running := 0, ""
+	done, running, blocked, failed := 0, "", 0, 0
 	for _, item := range list {
 		switch item.Status {
 		case statusDone:
 			done++
 		case statusActive:
 			running = item.Title
+		case statusBlocked:
+			blocked++
+		case statusFailed:
+			failed++
 		}
 	}
-	if running == "" {
-		return fmt.Sprintf("plan recorded: %d steps, %d done, none in progress", len(list), done)
+	var extras []string
+	if blocked > 0 {
+		extras = append(extras, fmt.Sprintf("%d blocked", blocked))
 	}
-	return fmt.Sprintf("plan recorded: %d steps, %d done, now on %q", len(list), done, running)
+	if failed > 0 {
+		extras = append(extras, fmt.Sprintf("%d failed", failed))
+	}
+	head := fmt.Sprintf("plan recorded: %d steps, %d done", len(list), done)
+	if len(extras) > 0 {
+		head += ", " + strings.Join(extras, ", ")
+	}
+	if running == "" {
+		return head + ", none in progress"
+	}
+	return head + fmt.Sprintf(", now on %q", running)
 }

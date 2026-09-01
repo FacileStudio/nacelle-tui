@@ -64,7 +64,7 @@ func themed(dark bool) palette {
 	pick := lipgloss.LightDark(dark)
 	quiet := pick(lipgloss.Color("242"), lipgloss.Color("244"))
 	faint := pick(lipgloss.Color("236"), lipgloss.Color("253"))
-	faintFg := pick(lipgloss.Color("244"), lipgloss.Color("242"))
+	faintFg := pick(lipgloss.Color("15"), lipgloss.Color("0"))
 
 	style := "light"
 	if dark {

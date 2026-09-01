@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
@@ -46,6 +48,7 @@ func (m *model) settle() tea.Cmd {
 	m.run.usage = nacelle.Usage{}
 	m.compact()
 
+	m.taskReminder()
 	return m.deliver()
 }
 
@@ -161,6 +164,56 @@ func (m *model) sayNothingCame() {
 		return
 	}
 	m.say(fromFailure, "no answer · the model stopped without one")
+}
+
+// taskReminder adds a reminder to the conversation when the run ended normally
+// and tasks remain unfinished, so the model sees them on the next turn and
+// either updates their status or adjusts the plan.
+//
+// It runs after closeTurn so the conversation has the finished turn committed
+// before the reminder is inserted. The reminder is a user message with a
+// bracket-prefixed prefix, clearly the client speaking and not the person.
+func (m *model) taskReminder() {
+	if m.run.stop != nacelle.StopEnd {
+		return
+	}
+	if !m.tasksUnfinished() {
+		return
+	}
+	m.say(fromTool, "\u2606 tasks: "+m.tasksSummary())
+	m.conversation = append(m.conversation, nacelle.UserText(m.tasksSummary()))
+}
+
+// tasksUnfinished returns true when the plan has steps that are not completed.
+func (m *model) tasksUnfinished() bool {
+	for _, item := range m.tasks {
+		if item.Status != statusDone {
+			return true
+		}
+	}
+	return false
+}
+
+// tasksSummary returns a short description of the plan's state for reminders.
+func (m *model) tasksSummary() string {
+	total := len(m.tasks)
+	if total == 0 {
+		return ""
+	}
+	done := 0
+	for _, item := range m.tasks {
+		if item.Status == statusDone {
+			done++
+		}
+	}
+	switch done {
+	case total:
+		return ""
+	case 0:
+		return fmt.Sprintf("tasks: %d steps, none done — keep the plan current as you go", total)
+	default:
+		return fmt.Sprintf("tasks: %d/%d steps complete — update the plan before continuing", done, total)
+	}
 }
 
 // reanchor keeps the edit offset naming the same line after a different one

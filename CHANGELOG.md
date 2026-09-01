@@ -6,6 +6,41 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-09-02
+
+### Added
+
+- **Blocked and failed task statuses**: a step that hits trouble now marks
+  itself `blocked` or `failed` with a `reason`, rather than lying or hanging
+  forever. Glyphs: `⊗` (red) for failed, `⊘` (yellow) for blocked.
+- **`step_update` mode**: update one step by its 0-based index instead of
+  resending the whole plan. Lighter for status changes, fewer tokens per call.
+- **Task reminder in settle**: when a run ends normally with unfinished steps,
+  a line prints (`☆ tasks: 3/5 steps complete`) and a user-message is injected
+  so the model sees it on the next turn.
+- **System prompt rule**: "When you lay out work with the tasks tool, keep the
+  plan current as you go" — visible to every model on every turn.
+- **Markdown rendering for thinking traces**: expanded reasoning now renders
+  through glamour like answers do, not just italic grey.
+
+### Changed
+
+- **Tool glyph colour restored after outcome marker**: the old code used
+  `\x1b[m` (full reset) after the green/red check/cross, which killed the
+  tool colour for the rest of the line. Now the glyph switches back to the
+  tool's own hue so `✎ edit_file(view.go) · 12ms` reads as green marker +
+  magenta tool line.
+- **User question contrast**: `faintFg` moved to ANSI 15 (white) on dark
+  terminals, so reader questions and queued messages are white text on the
+  dark grey background instead of mid-grey on grey.
+
+### Fixed
+
+- **Thinking trace colour restored**: the third pass of tool-glyph colouring
+  (commit ada4611) coloured only the glyph, which fixed tool lines but broke
+  the agent's thinking traces — they lost their markdown rendering. Now both
+  live-streaming and committed thinking use `m.markdown(text)` like answers do.
+
 ## [0.11.0] — 2026-09-02
 
 ### Added
@@ -434,7 +469,8 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.12.0
 [0.11.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.11.0
 [0.10.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.10.0
 [0.9.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.9.1

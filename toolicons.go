@@ -46,6 +46,24 @@ var toolStyles = map[string]lipgloss.Style{
 // on their own before, which is three places to change and two to forget.
 var plainTool = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
 
+// toolANSI is the ANSI foreground colour index for each glyph, used by
+// colorGlyph in toolline.go to restore the tool colour after the outcome
+// marker on the glyph. The mapping is what toolStyles applies, extracted to
+// a form colorGlyph can insert directly: the number part of `\x1b[Nm`
+// without the escape sequence itself.
+var toolANSI = map[string]string{
+	"$": "34",
+	"✎": "35",
+	"✚": "36",
+	"☰": "33",
+	"◎": "33",
+	"↧": "36",
+	"»": "35",
+}
+
+// plainToolANSI is the ANSI colour code for the plain tool fallback.
+const plainToolANSI = "34"
+
 // toolGlyph is the marker a tool's lines carry, and the key its colour is
 // read from.
 func toolGlyph(name string) string {
@@ -70,17 +88,25 @@ func toolTone(name string) lipgloss.Style {
 	return plainTool
 }
 
+// toolRestore returns the ANSI colour code to restore after the outcome
+// marker on a tool's glyph, so the rest of the line keeps its tool colour.
+// Unknown tools fall back to the plain tool blue.
+func toolRestore(name string) string {
+	if code, ok := toolANSI[toolGlyph(name)]; ok {
+		return code
+	}
+	return plainToolANSI
+}
+
 // toolLinePainted colours a held call line by the glyph it opens with. A
 // line without a known glyph falls back to the plain tool tone rather than
 // staying unstyled — an unknown tool is still a tool worth seeing.
 //
-// When the glyph already carries ANSI colour codes (from colorGlyph in
-// toolline.go), the tool colour is skipped so the green/red outcome marker
-// is not overridden by the tool's own hue.
+// An ANSI-prefixed text — one that already has a colour-glyph from colorGlyph
+// in toolline.go — still gets wrapped in the tool hue: colorGlyph restores
+// the tool colour after the glyph, so the outer style never overrides the
+// outcome marker on the glyph itself.
 func toolLinePainted(text string) string {
-	if strings.HasPrefix(text, "\x1b[") {
-		return text
-	}
 	glyph, _, _ := strings.Cut(text, " ")
 	if len([]rune(glyph)) == 1 && glyph != "•" {
 		if style, ok := toolStyles[glyph]; ok {

@@ -158,27 +158,27 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			toolStr := m.paint(fromTool, colorGlyph(line, "1"))
+			toolStr := m.paint(fromTool, colorGlyph(line, "1", toolRestore(tool.Name)))
 			resultStr := m.paint(fromResult, failed(tool))
 			m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
-			m.session.line(fromTool, colorGlyph(line, "1"))
+			m.session.line(fromTool, colorGlyph(line, "1", toolRestore(tool.Name)))
 			m.session.line(fromResult, failed(tool))
 			return
 		}
-		m.say(fromTool, colorGlyph(line, "2")+" · "+took(tool.Duration))
+		m.say(fromTool, colorGlyph(line, "2", toolRestore(tool.Name))+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	} else {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			toolStr := m.paint(fromTool, colorGlyph(line, "1"))
+			toolStr := m.paint(fromTool, colorGlyph(line, "1", toolRestore(tool.Name)))
 			resultStr := m.paint(fromResult, failed(tool))
 			m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
-			m.session.line(fromTool, colorGlyph(line, "1"))
+			m.session.line(fromTool, colorGlyph(line, "1", toolRestore(tool.Name)))
 			m.session.line(fromResult, failed(tool))
 			return
 		}
-		m.say(fromTool, colorGlyph(line, "2")+" · "+took(tool.Duration))
+		m.say(fromTool, colorGlyph(line, "2", toolRestore(tool.Name))+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	}
 	if change, edited := m.run.edits[tool.ID]; edited {
@@ -232,10 +232,11 @@ func took(spent time.Duration) string {
 	return max(spent.Round(time.Millisecond), time.Millisecond).String()
 }
 
-// colorGlyph wraps the first visible rune of line (the icon) in an ANSI color
-// so only the icon changes while the rest of the line stays normal. The color
-// is an ANSI index: "1" for red, "2" for green.
-func colorGlyph(line, color string) string {
+// colorGlyph wraps the first visible rune of line (the icon) in an ANSI colour
+// so only the icon changes while the rest of the line stays in restoreColour.
+// The color and restoreColour are ANSI colour indices: "1" for red, "2" for
+// green, "34" for the default blue, etc.
+func colorGlyph(line, color, restoreColour string) string {
 	for i := 0; i < len(line); i++ {
 		if line[i] == '\x1b' {
 			end := strings.IndexByte(line[i:], 'm')
@@ -252,7 +253,7 @@ func colorGlyph(line, color string) string {
 		before := line[:i]
 		glyph := line[i : i+size]
 		rest := line[i+size:]
-		return before + "\x1b[" + color + "m" + glyph + "\x1b[m" + rest
+		return before + "\x1b[" + color + "m" + glyph + "\x1b[" + restoreColour + "m" + rest
 	}
 	return line
 }

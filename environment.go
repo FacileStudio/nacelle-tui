@@ -87,5 +87,8 @@ func environment(config Config, now time.Time) string {
 			"Always use the edit_file or write_file tool for file edits — they produce a " +
 			"visible diff I can review, and shell commands do not.\n")
 	}
+	body.WriteString("\nWhen you lay out work with the tasks tool, keep the plan current as you " +
+		"go: mark each step completed, blocked or failed when it reaches that state. " +
+		"The step_update call is lighter than sending the whole list every turn.\n")
 	return body.String()
 }
