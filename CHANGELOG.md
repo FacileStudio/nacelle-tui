@@ -6,6 +6,16 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Tool glyph colour was ANSI SGR 1 (bold) and 2 (dim), not 31 (red) and 32 (green)**.
+  The `colorGlyph` calls in `finished()` used `"1"` for failure and `"2"` for
+  success, which emits `\x1b[1m` (bold) and `\x1b[2m` (dim) instead of the
+  intended red and green foreground colours. A failed tool's icon showed bold
+  but not red; a successful one showed dim but not green. Both now use the
+  correct 3-digit ANSI colour codes, so the icon actually turns green on
+  success and red on failure.
+
 ## [0.12.0] — 2026-09-02
 
 ### Added
