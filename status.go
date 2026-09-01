@@ -58,12 +58,15 @@ var waiting = []string{
 // line a narrow terminal is guaranteed to keep — one decision read in one
 // place, rather than the first of six appends to a shared buffer.
 func (m *model) status() string {
-	state := "ready"
+	isReady := true
+	state := "✓ ready"
 	if cut := cutShort(m.run.stop); cut != "" {
 		state = cut
+		isReady = false
 	}
 	if m.run.busy {
 		state = m.working()
+		isReady = false
 		if time.Since(m.run.interrupted) < forceQuit {
 			state = "stopping · ctrl+c or ctrl+\\ to quit now"
 		}
@@ -75,7 +78,11 @@ func (m *model) status() string {
 
 	width := max(m.width, 1)
 	counts := strings.Join(m.footer(), " · ")
-	return truncate(state, width) + "\n" + m.theme.muted.Render(truncate(counts, width))
+	stateLine := truncate(state, width)
+	if isReady {
+		stateLine = m.theme.ready.Render(stateLine)
+	}
+	return stateLine + "\n" + m.theme.muted.Render(truncate(counts, width))
 }
 
 // footer is what the session has spent so far, as the pieces the counts row

@@ -6,6 +6,14 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+
+- **Checkmark icon and green styling on the "ready" status line**: when the agent
+  finishes work and the client is idle, the status line now shows `✓ ready` in
+  green (ANSI 2) instead of plain `ready`. A new `palette.ready` style in
+  `theme.go` holds the green foreground; `status()` uses it only for the idle
+  state, so busy, stopping, and approval prompts keep their own colours.
+
 ### Fixed
 
 - **Tool glyph colour was ANSI SGR 1 (bold) and 2 (dim), not 31 (red) and 32 (green)**.
