@@ -98,10 +98,10 @@ func (m *model) viewQueued() []string {
 	width := max(m.width, 1)
 	lines := make([]string, 0, m.queuedHeight())
 	for _, text := range shown {
-		lines = append(lines, m.theme.muted.Render(truncate("queued · "+unstyled(text), width)))
+		lines = append(lines, m.theme.queued.Render(truncate("queued · "+unstyled(text), width)))
 	}
 	if hidden > 0 {
-		lines = append(lines, m.theme.muted.Render(truncate(fmt.Sprintf("queued · and %d more", hidden), width)))
+		lines = append(lines, m.theme.queued.Render(truncate(fmt.Sprintf("queued · and %d more", hidden), width)))
 	}
 	return lines
 }

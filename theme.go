@@ -27,6 +27,7 @@ type palette struct {
 	plain    lipgloss.Style
 	waiting  lipgloss.Style
 	muted    lipgloss.Style
+	queued   lipgloss.Style
 	markdown string
 }
 
@@ -83,6 +84,9 @@ func themed(dark bool) palette {
 		client:   lipgloss.NewStyle().Foreground(quiet),
 		plain:    lipgloss.NewStyle(),
 		waiting:  lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
+		queued:   lipgloss.NewStyle().
+			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
+			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
 		muted:    lipgloss.NewStyle().Foreground(quiet),
 		markdown: style,
 	}
