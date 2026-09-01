@@ -6,7 +6,12 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
-## [0.9.0] — 2026-09-01
+## [0.9.1] — 2026-09-01
+
+### Fixed
+
+- **Queued messages now have a background**, matching the prompt styling for
+  better visual distinction from the transcript region.
 
 ### Fixed
 
@@ -418,7 +423,8 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.9.1
 [0.9.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.9.0
 [0.8.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.8.0
 [0.7.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.7.0
