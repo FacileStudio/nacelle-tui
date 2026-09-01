@@ -6,6 +6,8 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-09-01
+
 ### Fixed
 
 - **Dropdown menu only opens at start-of-line `/`**: typing `/clear` mid-sentence
@@ -416,7 +418,8 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.9.0
 [0.8.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.8.0
 [0.7.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.7.0
 [0.6.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.6.0
