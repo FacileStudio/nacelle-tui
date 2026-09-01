@@ -6,6 +6,8 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-09-01
+
 ### Added
 
 - **`google` and `openai` backends**: `-backend google` runs on Google Gemini
