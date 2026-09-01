@@ -6,6 +6,40 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-09-02
+
+### Added
+
+- **Mid-line `/command` completion**: tab with more than one match opens the
+  dropdown instead of silently picking the first. Re-selecting a command now
+  preserves any text before and after the `/command` word.
+- **Paragraph streaming**: complete paragraphs are committed to scrollback as
+  they arrive, before the model finishes.
+- **Token counter shows millions**: output like `2033k cached` now reads
+  `2.0M cached`.
+
+### Changed
+
+- **`flush()` reads `fullAnswer`**: the entire conversation (not just the
+  visible window) is printed when entering full scrollback.
+- **Failed tool lines**: the tool call and its error are rendered as one entry
+  instead of two, so there is no blank line between them.
+- **Result `⤷ ` has no leading indent**: the two spaces before the arrow were
+  removed.
+- **Diff output keeps a trailing blank line** for better visual separation
+  from the next transcript entry.
+
+## [0.10.0] — 2026-09-01
+
+### Fixed
+
+- **Muted thinking trace** no longer printed to stdout.
+- **Tool glyph colours** (green/red) apply only to the check/cross, not the
+  whole line.
+- **Queued/question backgrounds** are no longer muted.
+- **Removed dead group functions** and formatted with gofmt.
+- **Fixed embedded field selectors** for QF1008 compliance.
+
 ## [0.9.1] — 2026-09-01
 
 ### Fixed
@@ -400,7 +434,9 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.11.0
+[0.10.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.10.0
 [0.9.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.9.1
 [0.9.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.9.0
 [0.8.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.8.0
