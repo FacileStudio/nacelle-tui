@@ -6,6 +6,40 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-09-01
+
+### Added
+
+- **Mid-message `/command` suggestions**: typing `/` anywhere in the prompt
+  now opens the dropdown menu, not only at the start. The word after the last
+  slash is the filter, and selecting a command replaces only that word,
+  leaving the rest of the sentence intact.
+- **Prompt highlighting**: the prompt text turns cyan while a `/command` word
+  is active, giving visual feedback that the menu is open.
+- **Colored task icons**: `✓` (green) for completed, `▶` (cyan) for
+  in_progress, `○` (muted) for pending. Characters are text-safe unicode, not
+  emoji.
+- **Scroll-aware dropdown**: when the match list exceeds the visible height,
+  selection scrolls the window so the highlighted row stays on screen.
+- **Tool grouping**: identical consecutive tool calls fold into a single
+  transcript row labelled `(N×)`, reducing noise when the model reads the
+  same file or searches the same pattern repeatedly. Toggle with
+  `group_tools` in `~/.nacelle.yml`.
+
+### Changed
+
+- **Task list reordered** above the status line, so the loading/status row
+  sits below the plan rather than above it.
+- **Go toolchain** bumped to 1.26 across `mise.toml` and `go.mod`.
+
+### Fixed
+
+- **The `running` map is gone**, replaced by the group-based tracking. The old
+  map was keyed by call ID and never cleaned up for discarded calls, and its
+  iteration order was deliberately random, which made `stranded()` sort the
+  keys first to keep the transcript stable. The group list is order-preserving
+  by construction, and a discarded group is simply not added.
+
 ## [0.7.0] — 2026-09-01
 
 ### Added
@@ -351,8 +385,9 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.6.1...HEAD
-[0.6.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.6.1
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.8.0
+[0.7.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.7.0
 [0.6.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.6.0
 [0.5.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.5.0
 [0.4.3]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.4.3
