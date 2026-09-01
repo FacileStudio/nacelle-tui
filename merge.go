@@ -91,10 +91,10 @@ func (c *Config) mergeToggles(over Config) {
 // for the same reason mergeToggles uses pointers: an absent value and a false
 // one are different answers.
 func (c *Config) mergeUI(over Config) {
-	if over.UI.GroupTools != nil {
-		c.UI.GroupTools = over.UI.GroupTools
+	if over.GroupTools != nil {
+		c.GroupTools = over.GroupTools
 	}
-	if over.UI.ShowThinking != nil {
-		c.UI.ShowThinking = over.UI.ShowThinking
+	if over.ShowThinking != nil {
+		c.ShowThinking = over.ShowThinking
 	}
 }

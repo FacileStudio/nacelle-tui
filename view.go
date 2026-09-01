@@ -102,7 +102,7 @@ func (m *model) absorb(event nacelle.Event) {
 	case nacelle.KindToolCall:
 		m.thought()
 		m.run.reported = true
-		m.run.beginTool(*event.Tool, m.look.groupTools)
+		m.run.beginTool(*event.Tool, m.groupTools)
 		if m.run.diffs {
 			if change, ok := captureEdit(m.run.root, event.Tool.Name, event.Tool.Input); ok {
 				m.run.edits[event.Tool.ID] = change
