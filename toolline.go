@@ -162,7 +162,7 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 			m.say(fromResult, failed(tool))
 			return
 		}
-		m.say(fromTool, line+" · "+took(tool.Duration))
+		m.say(fromTool, colorGlyph(line, "2")+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	} else {
 		m.tools++
@@ -172,7 +172,7 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 			m.say(fromResult, failed(tool))
 			return
 		}
-		m.say(fromTool, line+" · "+took(tool.Duration))
+		m.say(fromTool, colorGlyph(line, "2")+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	}
 	if change, edited := m.run.edits[tool.ID]; edited {

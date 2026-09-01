@@ -55,7 +55,6 @@ func (m *model) View() tea.View {
 	}
 	above = append(above, m.status())
 	above = append(above, m.viewQueued()...)
-	above = append(above, m.groups()...)
 	menu := m.viewMenu()
 	rows := append(above, m.prompt.View())
 	if menu != "" {

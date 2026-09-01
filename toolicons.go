@@ -73,7 +73,14 @@ func toolTone(name string) lipgloss.Style {
 // toolLinePainted colours a held call line by the glyph it opens with. A
 // line without a known glyph falls back to the plain tool tone rather than
 // staying unstyled — an unknown tool is still a tool worth seeing.
+//
+// When the glyph already carries ANSI colour codes (from colorGlyph in
+// toolline.go), the tool colour is skipped so the green/red outcome marker
+// is not overridden by the tool's own hue.
 func toolLinePainted(text string) string {
+	if strings.HasPrefix(text, "\x1b[") {
+		return text
+	}
 	glyph, _, _ := strings.Cut(text, " ")
 	if len([]rune(glyph)) == 1 && glyph != "•" {
 		if style, ok := toolStyles[glyph]; ok {

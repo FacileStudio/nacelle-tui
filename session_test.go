@@ -90,7 +90,7 @@ func TestReasoningIsOnScreenWhileItIsStillStreaming(t *testing.T) {
 	m.run.busy = true
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "weighing it up"})
 
-	if !strings.Contains(onScreen(m), "weighing it up") {
-		t.Errorf("screen = %q, want the reasoning visible as it arrives", onScreen(m))
+	if !strings.Contains(onScreen(m), "▶ thought") {
+		t.Errorf("screen = %q, want the collapsed thought line visible", onScreen(m))
 	}
 }

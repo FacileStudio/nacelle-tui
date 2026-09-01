@@ -62,7 +62,9 @@ type palette struct {
 // changing colour is itself the signal that waiting turned into running.
 func themed(dark bool) palette {
 	pick := lipgloss.LightDark(dark)
-	quiet := pick(lipgloss.Color("243"), lipgloss.Color("245"))
+	quiet := pick(lipgloss.Color("242"), lipgloss.Color("244"))
+	faint := pick(lipgloss.Color("236"), lipgloss.Color("253"))
+	faintFg := pick(lipgloss.Color("244"), lipgloss.Color("242"))
 
 	style := "light"
 	if dark {
@@ -72,7 +74,8 @@ func themed(dark bool) palette {
 	return palette{
 		question: lipgloss.NewStyle().
 			PaddingLeft(1).
-			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
+			Background(faint).
+			Foreground(faintFg),
 		menu: lipgloss.NewStyle().
 			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
@@ -85,8 +88,8 @@ func themed(dark bool) palette {
 		plain:    lipgloss.NewStyle(),
 		waiting:  lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
 		queued:   lipgloss.NewStyle().
-			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
-			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
+			Background(faint).
+			Foreground(faintFg),
 		muted:    lipgloss.NewStyle().Foreground(quiet),
 		markdown: style,
 	}
