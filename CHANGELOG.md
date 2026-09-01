@@ -6,6 +6,14 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+
+- **`google` and `openai` backends**: `-backend google` runs on Google Gemini
+  (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, defaulting to `gemini-3.7-flash`), and `-backend openai`
+  runs on OpenAI (`OPENAI_API_KEY`, defaulting to `gpt-5.4`). Both support streaming, tool
+  calling, and reasoning.
+
+
 ### Removed
 
 - **`mycelium: true` in `~/.nacelle.yml` is now a startup error. Delete the key.** The

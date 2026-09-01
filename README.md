@@ -12,7 +12,7 @@ profiles and panes are what a product grows, not what a contract test needs.
 ## What it does
 
 - Streams one model turn at a time in a full-screen Bubble Tea v2 interface
-- Runs against either backend the SDK ships: `anthropic` or `openrouter`
+- Runs against any backend the SDK ships: `anthropic`, `google`, `openai`, or `openrouter`
 - Lets the model read and edit files under a root you choose, run commands when
   `-bash` is on, search and fetch the web, and call MCP server tools from files
   every other client already has (`-mcp ~/.claude/.mcp.json`)
@@ -65,14 +65,15 @@ nacelle
 ```
 
 It reads API keys from the environment: `ANTHROPIC_API_KEY` for the default
-backend, `OPENROUTER_API_KEY` for `-backend openrouter`.
+backend, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for `-backend google`,
+`OPENAI_API_KEY` for `-backend openai`, and `OPENROUTER_API_KEY` for `-backend openrouter`.
 
 Settings layer bottom-up: defaults, then `~/.nacelle.yml`, then `NACELLE_*`
 environment variables, then flags. The useful ones:
 
 | Flag | Env | What |
 |---|---|---|
-| `-backend` | `NACELLE_BACKEND` | `anthropic` or `openrouter` |
+| `-backend` | `NACELLE_BACKEND` | `anthropic`, `google`, `openai`, or `openrouter` |
 | `-model` | `NACELLE_MODEL` | model id; the backend's own default otherwise |
 | `-root` | `NACELLE_ROOT` | directory the file tools may reach |
 | `-bash` | `NACELLE_BASH` | let the model run commands (off by default) |
