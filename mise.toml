@@ -5,7 +5,7 @@ lockfile = true
 # floor, so the pin is the floor rather than a choice above it.
 [tools]
 lefthook = "latest"
-go = "1.26.4"
+go = "1.26"
 
 [hooks]
 postinstall = "lefthook install"
