@@ -107,16 +107,16 @@ func run() error {
 // client is what run hands to the bubbletea program: everything built above
 // it, so run reads as setup and this as the one call that starts the UI.
 type uiSession struct {
-	agent      *nacelle.Agent
-	banner     string
-	skills     []skill
-	hookNotice string
-	gate       *approvals
-	root       string
-	model      string
-	backend    string
-	diffs      bool
-	groupTools *bool
+	agent        *nacelle.Agent
+	banner       string
+	skills       []skill
+	hookNotice   string
+	gate         *approvals
+	root         string
+	model        string
+	backend      string
+	diffs        bool
+	groupTools   *bool
 	showThinking bool
 }
 
@@ -150,7 +150,7 @@ type uiSession struct {
 func launch(c uiSession) error {
 	opened := newModel(c.agent, c.banner, c.skills)
 	opened.look.groupTools = derefBool(c.groupTools)
-		opened.expanded = c.showThinking
+	opened.expanded = c.showThinking
 	opened.run.root = c.root
 	opened.run.diffs = c.diffs
 	opened.sink = newUsageSink(c.root, c.model)

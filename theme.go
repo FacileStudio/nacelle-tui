@@ -87,7 +87,7 @@ func themed(dark bool) palette {
 		client:   lipgloss.NewStyle().Foreground(quiet),
 		plain:    lipgloss.NewStyle(),
 		waiting:  lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
-		queued:   lipgloss.NewStyle().
+		queued: lipgloss.NewStyle().
 			Background(faint).
 			Foreground(faintFg),
 		muted:    lipgloss.NewStyle().Foreground(quiet),

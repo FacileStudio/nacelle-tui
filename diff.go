@@ -13,8 +13,8 @@ import (
 // therefore the only calls a diff is drawn for. Everything else — search,
 // commands, MCP tools under any name — renders exactly as it did before.
 var editTools = map[string]bool{
-	"edit_file":  true,
-	"write_file": true,
+	"edit_file":   true,
+	"write_file":  true,
 	"run_command": true,
 }
 

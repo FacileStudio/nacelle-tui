@@ -36,7 +36,6 @@ const (
 
 	// fromFailure is the run falling over.
 	fromFailure
-
 )
 
 // say commits one finished thing to the terminal's own scrollback.
