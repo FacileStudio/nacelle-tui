@@ -10,8 +10,12 @@ while on `v0`, a breaking change bumps the minor.
 
 ### Fixed
 
+- **Tool icon color only applies to the glyph, not the whole line**
+  (regression in 0.9.0 where the entire tool line turned green/red).
 - **Queued messages now have a background**, matching the prompt styling for
   better visual distinction from the transcript region.
+- **Removed unused speaker types** (`fromToolOk`, `fromToolFail`) in favour of
+  embedding ANSI color codes in the line string itself.
 
 ## [0.9.0] — 2026-09-01
 

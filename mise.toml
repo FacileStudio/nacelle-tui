@@ -6,6 +6,7 @@ lockfile = true
 [tools]
 lefthook = "latest"
 go = "1.26"
+goreleaser = "latest"
 
 [hooks]
 postinstall = "lefthook install"
