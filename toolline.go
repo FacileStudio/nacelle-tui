@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 
@@ -157,21 +158,21 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			m.say(fromToolFail, line)
+			m.say(fromTool, colorGlyph(line, "1"))
 			m.say(fromResult, failed(tool))
 			return
 		}
-		m.say(fromToolOk, line+" · "+took(tool.Duration))
+		m.say(fromTool, line+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	} else {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			m.say(fromToolFail, line)
+			m.say(fromTool, colorGlyph(line, "1"))
 			m.say(fromResult, failed(tool))
 			return
 		}
-		m.say(fromToolOk, line+" · "+took(tool.Duration))
+		m.say(fromTool, line+" · "+took(tool.Duration))
 		m.session.tool(tool.Name, tool.Duration)
 	}
 	if change, edited := m.run.edits[tool.ID]; edited {
@@ -223,4 +224,29 @@ func failed(tool *nacelle.ToolEvent) string {
 // comparing 300µs against 700µs in a scrollback.
 func took(spent time.Duration) string {
 	return max(spent.Round(time.Millisecond), time.Millisecond).String()
+}
+
+// colorGlyph wraps the first visible rune of line (the icon) in an ANSI color
+// so only the icon changes while the rest of the line stays normal. The color
+// is an ANSI index: "1" for red, "2" for green.
+func colorGlyph(line, color string) string {
+	for i := 0; i < len(line); i++ {
+		if line[i] == '\x1b' {
+			end := strings.IndexByte(line[i:], 'm')
+			if end < 0 {
+				break
+			}
+			i += end
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(line[i:])
+		if r == utf8.RuneError {
+			break
+		}
+		before := line[:i]
+		glyph := line[i : i+size]
+		rest := line[i+size:]
+		return before + "\x1b[" + color + "m" + glyph + "\x1b[m" + rest
+	}
+	return line
 }

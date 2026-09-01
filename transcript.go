@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -39,11 +38,6 @@ const (
 	// fromFailure is the run falling over.
 	fromFailure
 
-	// fromToolOk is a finished tool that succeeded — green.
-	fromToolOk
-
-	// fromToolFail is a tool that failed — red.
-	fromToolFail
 )
 
 // say commits one finished thing to the terminal's own scrollback.
@@ -120,10 +114,6 @@ func (m *model) paint(who speaker, text string) string {
 		return m.markdown(text)
 	case fromTool:
 		return toolLinePainted(text)
-	case fromToolOk:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Width(width).Render(text)
-	case fromToolFail:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Width(width).Render(text)
 	case fromResult:
 		return m.theme.result.Width(width).Render("  ⤷ " + text)
 	case fromDiff:

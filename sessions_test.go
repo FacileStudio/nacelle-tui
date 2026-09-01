@@ -94,7 +94,7 @@ func TestReasoningToolOutputAndDiffsNeverReachTheDisk(t *testing.T) {
 	log, lines := opened(t)
 
 	secret := "AWS_SECRET_ACCESS_KEY=hunter2"
-	for _, who := range []speaker{fromClient, fromThinking, fromTool, fromToolOk, fromToolFail, fromResult, fromDiff, fromFailure} {
+	for _, who := range []speaker{fromClient, fromThinking, fromTool, fromResult, fromDiff, fromFailure} {
 		log.line(who, secret)
 	}
 
