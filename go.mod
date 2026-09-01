@@ -7,7 +7,7 @@ require (
 	charm.land/bubbletea/v2 v2.0.9
 	charm.land/glamour/v2 v2.0.1
 	charm.land/lipgloss/v2 v2.0.5
-	github.com/FacileStudio/nacelle v0.4.2
+	github.com/FacileStudio/nacelle v0.5.0
 	github.com/charmbracelet/x/ansi v0.11.8
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 )
@@ -57,6 +57,3 @@ require (
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )
-
-replace github.com/FacileStudio/nacelle => ../nacelle
-
