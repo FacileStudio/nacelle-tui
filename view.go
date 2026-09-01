@@ -97,9 +97,12 @@ func (m *model) absorb(event nacelle.Event) {
 		m.thought()
 		m.run.reported = m.run.reported || event.Text != ""
 		m.run.answer.WriteString(event.Text)
+		m.run.fullAnswer.WriteString(event.Text)
+		m.commitParagraphs()
 	case nacelle.KindThinking:
 		m.run.reasoning.WriteString(event.Text)
 	case nacelle.KindToolCall:
+		m.commitParagraphs()
 		m.thought()
 		m.run.reported = true
 		m.run.beginTool(*event.Tool, m.groupTools)
@@ -119,6 +122,30 @@ func (m *model) absorb(event nacelle.Event) {
 		m.run.usage = event.Usage
 		m.run.stop = event.Stop
 		m.sized(event.Usage)
+	}
+}
+
+// commitParagraphs finishes any complete paragraphs from the streaming answer
+// to scrollback, so text appears line by line rather than as a block that grows
+// in the live region. A paragraph is complete when it is followed by a blank
+// line (\n\n). The trailing partial paragraph stays in the answer buffer for
+// the live streaming region.
+//
+// Callers: absorb after every text delta, and flush before finishing the turn.
+func (m *model) commitParagraphs() {
+	text := m.run.answer.String()
+	idx := strings.LastIndex(text, "\n\n")
+	if idx < 0 {
+		return
+	}
+	complete := text[:idx]
+	partial := text[idx+2:]
+
+	m.run.answer.Reset()
+	m.run.answer.WriteString(partial)
+
+	if complete != "" {
+		m.say(fromModel, complete)
 	}
 }
 

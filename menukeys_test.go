@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Typing '/' alone is what opens the dropdown at all — with no query yet,
@@ -160,7 +161,7 @@ func TestMenuRowNeverExceedsWidth(t *testing.T) {
 	it := menuItem{value: "/skill:antenne", description: strings.Repeat("x", 200)}
 
 	for _, width := range []int{20, 40, 63, 80} {
-		if got := menuRow(it, width); len(got) > width {
+		if got := menuRow(it, width, lipgloss.NewStyle()); len(got) > width {
 			t.Errorf("menuRow(width=%d) = %q (%d chars), want it to fit", width, got, len(got))
 		}
 	}
@@ -169,7 +170,7 @@ func TestMenuRowNeverExceedsWidth(t *testing.T) {
 func TestMenuRowDropsTheDescriptionRatherThanOverflowOnATinyWidth(t *testing.T) {
 	it := menuItem{value: "/skill:facile-review", description: "a description"}
 
-	if got := menuRow(it, 10); got != it.value {
+	if got := menuRow(it, 10, lipgloss.NewStyle()); got != it.value {
 		t.Errorf("menuRow(width=10) = %q, want just the value with no room for a description", got)
 	}
 }
@@ -178,6 +179,47 @@ func TestViewMenuIsEmptyWhenClosed(t *testing.T) {
 	m := sized()
 	if got := m.viewMenu(); got != "" {
 		t.Errorf("viewMenu() = %q, want empty with nothing typed", got)
+	}
+}
+
+// replaceCommand preserves text before and after the /command, keeping
+// "please run /cl" → "please run /clear " instead of losing the first half.
+func TestReplaceCommandPreservesSurroundingText(t *testing.T) {
+	want := "please run /clear  now"
+	if got := replaceCommand("please run /cl now", "/clear"); got != want {
+		t.Errorf("replaceCommand = %q, want %q", got, want)
+	}
+}
+
+// With nothing before the /command, replaceCommand acts like insertPick.
+func TestReplaceCommandFromStartOfLine(t *testing.T) {
+	want := "/clear  now"
+	if got := replaceCommand("/cl now", "/clear"); got != want {
+		t.Errorf("replaceCommand = %q, want %q", got, want)
+	}
+}
+
+// With no text after the command, the trailing space still appears.
+func TestReplaceCommandCommandAtEndOfValue(t *testing.T) {
+	want := "please run /clear "
+	if got := replaceCommand("please run /cl", "/clear"); got != want {
+		t.Errorf("replaceCommand = %q, want %q", got, want)
+	}
+}
+
+// With no slash in value, replaceCommand returns the value unchanged.
+func TestReplaceCommandWithNoSlash(t *testing.T) {
+	want := "hello world"
+	if got := replaceCommand(want, "/clear"); got != want {
+		t.Errorf("replaceCommand(%q) = %q, want it unchanged", want, got)
+	}
+}
+
+// insertPick replaces the whole value — it's for start-of-line only.
+func TestInsertPickReplacesWholeValue(t *testing.T) {
+	want := "/clear "
+	if got := insertPick("anything", "/clear"); got != want {
+		t.Errorf("insertPick = %q, want %q", got, want)
 	}
 }
 

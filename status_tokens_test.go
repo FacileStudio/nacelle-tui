@@ -34,7 +34,10 @@ func TestShortTokens(t *testing.T) {
 		12345:     "12.3k",
 		99999:     "100.0k",
 		100000:    "100k",
-		123456789: "123456k",
+		123456789: "123M",
+		1000000:   "1.0M",
+		1234567:   "1.2M",
+		99999999:  "100.0M",
 	}
 	for in, want := range cases {
 		if got := shortTokens(in); got != want {

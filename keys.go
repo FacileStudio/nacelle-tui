@@ -78,9 +78,15 @@ func (m *model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 	case "tab":
 		if cmd := anyCommand(m.prompt.Value()); cmd != "" {
 			matches := filterMenu(m.menu.items, cmd)
-			if len(matches) > 0 {
-				m.prompt.SetValue(insertPick(m.prompt.Value(), matches[0].value))
+			if len(matches) == 1 {
+				m.prompt.SetValue(replaceCommand(m.prompt.Value(), matches[0].value))
 				m.prompt.CursorEnd()
+				return true, nil
+			}
+			if len(matches) > 1 {
+				m.menu.filtered = matches
+				m.menu.selected, m.menu.scroll = 0, 0
+				m.layout(m.windowHeight)
 				return true, nil
 			}
 		}

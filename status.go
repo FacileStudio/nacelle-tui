@@ -258,11 +258,15 @@ func (m *model) ongoing() string {
 
 // shortTokens renders a token count the way a status line wants it: exact
 // below a thousand, one decimal up to a hundred thousand, whole thousands
-// above that. The precision is decoration; nobody audits the third digit of
-// a cache read.
+// above that, and millions at the same precision. The precision is decoration;
+// nobody audits the third digit of a cache read.
 func shortTokens(n int64) string {
 	switch {
-	case n >= 100000:
+	case n >= 100_000_000:
+		return fmt.Sprintf("%dM", n/1_000_000)
+	case n >= 1_000_000:
+		return fmt.Sprintf("%.1fM", float64(n)/1_000_000)
+	case n >= 100_000:
 		return fmt.Sprintf("%dk", n/1000)
 	case n >= 1000:
 		return fmt.Sprintf("%.1fk", float64(n)/1000)

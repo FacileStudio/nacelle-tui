@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // commandWord is the text after the '/' at the start of the prompt, up to
@@ -38,11 +39,9 @@ func anyCommand(value string) string {
 }
 
 // refreshMenu recomputes what the dropdown shows from the prompt's current
-// value, and updates the prompt's text style to highlight when a /command
-// is being typed. Called after every edit reaches the prompt, not only from
-// a key that typed a character — a paste, or /clear's own prompt.Reset(),
-// change the value just as much and would otherwise leave the menu showing
-// whatever it last matched.
+// value. The dropdown is the one signal that the user is in command mode, so
+// the textarea itself keeps its normal appearance — applying a command colour
+// to the whole widget would recolor the entire line on any mid-sentence "/".
 //
 // layout() runs here too, not only from resize(): the dropdown opening,
 // closing, or simply matching a different number of items changes how much
@@ -50,19 +49,10 @@ func anyCommand(value string) string {
 // on its own.
 func (m *model) refreshMenu() {
 	word := commandWord(m.prompt.Value())
+	m.prompt.SetStyles(m.promptStyles)
 	if word == "" {
 		m.menu.filtered = nil
 		m.menu.dismissed = false
-		if cmd := anyCommand(m.prompt.Value()); cmd != "" {
-			hl := m.promptStyles
-			hl.Focused.Text = m.theme.command
-			hl.Focused.CursorLine = m.theme.command
-			hl.Blurred.Text = m.theme.command
-			hl.Blurred.CursorLine = m.theme.command
-			m.prompt.SetStyles(hl)
-		} else {
-			m.prompt.SetStyles(m.promptStyles)
-		}
 	} else {
 		m.menu.filtered = filterMenu(m.menu.items, word)
 		if typedOut(m.menu.filtered, word) {
@@ -72,12 +62,6 @@ func (m *model) refreshMenu() {
 			m.menu.selected = 0
 		}
 		m.menu.clampView()
-		hl := m.promptStyles
-		hl.Focused.Text = m.theme.command
-		hl.Focused.CursorLine = m.theme.command
-		hl.Blurred.Text = m.theme.command
-		hl.Blurred.CursorLine = m.theme.command
-		m.prompt.SetStyles(hl)
 	}
 	m.layout(m.windowHeight)
 }
@@ -130,13 +114,29 @@ func (m *model) selectMenuItem() {
 	m.menu.dismissed = true
 }
 
-// insertPick replaces the whole prompt value with the selected command,
-// because the menu only opens when the prompt starts with '/'. The trailing
-// space is what distinguishes a picked command from a typed one — enter being
-// pressed right after the pick finishes the command, and an extra space awaits
-// an argument.
+// insertPick replaces the whole prompt value with the picked command,
+// because the menu only opens when the prompt starts with '/'.
+// The trailing space is what distinguishes a picked command from a typed one —
+// enter being pressed right after the pick finishes the command, and an extra
+// space awaits an argument.
 func insertPick(value, pick string) string {
 	return pick + " "
+}
+
+// replaceCommand replaces only the /command portion of value with the picked
+// completion, preserving text before and after it. Unlike insertPick, this
+// handles mid-sentence completion where the rest of the line must stay intact.
+func replaceCommand(value, pick string) string {
+	idx := strings.Index(value, "/")
+	if idx < 0 {
+		return value
+	}
+	rest := value[idx+1:]
+	end := strings.IndexAny(rest, " \t\n")
+	if end < 0 {
+		end = len(rest)
+	}
+	return value[:idx] + pick + " " + rest[end:]
 }
 
 // viewMenu draws the dropdown, or "" when it has nothing to show — every
@@ -167,7 +167,7 @@ func (m *model) viewMenu() string {
 			style = m.theme.menu
 			marker = "→ "
 		}
-		rows[i] = style.Width(width).Render(marker + menuRow(it, width-2))
+		rows[i] = style.Width(width).Render(marker + menuRow(it, width-2, m.theme.command))
 	}
 	return strings.Join(rows, "\n")
 }
@@ -185,14 +185,18 @@ const truncationSuffix = "…"
 // enough terminal, is one line too many everywhere else in this file
 // assumes it is not: height(), layout() and the cursor math in View() all
 // count one line per item.
-func menuRow(it menuItem, width int) string {
+func menuRow(it menuItem, width int, cmdStyle lipgloss.Style) string {
+	value := it.value
+	if strings.HasPrefix(value, "/") {
+		value = cmdStyle.Render(value)
+	}
 	if it.description == "" {
-		return it.value
+		return value
 	}
 	const separator = "  "
-	budget := width - len(it.value) - len(separator) - len(truncationSuffix)
+	budget := width - lipgloss.Width(value) - len(separator) - len(truncationSuffix)
 	if budget < 10 {
-		return it.value
+		return value
 	}
-	return it.value + separator + truncate(it.description, budget)
+	return value + separator + truncate(it.description, budget)
 }

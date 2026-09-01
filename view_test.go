@@ -44,14 +44,14 @@ func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 	}})
 
 	lines := spoken(m)
-	if len(lines) != 2 {
-		t.Fatalf("transcript = %v, want the call and the failure", lines)
+	if len(lines) != 1 {
+		t.Fatalf("transcript = %v, want the call and the failure in one entry", lines)
 	}
 	if !strings.Contains(lines[0], "run_command(go build ./...)") {
 		t.Errorf("call line = %q, want the call named without a duration", lines[0])
 	}
-	if !strings.Contains(lines[1], "exit status 2") || !strings.Contains(lines[1], "12ms") {
-		t.Errorf("failure line = %q, want the error and how long it took", lines[1])
+	if !strings.Contains(lines[0], "exit status 2") || !strings.Contains(lines[0], "12ms") {
+		t.Errorf("failure line = %q, want the error and how long it took", lines[0])
 	}
 }
 

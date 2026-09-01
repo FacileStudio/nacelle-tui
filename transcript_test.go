@@ -79,6 +79,7 @@ func TestTheWholeAnswerIsPrintedEvenThoughOnlyItsTailWasShown(t *testing.T) {
 	m := sized()
 	m.liveRows = 2
 	m.run.answer.WriteString("the opening line\nand many more\nand the last one")
+	m.run.fullAnswer.WriteString("the opening line\nand many more\nand the last one")
 
 	m.flush()
 

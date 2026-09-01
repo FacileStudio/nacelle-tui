@@ -158,8 +158,11 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			m.say(fromTool, colorGlyph(line, "1"))
-			m.say(fromResult, failed(tool))
+			toolStr := m.paint(fromTool, colorGlyph(line, "1"))
+			resultStr := m.paint(fromResult, failed(tool))
+			m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
+			m.session.line(fromTool, colorGlyph(line, "1"))
+			m.session.line(fromResult, failed(tool))
 			return
 		}
 		m.say(fromTool, colorGlyph(line, "2")+" · "+took(tool.Duration))
@@ -168,8 +171,11 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 		m.tools++
 		if tool.Err != nil {
 			m.failed++
-			m.say(fromTool, colorGlyph(line, "1"))
-			m.say(fromResult, failed(tool))
+			toolStr := m.paint(fromTool, colorGlyph(line, "1"))
+			resultStr := m.paint(fromResult, failed(tool))
+			m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
+			m.session.line(fromTool, colorGlyph(line, "1"))
+			m.session.line(fromResult, failed(tool))
 			return
 		}
 		m.say(fromTool, colorGlyph(line, "2")+" · "+took(tool.Duration))

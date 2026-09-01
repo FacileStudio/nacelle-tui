@@ -50,16 +50,20 @@ import (
 // m.run.root, m.run.diffs and m.run.edits — the grouping exists only to keep
 // inflight's own field count under filet's cap, the same reason clock and
 // turn below are embedded.
+// A run keeping the full answer as one string alongside the streaming buffer
+// means a paragraph committed to scrollback is never lost from the conversation
+// the closeTurn appends to — the two buffers serve different consumers.
 type inflight struct {
-	results   <-chan result
-	cancel    context.CancelFunc
-	answer    strings.Builder
-	reasoning strings.Builder
-	usage     nacelle.Usage
-	stop      nacelle.Stop
-	busy      bool
-	pending   *approvalRequest
-	queued    []string
+	results    <-chan result
+	cancel     context.CancelFunc
+	answer     strings.Builder // streaming: partial paragraph shown in the live region
+	fullAnswer strings.Builder // conversation: every word the model said this turn
+	reasoning  strings.Builder
+	usage      nacelle.Usage
+	stop       nacelle.Stop
+	busy       bool
+	pending    *approvalRequest
+	queued     []string
 
 	editState
 

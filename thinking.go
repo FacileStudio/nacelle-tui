@@ -213,8 +213,9 @@ func (m *model) flush() string {
 		}
 	}
 
-	answer := m.run.answer.String()
+	answer := m.run.fullAnswer.String()
 	m.run.answer.Reset()
+	m.run.fullAnswer.Reset()
 	if answer != "" {
 		m.say(fromModel, answer)
 	}

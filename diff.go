@@ -245,7 +245,7 @@ func renderDiff(change editChange, width int, muted lipgloss.Style) string {
 			break
 		}
 	}
-	return strings.TrimRight(out.String(), "\n")
+	return out.String()
 }
 
 // renderBlock writes one hunk's lines, stopping at the display cap with a
