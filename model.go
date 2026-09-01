@@ -45,9 +45,11 @@ type commandState struct {
 // a style here would emit its own reset in the middle of that span and drop
 // the colour from everything after the spinner — see working().
 type look struct {
-	theme  palette
-	pretty *glamour.TermRenderer
-	spin   spinner.Model
+	theme        palette
+	pretty       *glamour.TermRenderer
+	spin         spinner.Model
+	groupTools   bool
+	promptStyles textarea.Styles
 }
 
 // model is the whole client: a transcript, a prompt, and at most one run in
@@ -99,10 +101,11 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
 		run: inflight{
 			cancel: func() {},
 			editState: editState{
-				running: map[string]string{}, edits: map[string]editChange{}},
+				edits: map[string]editChange{}},
 		},
 	}
 	m.pretty = prettier(m.theme.markdown, m.width)
+	m.promptStyles = m.prompt.Styles()
 	m.say(fromClient, banner+"\n")
 	return m
 }

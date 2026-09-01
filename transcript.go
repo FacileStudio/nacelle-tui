@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -163,4 +164,20 @@ func (m *model) streaming() []string {
 		lines = lines[len(lines)-m.liveRows:]
 	}
 	return lines
+}
+
+// groups is the tool rows still open in this run, as the lines they will print
+// when they close. They are rendered in the live region so a call that has not
+// returned yet is visible — the status line names the tool, and the row shows
+// what it was called with, for as long as both are true. A row that has closed
+// is no longer here: it has been said, in finished, and reappearing it would
+// print the same line twice.
+func (m *model) groups() []string {
+	var out []string
+	for _, g := range m.run.groups {
+		if g.end.IsZero() {
+			out = append(out, g.groupPainted(time.Now(), m.width))
+		}
+	}
+	return out
 }

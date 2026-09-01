@@ -48,9 +48,11 @@ import (
 // computed once and reused for both the body and the cursor offset, so the
 // two can never disagree about how tall the menu drew this frame.
 func (m *model) View() tea.View {
-	above := append(m.streaming(), "", m.status())
+	above := append(m.streaming(), "")
 	above = append(above, m.tasks.view(max(m.width, 1), m.theme.muted)...)
+	above = append(above, m.status())
 	above = append(above, m.viewQueued()...)
+	above = append(above, m.groups()...)
 	menu := m.viewMenu()
 	rows := append(above, m.prompt.View())
 	if menu != "" {
@@ -98,13 +100,14 @@ func (m *model) absorb(event nacelle.Event) {
 	case nacelle.KindToolCall:
 		m.thought()
 		m.run.reported = true
-		m.run.running[event.Tool.ID] = toolLine(event.Tool.Name, event.Tool.Input, m.width)
+		m.run.beginTool(*event.Tool, m.look.groupTools)
 		if m.run.diffs {
 			if change, ok := captureEdit(m.run.root, event.Tool.Name, event.Tool.Input); ok {
 				m.run.edits[event.Tool.ID] = change
 			}
 		}
 	case nacelle.KindToolResult:
+		m.run.finishTool(*event.Tool)
 		m.finished(event.Tool)
 	case nacelle.KindTurn:
 		m.run.usage = m.run.usage.Add(event.Usage)

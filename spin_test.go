@@ -99,8 +99,8 @@ func TestSettleForgetsToolsThatNeverAnswered(t *testing.T) {
 
 	m.settle()
 
-	if len(m.run.running) != 0 {
-		t.Errorf("running = %v, want nothing left named as running after the run ended", m.run.running)
+	if n := m.running(); n != 0 {
+		t.Errorf("running = %v, want nothing left named as running after the run ended", n)
 	}
 }
 

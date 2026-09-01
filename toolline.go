@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -136,28 +135,41 @@ func oneLine(raw json.RawMessage) string {
 // check, so a superseded call is never counted as work. Nothing downstream
 // could count them instead — a printed line belongs to the terminal and is
 // forgotten the moment it is said.
+//
+// The held line lives on the run's groups rather than in a map keyed by call
+// id. The group is what holds it: grouping folds a call into its row the
+// moment it arrives, so a result has nowhere else to look, and a result that
+// arrives for a call the model did not name still lands on the one unfinished
+// row there is.
 func (m *model) finished(tool *nacelle.ToolEvent) {
-	line, held := m.run.running[tool.ID]
-	delete(m.run.running, tool.ID)
-	change, edited := m.run.edits[tool.ID]
-	delete(m.run.edits, tool.ID)
-
 	if tool.Discarded {
 		return
 	}
+	line, held := m.run.heldLine(tool.ID, m.width)
 	if !held {
 		line = toolLine(tool.Name, tool.Input, m.width)
+		m.tools++
+		if tool.Err != nil {
+			m.failed++
+			m.say(fromTool, line)
+			m.say(fromResult, failed(tool))
+			return
+		}
+		m.say(fromTool, line+" · "+took(tool.Duration))
+		m.session.tool(tool.Name, tool.Duration)
+	} else {
+		m.tools++
+		if tool.Err != nil {
+			m.failed++
+			m.say(fromTool, line)
+			m.say(fromResult, failed(tool))
+			return
+		}
+		m.say(fromTool, line+" · "+took(tool.Duration))
+		m.session.tool(tool.Name, tool.Duration)
 	}
-	m.tools++
-	if tool.Err != nil {
-		m.failed++
-		m.say(fromTool, line)
-		m.say(fromResult, failed(tool))
-		return
-	}
-	m.say(fromTool, line+" · "+took(tool.Duration))
-	m.session.tool(tool.Name, tool.Duration)
-	if edited {
+	if change, edited := m.run.edits[tool.ID]; edited {
+		delete(m.run.edits, tool.ID)
 		if diff := renderDiff(change, m.width, m.theme.muted); diff != "" {
 			m.say(fromDiff, diff)
 		}
@@ -174,19 +186,15 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 // result at all. They are said without a duration, which is the honest report:
 // the call was made, and how long it took is not something this client knows.
 //
-// The order is the call ids rather than the map's, because ranging a map is
-// deliberately random and a transcript is not.
+// The order is the groups' own order, which is the order the calls arrived in.
 func (m *model) stranded() {
-	ids := make([]string, 0, len(m.run.running))
-	for id := range m.run.running {
-		ids = append(ids, id)
+	for _, g := range m.run.groups {
+		if !g.end.IsZero() {
+			continue
+		}
+		m.say(fromTool, g.groupLine(m.width))
 	}
-	sort.Strings(ids)
-
-	for _, id := range ids {
-		m.say(fromTool, m.run.running[id])
-	}
-	m.run.running = map[string]string{}
+	m.run.clearGroups()
 	m.run.edits = map[string]editChange{}
 }
 

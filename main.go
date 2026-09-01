@@ -98,7 +98,8 @@ func run() error {
 	return launch(uiSession{
 		agent: agent, banner: banner(backend, config, found, mcp),
 		skills: found.skills, hookNotice: hookNotice, gate: approvalGate,
-		root: config.Root, model: config.Model, backend: config.Backend, diffs: *config.Diffs,
+		root: config.Root, model: config.Model, backend: config.Backend,
+		diffs: *config.Diffs, groupTools: config.UI.GroupTools,
 	})
 }
 
@@ -114,6 +115,7 @@ type uiSession struct {
 	model      string
 	backend    string
 	diffs      bool
+	groupTools *bool
 }
 
 // launch opens the program, delivers whatever was queued for the transcript
@@ -145,6 +147,7 @@ type uiSession struct {
 // scrolls for every other command, and the frame opens underneath it.
 func launch(c uiSession) error {
 	opened := newModel(c.agent, c.banner, c.skills)
+	opened.look.groupTools = derefBool(c.groupTools)
 	opened.run.root = c.root
 	opened.run.diffs = c.diffs
 	opened.sink = newUsageSink(c.root, c.model)

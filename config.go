@@ -63,6 +63,12 @@ type Config struct {
 	// before this existed.
 	Discovery `yaml:",inline"`
 
+	// UI is embedded and inlined for the same reason as the groups above:
+	// group_tools stays at the top level of ~/.nacelle.yml, exactly where a
+	// user would expect a look-and-feel switch to live, rather than moving
+	// under a heading nobody has.
+	UI `yaml:",inline"`
+
 	// Sources is embedded, and inlined, for both of the reasons just
 	// given — and the inlining is what keeps skill_dirs at the top level
 	// of every config file already written rather than relocating it
@@ -93,6 +99,15 @@ type Toggles struct {
 	Diffs *bool `yaml:"diffs"`
 }
 
+// UI holds the look-and-feel choices that are not about what the agent is
+// allowed to do. GroupTools is on by default because a model that calls the
+// same read ten times in a row is the common case, and ten lines of identical
+// icon are noise; turning it off is for the session where you want to watch
+// every call land.
+type UI struct {
+	GroupTools *bool `yaml:"group_tools"`
+}
+
 // defaults is the bottom layer, and the only one that answers everything.
 //
 // ProjectContext and Skills default on, unlike Bash: both fail soft with
@@ -118,12 +133,22 @@ type Toggles struct {
 // whatever it applies. It is still filled in rather than left nil, because
 // this is the layer that answers everything and every deref above it depends
 // on that being true.
+// derefBool reads a pointer out of a toggle. Every toggle is filled in by
+// defaults, so the pointer is never nil by the time it reaches a caller —
+// this is the one dereference that is safe to do without a check, and naming
+// it makes that explicit rather than leaving a bare * scattered through the
+// call sites.
+func derefBool(b *bool) bool {
+	return b != nil && *b
+}
+
 func defaults() Config {
 	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
 		false, false, true, true, false, false, false, true
 	subagents := false
 	iterations, budget := 0, int64(0)
 	search, fetch := "", true
+	groupTools := true
 	return Config{
 		Web:           Web{Search: &search, Fetch: &fetch},
 		Backend:       "anthropic",
@@ -138,6 +163,7 @@ func defaults() Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
+		UI: UI{GroupTools: &groupTools},
 	}
 }
 

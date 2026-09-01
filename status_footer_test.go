@@ -68,15 +68,15 @@ func TestTheStatusColourSaysWhichPhaseTheRunIsIn(t *testing.T) {
 	m.run.began = time.Now()
 	idle := m.status()
 
-	for _, held := range []string{"$ run_command(go test)", "• some_mcp_tool(x)"} {
-		m.run.running = map[string]string{"1": held}
+	for _, name := range []string{"run_command", "some_mcp_tool"} {
+		m.run.beginTool(nacelle.ToolEvent{ID: "1", Name: name, Input: `{}`}, false)
 		busy := m.status()
 
 		if colourOf(busy) == "" {
-			t.Errorf("status running %q = %q, want a colour rather than a plain line", held, busy)
+			t.Errorf("status running %q = %q, want a colour rather than a plain line", name, busy)
 		}
 		if colourOf(busy) == colourOf(idle) {
-			t.Errorf("status running %q wears the waiting colour, so the phase change is invisible", held)
+			t.Errorf("status running %q wears the waiting colour, so the phase change is invisible", name)
 		}
 	}
 }

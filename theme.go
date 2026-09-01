@@ -18,6 +18,7 @@ import (
 type palette struct {
 	question lipgloss.Style
 	menu     lipgloss.Style
+	command  lipgloss.Style
 	thinking lipgloss.Style
 	tool     lipgloss.Style
 	result   lipgloss.Style
@@ -76,6 +77,7 @@ func themed(dark bool) palette {
 		menu: lipgloss.NewStyle().
 			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 			Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
+		command:  lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
 		thinking: lipgloss.NewStyle().Foreground(quiet).Italic(true).PaddingLeft(1),
 		tool:     plainTool,
 		result:   lipgloss.NewStyle().Foreground(quiet),

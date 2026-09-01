@@ -6,10 +6,28 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// commandWord is the text after the last '/' in the prompt, up to the next
+// whitespace. It is the query the dropdown filters on — a command typed
+// mid-message completes the same way one typed at the start does, because
+// the filter only ever reads the word after the slash. "" when the prompt
+// holds no '/' at all.
+func commandWord(value string) string {
+	slash := strings.LastIndex(value, "/")
+	if slash < 0 {
+		return ""
+	}
+	rest := value[slash:]
+	if i := strings.IndexAny(rest, " \t\n"); i >= 0 {
+		rest = rest[:i]
+	}
+	return rest
+}
+
 // refreshMenu recomputes what the dropdown shows from the prompt's current
-// value. Called after every edit reaches the prompt, not only from a key
-// that typed a character — a paste, or /clear's own prompt.Reset(), change
-// the value just as much and would otherwise leave the menu showing
+// value, and updates the prompt's text style to highlight when a /command
+// is being typed. Called after every edit reaches the prompt, not only from
+// a key that typed a character — a paste, or /clear's own prompt.Reset(),
+// change the value just as much and would otherwise leave the menu showing
 // whatever it last matched.
 //
 // layout() runs here too, not only from resize(): the dropdown opening,
@@ -17,18 +35,26 @@ import (
 // height the transcript gets, and no WindowSizeMsg arrives to trigger that
 // on its own.
 func (m *model) refreshMenu() {
-	value := m.prompt.Value()
-	if !strings.HasPrefix(value, "/") {
+	word := commandWord(m.prompt.Value())
+	if word == "" {
 		m.menu.filtered = nil
 		m.menu.dismissed = false
+		m.prompt.SetStyles(m.promptStyles)
 	} else {
-		m.menu.filtered = filterMenu(m.menu.items, value)
-		if typedOut(m.menu.filtered, value) {
+		m.menu.filtered = filterMenu(m.menu.items, word)
+		if typedOut(m.menu.filtered, word) {
 			m.menu.filtered = nil
 		}
 		if m.menu.selected >= len(m.menu.filtered) {
 			m.menu.selected = 0
 		}
+		m.menu.clampView()
+		hl := m.promptStyles
+		hl.Focused.Text = m.theme.command
+		hl.Focused.CursorLine = m.theme.command
+		hl.Blurred.Text = m.theme.command
+		hl.Blurred.CursorLine = m.theme.command
+		m.prompt.SetStyles(hl)
 	}
 	m.layout(m.windowHeight)
 }
@@ -57,23 +83,51 @@ func (m *model) navigateMenu(press tea.KeyPressMsg) (bool, tea.Cmd) {
 	default:
 		return false, nil
 	}
+	m.menu.clampView()
 	m.layout(m.windowHeight)
 	return true, nil
 }
 
-// selectMenuItem fills the prompt with the highlighted entry and a trailing
-// space, ready for an argument, and closes the dropdown. It does not submit
-// — a /skill:name most often takes one, and enter inside the dropdown has
-// to mean "pick this," not "send it with nothing typed after it yet." A
-// second, ordinary enter — once there is nothing left to pick from — is
-// what actually starts the run.
+// selectMenuItem fills the prompt with the highlighted entry, replacing the
+// word after the last '/' in the prompt so a command selected mid-message
+// leaves the rest of the sentence intact. A trailing space is added when the
+// selected command is at the end of the line, ready for an argument, and
+// omitted when there is already text after it.
+//
+// It does not submit — a /skill:name most often takes an argument, and enter
+// inside the dropdown has to mean "pick this," not "send it with nothing
+// typed after it yet." A second, ordinary enter — once there is nothing left
+// to pick from — is what actually starts the run.
 func (m *model) selectMenuItem() {
 	if m.menu.selected >= len(m.menu.filtered) {
 		return
 	}
-	m.prompt.SetValue(m.menu.filtered[m.menu.selected].value + " ")
+	m.prompt.SetValue(insertPick(m.prompt.Value(), m.menu.filtered[m.menu.selected].value))
 	m.prompt.CursorEnd()
 	m.menu.dismissed = true
+}
+
+// insertPick replaces the word after the last '/' in the prompt with the
+// selected command, keeping any text before and after it intact. When there
+// is no '/' the whole value is replaced, matching the start-of-line use.
+func insertPick(value, pick string) string {
+	slash := strings.LastIndex(value, "/")
+	if slash < 0 {
+		return pick + " "
+	}
+	rest := value[slash:]
+	end := len(rest)
+	for i, r := range rest {
+		if r == ' ' || r == '\t' || r == '\n' {
+			end = i
+			break
+		}
+	}
+	after := rest[end:]
+	if after == "" {
+		pick += " "
+	}
+	return value[:slash] + pick + after
 }
 
 // viewMenu draws the dropdown, or "" when it has nothing to show — every
@@ -89,14 +143,18 @@ func (m *model) viewMenu() string {
 	if !m.menu.open() {
 		return ""
 	}
-	items := m.menu.filtered[:m.menu.height()]
+	// The window is filtered's slice, offset by scroll — the rows actually
+	// drawn are never the first few of the list, they are the ones around
+	// where the selection is, and the index compared against selected is the
+	// position inside that window.
+	items := m.menu.filtered[m.menu.scroll : m.menu.scroll+m.menu.height()]
 	width := max(m.width, 1)
 
 	rows := make([]string, len(items))
 	for i, it := range items {
 		style := m.theme.plain
 		marker := "  "
-		if i == m.menu.selected {
+		if m.menu.scroll+i == m.menu.selected {
 			style = m.theme.menu
 			marker = "→ "
 		}

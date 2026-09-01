@@ -28,6 +28,7 @@ type commandMenu struct {
 	items     []menuItem
 	filtered  []menuItem
 	selected  int
+	scroll    int
 	dismissed bool
 }
 
@@ -44,6 +45,25 @@ func (mm commandMenu) height() int {
 		return 0
 	}
 	return min(len(mm.filtered), maxMenuItems)
+}
+
+// clampView slides the dropdown's window through filtered so the selected
+// row stays on screen. When the list is longer than maxMenuItems the window
+// has to move, or selection walks off the bottom of the dropdown and stays
+// there: pressing down shows rows nobody can reach, and the arrow marker
+// lands on a line that is not drawn at all, so the highlighted command is
+// visible in the state but not on the screen.
+func (mm *commandMenu) clampView() {
+	if mm.height() == 0 {
+		mm.scroll = 0
+		return
+	}
+	if mm.selected < mm.scroll {
+		mm.scroll = mm.selected
+	}
+	if mm.selected >= mm.scroll+mm.height() {
+		mm.scroll = mm.selected - mm.height() + 1
+	}
 }
 
 // menuItems is the dropdown's full candidate pool: the client's own

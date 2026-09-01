@@ -67,8 +67,8 @@ func TestADiscardedCallDropsItsHeldLine(t *testing.T) {
 	if lines := spoken(m); len(lines) != 0 {
 		t.Errorf("transcript = %v, want the superseded call dropped rather than printed", lines)
 	}
-	if len(m.run.running) != 0 {
-		t.Errorf("running = %v, want the discarded call forgotten", m.run.running)
+	if n := m.running(); n != 0 {
+		t.Errorf("running = %v, want the discarded call forgotten", n)
 	}
 }
 

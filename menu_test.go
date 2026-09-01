@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -114,6 +115,56 @@ func TestCommandMenuHeightCapsAtMaxMenuItems(t *testing.T) {
 
 	if got := mm.height(); got != maxMenuItems {
 		t.Errorf("height() = %d, want it capped at %d", got, maxMenuItems)
+	}
+}
+
+// The dropdown only ever draws maxMenuItems rows, so when the match list is
+// longer than that and selection walks past the last visible one, the window
+// has to slide. Without clampView the selected row is tracked in the state
+// but never drawn: pressing down shows rows nobody can reach, and the arrow
+// lands on a line that is not in the rendered slice at all.
+func TestClampViewKeepsTheSelectedRowOnScreen(t *testing.T) {
+	filtered := make([]menuItem, maxMenuItems+5)
+	for i := range filtered {
+		filtered[i] = menuItem{value: fmt.Sprintf("/cmd:%d", i)}
+	}
+
+	mm := commandMenu{filtered: filtered}
+	mm.selected = len(filtered) - 1
+	mm.clampView()
+
+	if mm.scroll > mm.selected-mm.height()+1 {
+		t.Errorf("scroll = %d, want the window to end on the selected row", mm.scroll)
+	}
+	if mm.scroll+mm.height() <= mm.selected {
+		t.Errorf("scroll = %d, height = %d, selected = %d: the selected row is not in the window",
+			mm.scroll, mm.height(), mm.selected)
+	}
+}
+
+func TestClampViewScrollsBackUpWhenSelectionMovesUp(t *testing.T) {
+	filtered := make([]menuItem, maxMenuItems+5)
+	for i := range filtered {
+		filtered[i] = menuItem{value: fmt.Sprintf("/cmd:%d", i)}
+	}
+
+	mm := commandMenu{filtered: filtered, selected: len(filtered) - 1, scroll: len(filtered) - 1}
+	mm.selected = 0
+	mm.clampView()
+
+	if mm.scroll != 0 {
+		t.Errorf("scroll = %d, want it to follow the selection back to the top", mm.scroll)
+	}
+}
+
+func TestClampViewIsNoOpWhenTheListFits(t *testing.T) {
+	filtered := []menuItem{{value: "/clear"}, {value: "/help"}}
+	mm := commandMenu{filtered: filtered, selected: 1}
+
+	mm.clampView()
+
+	if mm.scroll != 0 {
+		t.Errorf("scroll = %d, want it untouched when the list fits on screen", mm.scroll)
 	}
 }
 

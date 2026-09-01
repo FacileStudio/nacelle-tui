@@ -83,8 +83,8 @@ func (t taskList) window() (taskList, int) {
 	return t[start : start+taskRows], len(t) - taskRows
 }
 
-// view is the plan as it stands, drawn between the status line and the queued
-// messages.
+// view is the plan as it stands, drawn between the blank row and the status
+// line.
 //
 // Each line is truncated to the width rather than allowed to wrap, because
 // layout reserved exactly one row for it. A wrapped title would push the
@@ -99,7 +99,13 @@ func (t taskList) view(width int, muted lipgloss.Style) []string {
 	shown, hidden := t.window()
 	lines := make([]string, 0, t.rows())
 	for _, item := range shown {
-		lines = append(lines, muted.Render(truncate(taskGlyph(item.Status)+" "+unstyled(item.Title), width)))
+		glyph := taskGlyphStyle(item.Status).Render(taskGlyph(item.Status))
+		title := truncate(unstyled(item.Title), max(0, width-lipgloss.Width(glyph)-1))
+		if title == "" {
+			lines = append(lines, glyph)
+		} else {
+			lines = append(lines, glyph+" "+muted.Render(title))
+		}
 	}
 	if hidden > 0 {
 		lines = append(lines, muted.Render(truncate(fmt.Sprintf("… and %d more", hidden), width)))
@@ -116,11 +122,25 @@ func (t taskList) view(width int, muted lipgloss.Style) []string {
 func taskGlyph(status string) string {
 	switch status {
 	case statusDone:
-		return "✔"
+		return "✓"
 	case statusActive:
-		return "▸"
+		return "▶"
 	}
 	return "○"
+}
+
+// taskGlyphStyle returns the colour for a step's marker, so a completed step
+// shows green and a running step shows cyan. Pending steps have no colour of
+// their own — they fall through to the muted style the whole line already
+// inherits.
+func taskGlyphStyle(status string) lipgloss.Style {
+	switch status {
+	case statusDone:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	case statusActive:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
+	}
+	return lipgloss.NewStyle()
 }
 
 // watchTasks waits for one reported plan and hands it to the update loop as a

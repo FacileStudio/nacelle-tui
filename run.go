@@ -74,6 +74,111 @@ type inflight struct {
 	// inflight's own field count from growing every time this list does,
 	// the same reason Config embeds Discovery in config.go.
 	turn
+
+	// groups is the tool calls of this run folded into rows. It is kept on
+	// the run rather than rebuilt from run.tools on every paint because the
+	// grouping has to happen as the events arrive: a call that has not
+	// returned yet is half a row, and two calls that finish out of order
+	// would not merge if grouped after the fact.
+	//
+	// groupIndex maps a tool ID to its group, so a result can find its row
+	// without scanning. The map is small — one entry per in-flight call —
+	// and it is cleared with the groups.
+	groups     []toolGroup
+	groupIndex map[string]int
+}
+
+// beginTool turns a call into a group row. A new call either extends the
+// previous group — same tool, same input, and the previous one has not
+// returned yet — or starts a fresh row. The second case is what makes the
+// grouping safe: a result never starts a group, so two results in a row are
+// two different calls finishing and they stay separate.
+//
+// The index is written here rather than in absorb so the caller can decide
+// whether grouping is on at all, and so a result can look its row up by ID
+// without scanning the slice.
+func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
+	if r.groups == nil {
+		r.groups = make([]toolGroup, 0, 4)
+	}
+	if r.groupIndex == nil {
+		r.groupIndex = make(map[string]int, 4)
+	}
+	if groupTools && len(r.groups) > 0 {
+		g := &r.groups[len(r.groups)-1]
+		if g.end.IsZero() &&
+			ev.Name == g.tool.Name &&
+			ev.Input == g.tool.Input {
+			g.count++
+			if ev.ID != "" {
+				r.groupIndex[ev.ID] = len(r.groups) - 1
+			}
+			return
+		}
+	}
+	g := toolGroup{name: ev.Name, input: ev.Input, count: 1, tool: ev, start: time.Now()}
+	r.groups = append(r.groups, g)
+	if ev.ID != "" {
+		r.groupIndex[ev.ID] = len(r.groups) - 1
+	}
+}
+
+// finishTool marks a group's row as returned, with the outcome and the
+// duration. It looks the group up by ID rather than by position, because a
+// result can arrive for a call that was not the most recent one — the model
+// fires several reads in parallel and they land back in whatever order the
+// filesystem gives. Position-based matching would attach the duration to the
+// wrong row and leave the real one hanging forever.
+func (r *inflight) finishTool(ev nacelle.ToolEvent) {
+	if ev.ID == "" {
+		// No identifier means this is a call the model did not name, which
+		// happens when the backend synthesizes one. Fall back to the last
+		// unfinished group: there is only ever one of those in flight at a
+		// time in that case, so it is the right row.
+		for i := len(r.groups) - 1; i >= 0; i-- {
+			if r.groups[i].end.IsZero() {
+				r.groups[i].tool = ev
+				r.groups[i].end = time.Now()
+				r.groups[i].failed = ev.Err != nil
+				r.groups[i].discarded = ev.Discarded
+				return
+			}
+		}
+		return
+	}
+	i, ok := r.groupIndex[ev.ID]
+	if !ok || i >= len(r.groups) {
+		return
+	}
+	r.groups[i].tool = ev
+	r.groups[i].end = time.Now()
+	r.groups[i].failed = ev.Err != nil
+	r.groups[i].discarded = ev.Discarded
+}
+
+// heldLine returns the line a finished call will print, and whether the call
+// had one. It looks the group up by ID — the same lookup finishTool uses — so
+// a result that arrives for a call the model did not name still finds the one
+// unfinished row there is. The second return is false when the call was never
+// grouped, which happens for a result with no identifier: finished falls back
+// to the single-call line in that case.
+func (r *inflight) heldLine(id string, width int) (string, bool) {
+	if id == "" {
+		return "", false
+	}
+	i, ok := r.groupIndex[id]
+	if !ok || i >= len(r.groups) {
+		return "", false
+	}
+	return r.groups[i].groupLine(width), true
+}
+
+// clearGroups drops the run's tool rows. It is called from settle and from
+// stranded, the same two places that empty running and edits, so the three
+// stay in lockstep and a run never inherits another run's tool rows.
+func (r *inflight) clearGroups() {
+	r.groups = nil
+	r.groupIndex = nil
 }
 
 // clock is when this run started and when esc was first pressed this one.
@@ -102,18 +207,18 @@ type turn struct {
 // editState is what a run tracks per tool call, plus what drawing a diff for
 // its file edits needs: the directory the file tools work in, whether diffs
 // were asked for at all, and the before/after of every editing call in
-// flight, keyed by call id alongside the transcript line each call will
-// print. running lives here with edits because both are emptied by the same
-// two places — settle and stranded — and neither survives its run.
+// flight, keyed by call id. It lives on the run rather than the model because
+// a run's edits are not a property of the client — the same edits map is
+// cleared in settle and in stranded, the two places a run ends, so it never
+// survives into the next one.
 //
 // The capture happens when the call is seen rather than when it finishes —
 // by then write_file has already replaced the very contents the diff's
 // before side needs.
 type editState struct {
-	root    string
-	diffs   bool
-	running map[string]string
-	edits   map[string]editChange
+	root  string
+	diffs bool
+	edits map[string]editChange
 }
 
 // send starts a run over text — a plain question as typed, or a

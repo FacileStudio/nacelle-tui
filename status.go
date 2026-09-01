@@ -163,23 +163,48 @@ func (m *model) footer() []string {
 func (m *model) working() string {
 	doing := waitingVerb(time.Since(m.run.began))
 	tone := m.theme.waiting
-	switch len(m.run.running) {
+	switch n := m.running(); n {
 	case 0:
 	case 1:
-		for _, line := range m.run.running {
-			_, marked, _ := strings.Cut(line, " ")
-			name, _, _ := strings.Cut(marked, "(")
+		name, ok := m.runningName()
+		if ok {
 			doing = "running " + name
 			tone = toolTone(name)
 		}
 	default:
-		doing = fmt.Sprintf("running %d tools", len(m.run.running))
+		doing = fmt.Sprintf("running %d tools", n)
 		tone = m.theme.tool
 	}
 	if since := m.ongoing(); since != "" {
 		doing += " · " + since
 	}
 	return tone.Render(m.spin.View() + " " + doing)
+}
+
+// running is the number of tool rows still open in this run — calls that have
+// not returned yet. It is the same rows the live region renders, so the status
+// line and the transcript can never disagree about how many tools are in
+// flight.
+func (m *model) running() int {
+	n := 0
+	for _, g := range m.run.groups {
+		if g.end.IsZero() {
+			n++
+		}
+	}
+	return n
+}
+
+// runningName is the tool behind the single running call, for the status line.
+// The second return is false when there is no single call, in which case the
+// caller says "running N tools" instead.
+func (m *model) runningName() (string, bool) {
+	for _, g := range m.run.groups {
+		if g.end.IsZero() {
+			return g.tool.Name, true
+		}
+	}
+	return "", false
 }
 
 // waitingVerb is the phrase for one moment of this run.
