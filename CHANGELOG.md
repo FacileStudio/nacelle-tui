@@ -13,36 +13,9 @@ while on `v0`, a breaking change bumps the minor.
 - **Queued messages now have a background**, matching the prompt styling for
   better visual distinction from the transcript region.
 
+## [0.9.0] — 2026-09-01
+
 ### Fixed
-
-- **Dropdown menu only opens at start-of-line `/`**: typing `/clear` mid-sentence
-  no longer opens the menu; still autocompletes via tab.
-- **Tool icon colors**: green on success, red on failure, instead of neutral blue.
-- **Tool icon alignment**: 1-cell-wide glyphs (`$`, `•`, `»`) padded to 2 cells
-  so every tool line starts at the same column.
-- **Streaming markdown**: answer and thinking traces render through the markdown
-  renderer live, instead of showing raw asterisks until the turn finishes.
-- **User messages no longer bold**: styled with the muted palette instead.
-- **Blank line between task list and status**: improves readability.
-- **`/clear` at the start of the prompt clears mid-sentence**: fixed highlight
-  behaviour without opening dropdown.
-
-### Added
-
-- **`show_thinking` config option** (default `true`): controls whether thinking
-  traces are expanded by default. Set `show_thinking: false` in `~/.nacelle.yml`
-  to collapse them to "thought for 2.9s".
-- **Tab-completion for mid-sentence `/commands`**: press tab anywhere in a
-  slash-command to autocomplete from known skills and commands.
-- **Diffs from `sed -i` edits**: the agent is told to prefer `edit_file`, but
-  a `run_command` that edits a file still produces a visible diff.
-- **System prompt rule**: agents are told never to use sed/awk/perl for file
-  edits — use `edit_file`/`write_file` instead.
-
-### Changed
-
-- **Task icons**: `●` for active, `○` for pending, `✓` for done (was `▶`, `·`, `✓`).
-- **Thought icon**: `▶` instead of `·`, no extra left padding.
 
 ## [0.8.0] — 2026-09-01
 
