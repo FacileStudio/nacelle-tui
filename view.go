@@ -101,6 +101,9 @@ func (m *model) absorb(event nacelle.Event) {
 		m.commitParagraphs()
 	case nacelle.KindThinking:
 		m.run.reasoning.WriteString(event.Text)
+		if m.expanded {
+			m.commitReasoning()
+		}
 	case nacelle.KindToolCall:
 		m.commitParagraphs()
 		m.thought()
@@ -125,27 +128,52 @@ func (m *model) absorb(event nacelle.Event) {
 	}
 }
 
-// commitParagraphs finishes any complete paragraphs from the streaming answer
-// to scrollback, so text appears line by line rather than as a block that grows
-// in the live region. A paragraph is complete when it is followed by a blank
-// line (\n\n). The trailing partial paragraph stays in the answer buffer for
-// the live streaming region.
+// commitParagraphs finishes every complete line from the streaming answer to
+// scrollback, so text appears line by line rather than as a block that grows
+// in the live region and jumps into view when clipped. A line is complete
+// when it has ended with a newline (\n). The trailing partial line stays in
+// the answer buffer for the live streaming region.
 //
 // Callers: absorb after every text delta, and flush before finishing the turn.
 func (m *model) commitParagraphs() {
 	text := m.run.answer.String()
-	idx := strings.LastIndex(text, "\n\n")
+	idx := strings.LastIndex(text, "\n")
 	if idx < 0 {
 		return
 	}
 	complete := text[:idx]
-	partial := text[idx+2:]
+	partial := text[idx+1:]
 
 	m.run.answer.Reset()
 	m.run.answer.WriteString(partial)
 
 	if complete != "" {
 		m.say(fromModel, complete)
+	}
+}
+
+// commitReasoning finishes every complete line from the streaming reasoning
+// buffer to scrollback, so expanded thinking flows line by line instead of
+// accumulating until the live region clips it. Same pattern as commitParagraphs
+// but writes through fromThinking and accumulates the full text for ctrl+t replay.
+//
+// Callers: absorb after every thinking delta when expanded.
+func (m *model) commitReasoning() {
+	text := m.run.reasoning.String()
+	idx := strings.LastIndex(text, "\n")
+	if idx < 0 {
+		return
+	}
+	complete := text[:idx]
+	partial := text[idx+1:]
+
+	m.run.reasoning.Reset()
+	m.run.reasoning.WriteString(partial)
+
+	if complete != "" {
+		m.run.reasoningFull.WriteString(complete)
+		m.run.reasoningFull.WriteString("\n")
+		m.say(fromThinking, complete)
 	}
 }
 

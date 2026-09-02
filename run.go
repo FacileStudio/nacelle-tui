@@ -70,7 +70,8 @@ type inflight struct {
 	cancel     context.CancelFunc
 	answer     strings.Builder // streaming: partial paragraph shown in the live region
 	fullAnswer strings.Builder // conversation: every word the model said this turn
-	reasoning  strings.Builder
+	reasoning  strings.Builder // streaming: partial line in the live region
+	reasoningFull strings.Builder // conversation: every word of reasoning, for ctrl+t replay
 	usage      nacelle.Usage
 	stop       nacelle.Stop
 	busy       bool

@@ -200,14 +200,23 @@ func (m *model) reveal() (bool, tea.Cmd) {
 // out. Recording it here would fill the conversation with something that is
 // only ever skipped.
 func (m *model) flush() string {
-	if reasoning := m.run.reasoning.String(); reasoning != "" {
+	reasoning := m.run.reasoning.String()
+	m.run.reasoning.Reset()
+
+	// reasoningFull holds every line already committed to scrollback during
+	// streaming; the remaining partial line from the buffer goes after it.
+	if reasoning != "" || m.run.reasoningFull.Len() > 0 {
 		spent := m.elapsed()
-		m.run.reasoning.Reset()
 		m.begun, m.ended = time.Time{}, time.Time{}
-		m.retained = reasoning
+		m.retained = m.run.reasoningFull.String() + reasoning
+		m.run.reasoningFull.Reset()
 
 		if m.expanded {
-			m.say(fromThinking, reasoning)
+			// Only the remaining partial line needs printing now — full committed
+			// lines were already printed during streaming via commitReasoning.
+			if reasoning != "" {
+				m.say(fromThinking, reasoning)
+			}
 		} else {
 			m.say(fromThinking, m.collapsed(spent))
 		}
