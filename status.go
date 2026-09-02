@@ -130,6 +130,9 @@ func (m *model) footer() []string {
 	if total.CacheReadTokens > 0 {
 		spent = append(spent, shortTokens(total.CacheReadTokens)+" cached")
 	}
+	if m.size > 0 {
+		spent = append(spent, "ctx "+shortTokens(m.size))
+	}
 	if m.trimmed > 0 {
 		spent = append(spent, fmt.Sprintf("%d trimmed", m.trimmed))
 	}
@@ -161,13 +164,17 @@ func (m *model) footer() []string {
 //
 // The spinner, the phrase and the clock are rendered as one span in one
 // colour, and the colour is the phase: cyan while the model is being waited
-// on, the tool's own colour once something runs. Two of the three used to be
-// styled separately and the spinner not at all, which read as three widgets
-// sharing a row rather than one sentence about one run — and left the busiest
-// line on screen in the same grey as everything that had finished. Colouring
-// the whole span means the frame where the colour changes is itself the
-// statement that the phase changed, before anybody has read the words.
+// on, the tool's own colour once something runs, purple while a compaction is
+// in progress. Two of the three used to be styled separately and the spinner
+// not at all, which read as three widgets sharing a row rather than one
+// sentence about one run — and left the busiest line on screen in the same
+// grey as everything that had finished. Colouring the whole span means the
+// frame where the colour changes is itself the statement that the phase
+// changed, before anybody has read the words.
 func (m *model) working() string {
+	if m.compacting {
+		return m.theme.compacting.Render(m.spin.View() + " compacting context")
+	}
 	doing := waitingVerb(time.Since(m.run.began))
 	tone := m.theme.waiting
 	switch n := m.running(); n {

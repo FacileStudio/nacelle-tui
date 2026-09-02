@@ -16,20 +16,21 @@ import (
 // answer arrives as a message, so the palette is rebuilt when it does and the
 // dark one is only the assumption held until then.
 type palette struct {
-	question lipgloss.Style
-	menu     lipgloss.Style
-	command  lipgloss.Style
-	thinking lipgloss.Style
-	tool     lipgloss.Style
-	result   lipgloss.Style
-	failure  lipgloss.Style
-	client   lipgloss.Style
-	plain    lipgloss.Style
-	waiting  lipgloss.Style
-	ready    lipgloss.Style
-	muted    lipgloss.Style
-	queued   lipgloss.Style
-	markdown string
+	question   lipgloss.Style
+	menu       lipgloss.Style
+	command    lipgloss.Style
+	thinking   lipgloss.Style
+	tool       lipgloss.Style
+	result     lipgloss.Style
+	failure    lipgloss.Style
+	client     lipgloss.Style
+	plain      lipgloss.Style
+	waiting    lipgloss.Style
+	ready      lipgloss.Style
+	muted      lipgloss.Style
+	queued     lipgloss.Style
+	compacting lipgloss.Style
+	markdown   string
 }
 
 // themed builds the palette for a light or a dark terminal.
@@ -92,8 +93,9 @@ func themed(dark bool) palette {
 		queued: lipgloss.NewStyle().
 			Background(faint).
 			Foreground(faintFg),
-		muted:    lipgloss.NewStyle().Foreground(quiet),
-		markdown: style,
+		muted:      lipgloss.NewStyle().Foreground(quiet),
+		compacting: lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
+		markdown:   style,
 	}
 }
 

@@ -114,16 +114,20 @@ func (m *model) sized(usage nacelle.Usage) {
 // The trim budget is in bytes rather than tokens: size counts tokens, four
 // bytes per token is the rough English rate, and comparing the two directly
 // would trim about a quarter of what was intended.
+//
+// compacting is set true while the pass runs so the status line shows it.
 func (m *model) compact() {
 	if m.compactAt <= 0 || m.size <= m.compactAt || len(m.conversation) <= compactKeepMessages {
 		return
 	}
+	m.compacting = true
 	budget := (m.size - m.compactAt + compactSlack) * 4
 	limit := len(m.conversation) - compactKeepMessages
 	for i := 0; i < limit && budget > 0; i++ {
 		budget -= m.trimResults(&m.conversation[i], budget)
 		budget -= m.trimThinking(&m.conversation[i], budget)
 	}
+	m.compacting = false
 }
 
 // trimResults replaces the droppable tool results of one message, up to

@@ -18,13 +18,14 @@ import (
 // -system persona keeps it too.
 //
 // The path rule earns its length. Two tools live in two different path
-// universes: clean() (tools/file.go) strips a leading "/" rather than
-// refusing it, so read_file "/etc/hosts" quietly becomes "etc/hosts" under
-// the root and fails as missing, while run_command runs with cmd.Dir set to
-// the same root but sees the whole filesystem, so the identical path works.
-// A model that learns "absolute paths work here" from its first successful
-// run_command is then wrong about every file tool, and the error it gets
-// back says nothing about why.
+// universes: file tools (read_file, write_file, edit_file, find_files,
+// search_content) now resolve absolute paths that sit inside the working
+// directory back to relative ones, so "/home/user/project/foo.go" becomes
+// "foo.go" when root is "/home/user/project". A path outside root is still
+// refused by the kernel-backed sandbox (os.Root). run_command runs with
+// cmd.Dir set to the same root but sees the whole filesystem, so an absolute
+// path to somewhere outside root works there and would be refused by file
+// tools.
 //
 // The second half of that is named only when -bash mounted the tool it is
 // about. run_command is off by default, and a paragraph explaining a tool
@@ -55,11 +56,12 @@ func environment(config Config, now time.Time) string {
 
 	fmt.Fprintf(&body, "Working directory: %s\n\n", absolute(config.Root))
 	body.WriteString("The file and search tools take paths relative to it and cannot reach outside " +
-		"it: a leading \"/\" is stripped rather than refused, so \"/etc/hosts\" means \"etc/hosts\" " +
-		"inside the working directory.")
+		"it: absolute paths that sit under the working directory are resolved relative " +
+		"to it, so \"/etc/hosts\" means \"etc/hosts\" inside the working directory.")
 	if *config.Bash {
 		body.WriteString(" run_command starts in that same directory but sees the whole filesystem, " +
-			"so an absolute path works there and nowhere else.")
+			"so an absolute path to a location outside the working directory works there " +
+			"and nowhere else.")
 	}
 	body.WriteString("\n\n")
 

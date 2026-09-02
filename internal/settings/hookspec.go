@@ -12,6 +12,8 @@ import (
 var point = map[string]nacelle.HookPoint{
 	string(nacelle.BeforeToolCall): nacelle.BeforeToolCall,
 	string(nacelle.AfterToolCall):  nacelle.AfterToolCall,
+	string(nacelle.BeforeCompact):  nacelle.BeforeCompact,
+	string(nacelle.AfterCompact):   nacelle.AfterCompact,
 }
 
 // HookPointOf returns the library HookPoint for a YAML event string,
@@ -26,7 +28,7 @@ func HookPointOf(event string) nacelle.HookPoint {
 // Validate refuses a spec that could only misbehave at 2am.
 func (s HookSpec) Validate() error {
 	if _, known := point[s.On]; !known {
-		return fmt.Errorf("hook %q: unknown event %q, want before_tool_call or after_tool_call", s.Run, s.On)
+		return fmt.Errorf("hook %q: unknown event %q, want before_tool_call, after_tool_call, before_compact, or after_compact", s.Run, s.On)
 	}
 	if strings.TrimSpace(s.Run) == "" {
 		return fmt.Errorf("a hook on %s has no command to run", s.On)

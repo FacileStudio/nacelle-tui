@@ -31,13 +31,14 @@ func TestEnvironmentNamesTheRootAbsolutely(t *testing.T) {
 	}
 }
 
-// The trap this exists for: clean() strips a leading "/" instead of refusing
-// it, so read_file "/etc/hosts" silently reads "etc/hosts" under the root
-// while run_command reads the real one.
+// The file tools now resolve absolute paths that sit under the working
+// directory to their relative form, so read_file "/home/user/project/foo.go"
+// reads the same as "foo.go" when root is "/home/user/project". A path
+// outside root is refused by the kernel-backed sandbox.
 func TestEnvironmentWarnsThatAbsolutePathsOnlyWorkInRunCommand(t *testing.T) {
 	got := environment(withApproval(false), time.Now())
 
-	for _, want := range []string{"stripped", "run_command"} {
+	for _, want := range []string{"absolute", "run_command"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("environment() = %q, want it to mention %q", got, want)
 		}

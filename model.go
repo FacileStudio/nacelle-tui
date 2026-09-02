@@ -68,6 +68,11 @@ type model struct {
 	// mismatch.
 	compactAt int64
 
+	// compacting is true while the conversation is being compacted — old
+	// tool results and thinking blocks replaced with placeholders. The
+	// status line shows "compacting context" in purple when it is set.
+	compacting bool
+
 	prompt    textarea.Model
 	unprinted []string
 
