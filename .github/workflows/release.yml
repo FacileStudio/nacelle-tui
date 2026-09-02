@@ -8,18 +8,13 @@ on:
 permissions:
   contents: write
 
-# GOTOOLCHAIN is local for the same reason ci.yml pins it: the resolver can
-# otherwise reach past what setup-go installed for a module-version toolchain
-# that does not actually download.
-env:
-  GOTOOLCHAIN: local
-
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
+          # GoReleaser reads the tag history to build the changelog.
           fetch-depth: 0
 
       - uses: actions/setup-go@v7
