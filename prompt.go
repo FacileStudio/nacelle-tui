@@ -51,7 +51,7 @@ func newPrompt() textarea.Model {
 	prompt.DynamicHeight = true
 	prompt.MinHeight = 1
 	prompt.MaxHeight = promptRows
-	prompt.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("alt+enter", "ctrl+j"))
+	prompt.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("alt+enter", "shift+enter", "ctrl+j"))
 	prompt.SetVirtualCursor(false)
 	prompt.Focus()
 	return prompt

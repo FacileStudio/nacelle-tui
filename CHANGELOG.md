@@ -10,6 +10,18 @@ while on `v0`, a breaking change bumps the minor.
 
 - **`compact_at` setting**: the compaction threshold is now configurable through `~/.nacelle.yml`, the `NACELLE_COMPACT_AT` environment variable, or the `-compact-at` flag. Defaults to 100,000 (absolute tokens, matching the previous hard-coded constant). Setting it to 0 disables compaction entirely. Follows the same precedence chain as every other setting (flag beats env beats file beats default).
 
+## [0.20.0] — 2026-09-02
+
+### Fixed
+
+- **Extra space before the thinking icon**: `fromThinking` text is now rendered
+  through the theme style instead of the markdown renderer, which was adding
+  leading whitespace to the "▶ thought" line. Streaming always used the theme
+  style; the committed line now matches.
+- **Shift+Enter now inserts a newline without sending the prompt**: added
+  `shift+enter` to the textarea's `InsertNewline` key binding alongside the
+  existing `alt+enter` and `ctrl+j`.
+
 ## [Unreleased]
 
 ### Fixed

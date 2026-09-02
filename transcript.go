@@ -109,7 +109,7 @@ func (m *model) paint(who speaker, text string) string {
 	case fromModel:
 		return m.markdown(text)
 	case fromThinking:
-		return m.markdown(text)
+		return m.theme.thinking.Width(width).Render(text)
 	case fromTool:
 		return toolLinePainted(text)
 	case fromResult:
