@@ -177,7 +177,7 @@ func TestCompactDropsOldThinkingBlocks(t *testing.T) {
 		t.Errorf("trimmed count = %d, want at least 2 (1 tool result + 1 thinking block)", m.trimmed)
 	}
 }
-	func TestSizedCountsEveryBilledInputKind(t *testing.T) {
+func TestSizedCountsEveryBilledInputKind(t *testing.T) {
 	m := sized()
 	m.sized(nacelle.Usage{InputTokens: 1000, CacheReadTokens: 9000, CacheCreationTokens: 500})
 	if m.size != 10_500 {
