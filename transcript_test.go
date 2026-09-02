@@ -62,20 +62,21 @@ func TestPrintingForgetsWhatItHandedOver(t *testing.T) {
 
 // The live region is repainted in place on every delta, so it has to fit on
 // the screen. Content taller than the terminal cannot be redrawn where it
-// stands, and an inline program that tries corrupts its own output.
-func TestStreamingIsTailedToTheRowsTheWindowCanSpare(t *testing.T) {
+// streaming only holds partial lines — every completed line is committed to
+// scrollback immediately by commitParagraphs.
+func TestStreamingHoldsOnlyPartialLines(t *testing.T) {
 	m := sized()
-	m.liveRows = 3
 	m.run.answer.WriteString(strings.Repeat("a line of streamed answer\n", 40))
+	m.commitParagraphs()
 
-	if got := len(m.streaming()); got > m.liveRows {
-		t.Errorf("streaming drew %d rows, want no more than the %d it was given", got, m.liveRows)
+	if got := m.run.answer.Len(); got > 0 {
+		t.Errorf("answer buffer = %d bytes after 40 complete lines, want 0", got)
 	}
 }
 
-// What scrolls out of the live region is not lost: the whole answer is
-// printed, rendered, the moment the run commits it.
-func TestTheWholeAnswerIsPrintedEvenThoughOnlyItsTailWasShown(t *testing.T) {
+// flush returns the full answer even though lines were already committed to
+// scrollback during streaming — fullAnswer accumulates everything.
+func TestFlushReturnsTheFullAnswer(t *testing.T) {
 	m := sized()
 	m.liveRows = 2
 	m.run.answer.WriteString("the opening line\nand many more\nand the last one")

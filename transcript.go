@@ -163,9 +163,5 @@ func (m *model) streaming() []string {
 		return nil
 	}
 
-	lines := strings.Split(strings.Join(live, "\n"), "\n")
-	if len(lines) > m.liveRows {
-		lines = lines[len(lines)-m.liveRows:]
-	}
-	return lines
+	return strings.Split(strings.Join(live, "\n"), "\n")
 }

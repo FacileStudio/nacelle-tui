@@ -12,7 +12,10 @@ import (
 // liveRows exists because the live region is repainted in place on every
 // delta, so it has to fit on the screen. Content taller than the terminal
 // cannot be redrawn where it stands, and an inline program that tries is one
-// that corrupts its own output.
+// that corrupts its own output. In practice every completed line commits to
+// scrollback immediately, so the live region only holds the current partial
+// line — liveRows is a safety bound for the pathological case of an extremely
+// long line with no newlines.
 //
 // frameRows is the other half of that same rule, and it is the half that was
 // missing. tea.Println does not append to the terminal: it scrolls the screen
@@ -84,8 +87,9 @@ func (m *model) resize(size tea.WindowSizeMsg) tea.Cmd {
 // letting them wrap.
 //
 // What is left over is how much of a streaming answer can be shown while it
-// is still arriving. That is a preview and nothing depends on it: the whole
-// answer is printed, rendered, the moment the run commits it.
+// is still arriving. That is a preview — every complete line is committed to
+// scrollback immediately — and nothing depends on it: the whole answer is
+// printed, rendered, the moment the run commits it.
 //
 // Left over, but not all of it. Half the window is held back for printing,
 // because tea.Println makes room for what it writes by scrolling the screen,
