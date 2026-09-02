@@ -64,6 +64,7 @@ func (m *model) View() tea.View {
 	m.frameRows = lipgloss.Height(body)
 
 	view := tea.NewView(body)
+	view.KeyboardEnhancements.ReportEventTypes = true
 	if position := m.prompt.Cursor(); position != nil {
 		position.Y += lipgloss.Height(strings.Join(above, "\n"))
 		view.Cursor = position

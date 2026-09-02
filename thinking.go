@@ -122,7 +122,7 @@ func (m *model) forget() {
 // shown too — somebody who has already pressed the key does not need telling
 // it exists.
 func (m *model) collapsed(spent time.Duration) string {
-	line := "▶ thought"
+	line := "\n▶ thought"
 	if spent > 0 {
 		line += " for " + roughly(spent)
 	}
