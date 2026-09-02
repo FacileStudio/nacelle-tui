@@ -26,6 +26,12 @@ while on `v0`, a breaking change bumps the minor.
 
 ### Fixed
 
+- **Compaction now fires during a run, not only between them**. `compact()`
+  was only called from `send` (pre-flight CountTokens check) and `settle`
+  (between runs), so a long single conversation could grow past the threshold
+  and never trim — the context blowup that stopped the agent early. `absorb`
+  now compacts on every `KindTurn` and `KindDone`, the same place `sized`
+  records the token count.
 - **`buildHeadlessAgent` use-after-close**: toolset and MCP resources are now
   closed after the agent finishes streaming, not before it starts.
 - **`DeclareFlags`** renamed to `declareFlags` (unexported) — the return type

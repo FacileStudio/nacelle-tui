@@ -122,10 +122,12 @@ func (m *model) absorb(event nacelle.Event) {
 		m.run.usage = m.run.usage.Add(event.Usage)
 		m.sink.record(event.Usage, time.Now())
 		m.sized(event.Usage)
+		m.compact()
 	case nacelle.KindDone:
 		m.run.usage = event.Usage
 		m.run.stop = event.Stop
 		m.sized(event.Usage)
+		m.compact()
 	}
 }
 

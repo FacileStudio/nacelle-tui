@@ -152,10 +152,6 @@ func (m *model) viewMenu() string {
 	if !m.menu.open() {
 		return ""
 	}
-	// The window is filtered's slice, offset by scroll — the rows actually
-	// drawn are never the first few of the list, they are the ones around
-	// where the selection is, and the index compared against selected is the
-	// position inside that window.
 	items := m.menu.filtered[m.menu.scroll : m.menu.scroll+m.menu.height()]
 	width := max(m.width, 1)
 

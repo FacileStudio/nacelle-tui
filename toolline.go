@@ -49,11 +49,6 @@ const durationRoom = 10
 func toolLine(name, input string, width int) string {
 	room := width - lipgloss.Width(name) - durationRoom - len("• ()")
 	glyph := toolGlyph(name)
-	// Pad 1-cell-wide glyphs with an extra space so every tool line's name
-	// starts at the same column — ✎ and $ at the same visual position.
-	if lipgloss.Width(glyph) == 1 {
-		glyph += " "
-	}
 	return glyph + " " + name + "(" + truncate(unstyled(primaryArg(input)), room) + ")"
 }
 

@@ -50,7 +50,7 @@ func TestACallWithNothingWorthNamingIsJustTheToolName(t *testing.T) {
 	if got := toolLine("read_file", `not json`, 80); got != "☰ read_file()" {
 		t.Errorf("line = %q, want the tool name and empty parentheses", got)
 	}
-	if got := toolLine("list_tools", ``, 80); got != "•  list_tools()" {
+	if got := toolLine("list_tools", ``, 80); got != "• list_tools()" {
 		t.Errorf("line = %q, want the tool name and empty parentheses", got)
 	}
 }
@@ -72,7 +72,7 @@ func TestALongArgumentIsCutToFitTheLine(t *testing.T) {
 // A window too narrow to hold anything is not a reason to wrap; the name alone
 // is what survives.
 func TestANarrowWindowKeepsTheNameAndDropsTheArgument(t *testing.T) {
-	if got := toolLine("run_command", `{"command":"go build ./..."}`, 12); got != "$  run_command()" {
+	if got := toolLine("run_command", `{"command":"go build ./..."}`, 12); got != "$ run_command()" {
 		t.Errorf("line = %q, want the argument dropped rather than wrapped", got)
 	}
 }
@@ -91,7 +91,7 @@ func TestASubMillisecondCallIsFlooredRatherThanRoundedToZero(t *testing.T) {
 // so the transcript is what has to say the line cannot be trusted.
 func TestARepeatedKeyIsSaidRatherThanSummarised(t *testing.T) {
 	got := toolLine("run_command", `{"command":"ls","command":"rm -rf /"}`, 80)
-	if got != "$  run_command(input has a duplicate key)" {
+	if got != "$ run_command(input has a duplicate key)" {
 		t.Errorf("line = %q, want the ambiguity reported instead of one of the two values", got)
 	}
 }

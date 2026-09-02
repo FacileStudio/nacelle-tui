@@ -157,14 +157,23 @@ func priorContents(root, path string) string {
 //
 //	sed -i 'expression' path
 //	sed -i 'expression' path args...
+// extractEditPath looks for a known in-place editing command (sed -i, awk -i
+// inplace, perl -i) and extracts the file path from its arguments. The markers
+// list checks early before the parsing loop, so a command with no in-place
+// flag returns fast and avoids the allocation.
+//
+// The function handles the flag-order variations that these commands accept:
+//
+//	sed -i.bak 'expression' path
 //	sed -i '' 'expression' path
 //	sed -i.bak 'expression' path
 //	sed -i -e 'expression' path
+//	awk -i inplace 'expression' path
+//	perl -i 'expression' path
 //
 // Other file-modifying commands (awk -i inplace, perl -i) use the same
 // flag-before-expression-before-path order, so they are caught too.
 func extractEditPath(cmd string) (string, bool) {
-	// Look for a known in-place editing command.
 	markers := []string{"sed -i", "awk -i", "perl -i"}
 	var after string
 	matched := false
@@ -181,34 +190,26 @@ func extractEditPath(cmd string) (string, bool) {
 
 	fields := strings.Fields(after)
 	for i, f := range fields {
-		// Skip the -i suffix: -i.bak, -i '', -i "".
 		if i == 0 {
 			if f == `''` || f == `""` {
-				// sed -i '' -> the next field is the expression
 				continue
 			}
 			if !strings.HasPrefix(f, "-") && !strings.HasPrefix(f, "'") && !strings.HasPrefix(f, `"`) {
-				// -i.bak case, the suffix was absorbed into the flag
 				continue
 			}
 		}
-		// Skip flags (-e, --expression, etc.).
 		if strings.HasPrefix(f, "-") {
-			// The next field may be the expression value.
 			if f == "-e" || f == "--expression" {
 				continue
 			}
 			continue
 		}
-		// Skip quoted sed/awk expressions.
 		if (strings.HasPrefix(f, "'") || strings.HasPrefix(f, `"`)) && len(f) > 2 {
 			continue
 		}
-		// Skip "inplace" following "awk -i".
 		if f == "inplace" {
 			continue
 		}
-		// This looks like a file path.
 		return strings.Trim(f, `"'`), true
 	}
 	return "", false

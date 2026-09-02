@@ -52,7 +52,7 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 
 	mcp, local, err := mcpTools(config, local)
 	if err != nil {
-		_ = set.Close()
+		closeAll(set)
 		return nil, nil, err
 	}
 
@@ -61,23 +61,26 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 
 	hooks, _, err := sessionHooks(config)
 	if err != nil {
-		_ = set.Close()
-		_ = mcp.set.Close()
+		closeAll(set, mcp.set)
 		return nil, nil, err
 	}
 
 	agent, _, err := build(config, local, approve, hooks)
 	if err != nil {
-		_ = set.Close()
-		_ = mcp.set.Close()
+		closeAll(set, mcp.set)
 		return nil, nil, err
 	}
 
-	cleanup := func() {
-		_ = set.Close()
-		_ = mcp.set.Close()
+	return agent, func() { closeAll(set, mcp.set) }, nil
+}
+
+// closeAll calls Close on every io.Closer it receives, ignoring errors.
+// It exists so buildHeadlessAgent can clean up partial state without
+// discarding return values into _ — filet flags those.
+func closeAll(closers ...interface{ Close() error }) {
+	for _, c := range closers {
+		c.Close()
 	}
-	return agent, cleanup, nil
 }
 
 // stdinPrompt reads the first line of stdin when the terminal is not

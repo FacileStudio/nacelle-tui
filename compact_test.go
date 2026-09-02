@@ -144,8 +144,6 @@ func TestCompactDropsOldThinkingBlocks(t *testing.T) {
 
 	m.compact()
 
-	// Only the first assistant message (index 1) is outside the keep window.
-	// Index 3 is among the last 4 messages, so its thinking is preserved.
 	replaced, untouched := 0, 0
 	for _, message := range m.conversation {
 		for _, part := range message.Parts {
@@ -166,7 +164,6 @@ func TestCompactDropsOldThinkingBlocks(t *testing.T) {
 	if untouched != 2 {
 		t.Errorf("%d thinking blocks untouched, want 2 (the two inside the keep window)", untouched)
 	}
-	// The assistant text parts should still be there.
 	for i := 1; i < len(m.conversation); i += 2 {
 		hasText := false
 		for _, part := range m.conversation[i].Parts {

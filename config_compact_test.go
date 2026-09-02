@@ -11,20 +11,20 @@ import (
 // TestCompactAtIsConfigurable checks the setting reaches the model through
 // every layer of the precedence chain, and that the default is the one
 // documented in configuration.md.
+// TestCompactAtIsConfigurable tests the precedence chain for the compact
+// threshold setting. It writes ~/.nacelle.yml via HOME pointing at a temp dir
+// rather than trying to stub the path out, and each sub-test isolates its env
+// so a preceding env doesn't leak into the file-only or default-only cases.
 func TestCompactAtIsConfigurable(t *testing.T) {
 	defaults := s.Defaults("")
 	if *defaults.CompactAt != s.DefaultCompactAt {
 		t.Fatalf("default compact_at = %d, want %d", *defaults.CompactAt, s.DefaultCompactAt)
 	}
 
-	// Settings reads ~/.nacelle.yml, so point HOME at a temp dir and write
-	// the file there rather than trying to stub the path out.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	file := filepath.Join(home, s.ConfigFile)
 
-	// Each sub-test isolates its env so a preceding env doesn't leak into
-	// the file-only or default-only cases.
 	writeFile := func(t *testing.T, body string) {
 		t.Helper()
 		if err := os.WriteFile(file, []byte(body), 0o644); err != nil {
@@ -67,7 +67,7 @@ func TestCompactAtIsConfigurable(t *testing.T) {
 	t.Run("flag beats env and file", func(t *testing.T) {
 		writeFile(t, "compact_at: 204800\n")
 		t.Setenv("NACELLE_COMPACT_AT", "300000")
-		c := read(t, s.Config{CompactAt: int64Ptr(400000)})
+		c := read(t, s.Config{Limits: s.Limits{CompactAt: int64Ptr(400000)}})
 		if *c.CompactAt != 400000 {
 			t.Errorf("flag compact_at = %d, want 400000 (flag beats env and file)", *c.CompactAt)
 		}
@@ -107,24 +107,25 @@ func TestCompactAtZeroDisablesCompaction(t *testing.T) {
 // TestCompactAtCustomThresholdCompactsAtTheCustomPoint confirms the model
 // compacts at the value it was given rather than at the default.
 func TestCompactAtCustomThresholdCompactsAtTheCustomPoint(t *testing.T) {
-	// A conversation sized at 150k is under the 200k threshold, so a
-	// generously-thresholded model leaves it alone.
-	spacious := newModel(nil, "test · model", nil, 200_000)
-	spacious.conversation = bigConversation()
-	spacious.size = 150_000
-	spacious.compact()
-	if spacious.trimmed != 0 {
-		t.Errorf("at 150k under the 200k threshold trimmed %d, want 0", spacious.trimmed)
-	}
+	t.Run("under threshold", func(t *testing.T) {
+		spacious := newModel(nil, "test · model", nil, 200_000)
+		spacious.conversation = bigConversation()
+		spacious.size = 150_000
+		spacious.compact()
+		if spacious.trimmed != 0 {
+			t.Errorf("at 150k under the 200k threshold trimmed %d, want 0", spacious.trimmed)
+		}
+	})
 
-	// A model told to compact at 120k compacts the same 150k conversation.
-	lower := newModel(nil, "test · model", nil, 120_000)
-	lower.conversation = bigConversation()
-	lower.size = 150_000
-	lower.compact()
-	if lower.trimmed == 0 {
-		t.Errorf("at 150k with a 120k threshold trimmed nothing; want compaction")
-	}
+	t.Run("over threshold", func(t *testing.T) {
+		lower := newModel(nil, "test · model", nil, 120_000)
+		lower.conversation = bigConversation()
+		lower.size = 150_000
+		lower.compact()
+		if lower.trimmed == 0 {
+			t.Errorf("at 150k with a 120k threshold trimmed nothing; want compaction")
+		}
+	})
 }
 
 func int64Ptr(i int64) *int64 {

@@ -15,6 +15,14 @@ import (
 // ConfigFile is where settings are read from when the flags leave them out.
 const ConfigFile = ".nacelle.yml"
 
+// Limits is the threshold settings that cap the run. Embedded in Config so
+// every field still reads as c.MaxIterations and c.CompactAt — the group
+// exists only to keep the field count under filet's cap.
+type Limits struct {
+	MaxIterations *int  `yaml:"max_iterations"`
+	CompactAt     *int64 `yaml:"compact_at"`
+}
+
 // Config is one layer of settings. Every field is a pointer or an empty-able
 // string so that a layer can say nothing about a setting rather than saying
 // zero, which is the whole difficulty of a precedence chain: "false" and "not
@@ -30,15 +38,7 @@ type Config struct {
 	Root    string `yaml:"root"`
 	System  string `yaml:"system"`
 
-	MaxIterations *int `yaml:"max_iterations"`
-
-	// CompactAt is the transcript size, in tokens, at which the session
-	// compacts. It is int64 rather than int because a token count is a
-	// count: the transcript size is an int64, CountTokens returns an int64,
-	// and comparing the two in different widths is a type error waiting to
-	// happen. 0 means compaction is off entirely, which is what a session
-	// with a very large context window and no budget pressure wants.
-	CompactAt *int64 `yaml:"compact_at"`
+	Limits `yaml:",inline"`
 
 	Toggles `yaml:",inline"`
 
@@ -151,8 +151,7 @@ func Defaults(system string) Config {
 		Root:          ".",
 		System:        system,
 		Toggles:       Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
-		MaxIterations: &iterations,
-		CompactAt:     &compactAt,
+		Limits:      Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{
 			ProjectContext: &projectContext,

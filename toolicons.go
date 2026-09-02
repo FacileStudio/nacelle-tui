@@ -23,22 +23,28 @@ var toolIcons = map[string]string{
 	"subagent":     "»",
 }
 
-// toolStyles colours a call's line by its glyph, so every tool of one kind
-// wears one colour at a glance. The palette stays inside the sixteen ANSI
-// colours — red and green excepted, those belong to the diff renderer — so
-// the shades follow the terminal's scheme like everything else here.
+// toolStyles colours a call's line by its glyph. The palette groups tools
+// by what they do rather than by name: one colour for read/search/inspect,
+// one for write/execute, one for network operations, and one for delegation.
+// The palette stays inside the sixteen ANSI colours — red and green excepted,
+// those belong to the diff renderer — so the shades follow the terminal's
+// scheme like everything else here.
 var toolStyles = map[string]lipgloss.Style{
-	"$": lipgloss.NewStyle().Foreground(lipgloss.Color("4")),
+	// Blue — read, search, find (inspection operations)
+	"☰": lipgloss.NewStyle().Foreground(lipgloss.Color("4")),
+	"◎": lipgloss.NewStyle().Foreground(lipgloss.Color("4")),
+	// Purple — write_file, edit_file, run_command (mutation / execution)
+	"$": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	"✎": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
-	"✚": lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
-	"☰": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
-	"◎": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
+	"✚": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
+	// Cyan — web_fetch, download (network operations)
 	"↧": lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
-	"»": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
+	// Yellow — subagent (delegation)
+	"»": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
 }
 
-// plainTool is what a tool with no glyph of its own wears — the blue the shell
-// tool uses, which is the closest thing here to "a tool, unspecified".
+// plainTool is what a tool with no glyph of its own wears — blue, the inspect
+// colour, which is the closest thing here to "a tool, unspecified".
 //
 // It is the single definition of that blue: toolLinePainted paints an unknown
 // call's line with it, toolTone gives the status phrase the same one, and
@@ -52,13 +58,13 @@ var plainTool = lipgloss.NewStyle().Foreground(lipgloss.Color("4"))
 // a form colorGlyph can insert directly: the number part of `\x1b[Nm`
 // without the escape sequence itself.
 var toolANSI = map[string]string{
-	"$": "34",
+	"☰": "34",
+	"◎": "34",
+	"$": "35",
 	"✎": "35",
-	"✚": "36",
-	"☰": "33",
-	"◎": "33",
+	"✚": "35",
 	"↧": "36",
-	"»": "35",
+	"»": "33",
 }
 
 // plainToolANSI is the ANSI colour code for the plain tool fallback.

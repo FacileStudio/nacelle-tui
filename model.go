@@ -52,34 +52,32 @@ type look struct {
 	promptStyles textarea.Styles
 }
 
-// model is the whole client: a transcript, a prompt, and at most one run in
-// flight.
-//
-// spent outlives the run it came from — the status line adds the two into a
-// session total that only ever goes up.
-type model struct {
+// core groups the agent and the startup banner so model stays under filet's
+// field cap. Embedded, so every field still reads as m.agent and m.banner.
+type core struct {
 	agent  *nacelle.Agent
 	banner string
-	// compactAt is the transcript size, in tokens, at which the session
-	// compacts. It is per-session rather than a package constant so a run
-	// with a very large context window can raise it without editing
-	// source. It is int64 to match the transcript size and CountTokens,
-	// which are both int64, so the comparison in compact() is not a width
-	// mismatch.
-	compactAt int64
+}
 
-	// compacting is true while the conversation is being compacted — old
-	// tool results and thinking blocks replaced with placeholders. The
-	// status line shows "compacting context" in purple when it is set.
+// transcriptSize groups the transcript-size settings so model stays under
+// filet's field cap. Embedded, so every field still reads as m.compactAt
+// and m.compacting.
+type transcriptSize struct {
+	compactAt  int64
 	compacting bool
+}
+
+// model is the whole client: a transcript, a prompt, and at most one run in
+// flight.
+type model struct {
+	core
+	transcriptSize
 
 	prompt    textarea.Model
 	unprinted []string
 
 	conversation []nacelle.Message
-
 	account
-
 	look
 	commandState
 	screen
@@ -97,9 +95,8 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	byName := bySkillName(skills)
 
 	m := &model{
-		agent:     agent,
-		banner:    banner,
-		compactAt: compactAt,
+		core: core{agent: agent, banner: banner},
+		transcriptSize: transcriptSize{compactAt: compactAt},
 		prompt:    newPrompt(),
 		look: look{
 			theme: themed(true),
@@ -112,7 +109,7 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 			menu:   commandMenu{items: menuItems(byName)},
 		},
 		run: inflight{
-			cancel: func() {},
+			runControl: runControl{cancel: func() {}},
 			editState: editState{
 				edits: map[string]editChange{}},
 		},
