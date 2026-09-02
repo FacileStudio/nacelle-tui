@@ -4,6 +4,20 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Added
+
+- **Duplicate-key tool input is refused unconditionally** — `strictObject` now runs
+  on every tool call, not only when `-approve-tools` is on. A call with a repeated
+  JSON key (`{"command":"ls","command":"rm -rf /"}`) is refused as ambiguous before
+  the tool runs, fixing the display/execution split where the transcript showed
+  one value while the tool decoded another. Track D3.
+- **Identical consecutive tool failures collapse into one line with a count** —
+  when the same tool fails with the same error twice in a row, the transcript
+  shows `run_command failed 2 times` instead of two identical two-line blocks.
+  Track D2.
+
 ## [0.14.0] — 2026-09-02
 
 ### Added

@@ -174,15 +174,31 @@ func (m *model) decide(press tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// buildApprovals constructs the approval gate only when -approve-tools asked
-// for one, nil otherwise — which is what keeps every tool call running
-// unasked, the way it always has, for everyone who never turns this on.
-func buildApprovals(config Config) (*approvals, nacelle.Approve) {
-	if !*config.ApproveTools {
-		return nil, nil
+// accept refuses nothing but ambiguous tool input — the one case where
+// encoding/json silently decides for the caller — and lets everything else
+// through. It is the default approval function, active whether or not
+// -approve-tools was asked for.
+func (a *approvals) accept(ctx context.Context, name string, input json.RawMessage) bool {
+	if _, err := strictObject(input); errors.Is(err, errDuplicateKey) {
+		return false
 	}
+	return true
+}
+
+// buildApprovals constructs the approval gate and returns the approval
+// function the core will call on every tool invocation.
+//
+// When -approve-tools is on the gate is returned so it can be wired to the
+// running program — the approval function prompts the human for every call.
+// When it is off the gate is nil and the approval function only rejects
+// ambiguous input; the tool runs unasked as it always has for everyone
+// who never turns the gate on.
+func buildApprovals(config Config) (*approvals, nacelle.Approve) {
 	gate := newApprovals()
-	return gate, gate.ask
+	if *config.ApproveTools {
+		return gate, gate.ask
+	}
+	return nil, gate.accept
 }
 
 // wireApprovals connects a non-nil gate to the running program's Send, once

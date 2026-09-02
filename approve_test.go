@@ -171,10 +171,35 @@ func TestConcurrentAsksAreSerializedToOneAtATime(t *testing.T) {
 	}
 }
 
-// truncate is what keeps a tool call with a large argument list from
-// running off the end of the status line, which is also the reason that line
-// shows the input bytes rather than the decoded call — and the reason a
-// repeated key has to be stopped before it ever reaches it.
+// Non-interactive approval must still catch duplicate keys — they are
+// dangerous whatever the -approve-tools setting.
+func TestAcceptRefusesDuplicateKeys(t *testing.T) {
+	a := newApprovals()
+	input := []byte(`{"command":"ls","command":"rm -rf /"}`)
+	if a.accept(context.Background(), "run_command", input) {
+		t.Error("a call with duplicate keys was allowed through the non-interactive gate")
+	}
+}
+
+// Non-interactive approval must let everything else through — the whole
+// point is that tools run unasked for everyone who never turns the gate on.
+func TestAcceptPassesLegibleInput(t *testing.T) {
+	for _, input := range []string{"", "null", "{}", `{"path":"view.go"}`, `[1,2]`} {
+		a := newApprovals()
+		if !a.accept(context.Background(), "read_file", []byte(input)) {
+			t.Errorf("input %q was refused when it should be allowed", input)
+		}
+	}
+}
+
+// Non-interactive approval must not prompt — it has nowhere to send a
+// question even if it wanted to, and send is nil when the gate is off.
+func TestAcceptDoesNotCallSend(t *testing.T) {
+	a := newApprovals()
+	if !a.accept(context.Background(), "search", nil) {
+		t.Error("a nil-input call was refused")
+	}
+}
 
 // The one that justifies the whole change: encoding/json keeps the last of
 // two identical keys, so the status line renders ls while the tool would run

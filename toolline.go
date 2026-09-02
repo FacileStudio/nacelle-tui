@@ -155,32 +155,38 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 	line, held := m.run.heldLine(tool.ID, m.width)
 	if !held {
 		line = toolLine(tool.Name, tool.Input, m.width)
-		m.tools++
-		if tool.Err != nil {
-			m.failed++
-			toolStr := m.paint(fromTool, colorGlyph(line, "31", toolRestore(tool.Name)))
-			resultStr := m.paint(fromResult, failed(tool))
-			m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
-			m.session.line(fromTool, colorGlyph(line, "31", toolRestore(tool.Name)))
-			m.session.line(fromResult, failed(tool))
-			return
-		}
-		m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+took(tool.Duration))
-		m.session.tool(tool.Name, tool.Duration)
-	} else {
-		m.tools++
-		if tool.Err != nil {
-			m.failed++
-			toolStr := m.paint(fromTool, colorGlyph(line, "31", toolRestore(tool.Name)))
-			resultStr := m.paint(fromResult, failed(tool))
-			m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
-			m.session.line(fromTool, colorGlyph(line, "31", toolRestore(tool.Name)))
-			m.session.line(fromResult, failed(tool))
-			return
-		}
-		m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+took(tool.Duration))
-		m.session.tool(tool.Name, tool.Duration)
 	}
+
+	m.tools++
+
+	if tool.Err != nil {
+		m.failed++
+
+		errText := tool.Err.Error()
+		if m.run.failures.name == tool.Name && m.run.failures.err == errText {
+			m.run.failures.count++
+			m.run.failures.duration = tool.Duration
+			return
+		}
+
+		// Different failure — flush the previous batch first.
+		m.flushFailures()
+		m.run.failures = failureCollapse{
+			toolLine: line,
+			name:     tool.Name,
+			err:      errText,
+			duration: tool.Duration,
+			count:    1,
+		}
+		return
+	}
+
+	// Success — flush any pending failures first.
+	m.flushFailures()
+
+	m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+took(tool.Duration))
+	m.session.tool(tool.Name, tool.Duration)
+
 	if change, edited := m.run.edits[tool.ID]; edited {
 		delete(m.run.edits, tool.ID)
 		// run_command edits only capture the before content at call time;
@@ -192,6 +198,28 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 			m.say(fromDiff, diff)
 		}
 	}
+}
+
+// flushFailures renders any accumulated identical failures to the transcript
+// and the session log, then resets the collapse tracker. Call it wherever a
+// run ends (stranded, settle) and whenever a non-matching tool arrives.
+func (m *model) flushFailures() {
+	if m.run.failures.count == 0 {
+		return
+	}
+
+	toolStr := m.paint(fromTool, colorGlyph(m.run.failures.toolLine, "31", toolRestore(m.run.failures.name)))
+	var errLine string
+	if m.run.failures.count == 1 {
+		errLine = fmt.Sprintf("%s failed after %s: %s", m.run.failures.name, took(m.run.failures.duration), m.run.failures.err)
+	} else {
+		errLine = fmt.Sprintf("%s failed %d times · last: %s: %s", m.run.failures.name, m.run.failures.count, took(m.run.failures.duration), m.run.failures.err)
+	}
+	resultStr := m.paint(fromResult, errLine)
+	m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
+	m.session.line(fromTool, colorGlyph(m.run.failures.toolLine, "31", toolRestore(m.run.failures.name)))
+	m.session.line(fromResult, errLine)
+	m.run.failures = failureCollapse{}
 }
 
 // stranded says the lines still being held for calls that never answered, and
@@ -206,6 +234,7 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 //
 // The order is the groups' own order, which is the order the calls arrived in.
 func (m *model) stranded() {
+	m.flushFailures()
 	for _, g := range m.run.groups {
 		if !g.end.IsZero() {
 			continue

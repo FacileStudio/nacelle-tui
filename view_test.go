@@ -42,6 +42,7 @@ func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 		Err:      errors.New("exit status 2"),
 		Duration: 12 * time.Millisecond,
 	}})
+	m.stranded()
 
 	lines := spoken(m)
 	if len(lines) != 1 {
@@ -54,6 +55,62 @@ func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 		t.Errorf("failure line = %q, want the error and how long it took", lines[0])
 	}
 }
+
+// Identical consecutive failures collapse into one line with a count. The
+// first prints normally; the second extends the collapse rather than
+// printing another identical block.
+func TestIdenticalFailuresCollapse(t *testing.T) {
+	m := sized()
+	// Two identical calls, both failing with the same error.
+	m.absorb(called("1", "run_command", `{"command":"go build ./..."}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
+		ID: "1", Name: "run_command",
+		Err:      errors.New("exit status 2"),
+		Duration: 12 * time.Millisecond,
+	}})
+	m.absorb(called("2", "run_command", `{"command":"go build ./..."}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
+		ID: "2", Name: "run_command",
+		Err:      errors.New("exit status 2"),
+		Duration: 15 * time.Millisecond,
+	}})
+	m.stranded()
+
+	lines := spoken(m)
+	if len(lines) != 1 {
+		t.Fatalf("transcript = %v, want one collapsed failure entry", lines)
+	}
+	if !strings.Contains(lines[0], "run_command(go build ./...)") {
+		t.Errorf("call line = %q, want the call named", lines[0])
+	}
+	if !strings.Contains(lines[0], "2 times") {
+		t.Errorf("failure = %q, want the count showing the two collapses", lines[0])
+	}
+}
+
+// Different failures are not collapsed — each keeps its own line.
+func TestDifferentFailuresAreNotCollapsed(t *testing.T) {
+	m := sized()
+	m.absorb(called("1", "run_command", `{"command":"go build ./..."}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
+		ID: "1", Name: "run_command",
+		Err:      errors.New("exit status 2"),
+		Duration: 12 * time.Millisecond,
+	}})
+	m.absorb(called("2", "run_command", `{"command":"go test ./..."}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
+		ID: "2", Name: "run_command",
+		Err:      errors.New("test failure"),
+		Duration: 20 * time.Millisecond,
+	}})
+	m.stranded()
+
+	lines := spoken(m)
+	if len(lines) != 2 {
+		t.Fatalf("transcript = %v, want two separate failure entries", lines)
+	}
+}
+
 
 // A discarded call belongs to an attempt that was superseded and never ran, so
 // announcing it would be the transcript describing work nobody did.

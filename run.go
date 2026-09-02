@@ -10,6 +10,18 @@ import (
 	"github.com/FacileStudio/nacelle"
 )
 
+// failureCollapse tracks consecutive identical tool failures so they
+// render as one line with a count rather than as N identical two-line
+// blocks. Cleared at the same edges as the rest of a run's state: flush
+// in stranded and settle, reset in clearGroups.
+type failureCollapse struct {
+	toolLine string
+	name     string
+	err      string
+	duration time.Duration
+	count    int
+}
+
 // inflight is the one run this client allows at a time: how to hear from it,
 // how to abandon it, what it has produced, and what it has cost.
 //
@@ -90,6 +102,10 @@ type inflight struct {
 	// and it is cleared with the groups.
 	groups     []toolGroup
 	groupIndex map[string]int
+
+	// failures accumulates consecutive identical tool errors so they
+	// collapse into one line with a count; flushed by flushFailures.
+	failures failureCollapse
 }
 
 // beginTool turns a call into a group row. A new call either extends the
