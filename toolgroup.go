@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"charm.land/lipgloss/v2"
@@ -10,8 +11,8 @@ import (
 )
 
 // toolGroup is one rendered row of the transcript. When grouping is on it
-// represents N calls of the same tool that arrived back to back; when it is
-// off it is exactly one call, and the model never builds a group at all.
+// represents N calls of the same tool kind that arrived back to back; when it
+// is off it is exactly one call, and the model never builds a group at all.
 //
 // The grouping exists because a model that calls the same read ten times in
 // a row is the common case, and ten lines of identical icon and identical
@@ -28,6 +29,8 @@ type toolGroup struct {
 	end       time.Time
 	failed    bool
 	discarded bool
+	// callNames tracks individual tool names in a kind-based batch for rendering.
+	callNames []string
 	// the call that decided the group's fate — the one whose result or error
 	// is shown, and whose input is the one rendered. Earlier calls in the
 	// group are identical in shape, so their input is the same string and
@@ -35,35 +38,42 @@ type toolGroup struct {
 	tool nacelle.ToolEvent
 }
 
-// groupLine is a group as the one line it reads as: the tool's glyph and
-// name, the argument that says which thing it acted on, and — when the
-// group holds more than one call — how many, as `(n×)`. The duration and
-// outcome fold in the same way a single call's line does, in toolline.go.
+// groupLine is a group as the one line it reads as. For a single call, it's
+// the tool's glyph, name, and primary argument. For a batch of same-kind calls,
+// it shows the kind glyph and a compact summary like "4 commands · cmd1 · cmd2 · …".
+// The duration and outcome fold in the same way a single call's line does.
 //
 // A group is painted once, when it closes, so there is no intermediate
-// frame to leave a blank line sitting where the next row belongs. That is
-// the blank-line problem the grouping exists to fix: the agent emits a
-// ToolEvent, the client repaints, and between the two the transcript shows
-// a gap.
+// frame to leave a blank line sitting where the next row belongs.
 func (g toolGroup) groupLine(width int) string {
-	room := width - lipgloss.Width(g.name) - durationRoom - len("• () ×n")
-	inner := truncate(unstyled(primaryArg(g.input)), room)
-	line := g.groupGlyph() + " " + g.name + "(" + inner + ")"
-	if g.count > 1 {
-		line += fmt.Sprintf(" ×%d", g.count)
+	if g.count <= 1 {
+		room := width - lipgloss.Width(g.name) - durationRoom - len("• ()")
+		inner := truncate(unstyled(primaryArg(g.input)), room)
+		return g.groupGlyph() + " " + g.name + "(" + inner + ")"
 	}
-	return line
+
+	// Kind-based batch rendering
+	kind := toolKind(g.name)
+	glyph := toolKindGlyph(kind)
+	if len(g.callNames) > 0 {
+		return fmt.Sprintf("%s %d %ss · %s", glyph, g.count, kind, strings.Join(g.callNames[:min(len(g.callNames), 4)], " · "))
+	}
+	return fmt.Sprintf("%s %d %ss", glyph, g.count, kind)
 }
 
 // groupGlyph returns the icon for a group, honouring the same tone map a
 // single call uses. The discarded and failed states keep their own markers
 // because they are different outcomes, not just more of the same.
+// For batches, it uses the kind glyph.
 func (g toolGroup) groupGlyph() string {
 	if g.discarded {
 		return "⊘"
 	}
 	if g.failed {
 		return "✗"
+	}
+	if g.count > 1 {
+		return toolKindGlyph(toolKind(g.name))
 	}
 	return toolGlyph(g.name)
 }

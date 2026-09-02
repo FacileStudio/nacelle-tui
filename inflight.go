@@ -80,8 +80,10 @@ type editState struct {
 }
 
 // beginTool turns a call into a group row. A new call either extends the
-// previous group — same tool, same input, and the previous one has not
-// returned yet — or starts a fresh row.
+// previous group — same tool kind, and the previous one has not returned yet —
+// or starts a fresh row. Grouping by kind aggregates consecutive calls of the
+// same category (read, write, network, delegate) even when the specific tool
+// or input differs, showing a combined line like "⏺ 4 commands · cmd1 · cmd2 · …".
 func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 	if r.groups == nil {
 		r.groups = make([]toolGroup, 0, 4)
@@ -91,17 +93,24 @@ func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 	}
 	if groupTools && len(r.groups) > 0 {
 		g := &r.groups[len(r.groups)-1]
-		if g.end.IsZero() &&
-			ev.Name == g.tool.Name &&
-			ev.Input == g.tool.Input {
+		if g.end.IsZero() && toolKind(ev.Name) == toolKind(g.tool.Name) {
 			g.count++
+			// Track the individual calls for rendering
+			g.callNames = append(g.callNames, ev.Name)
 			if ev.ID != "" {
 				r.groupIndex[ev.ID] = len(r.groups) - 1
 			}
 			return
 		}
 	}
-	g := toolGroup{name: ev.Name, input: ev.Input, count: 1, tool: ev, start: time.Now()}
+	g := toolGroup{
+		name:      ev.Name,
+		input:     ev.Input,
+		count:     1,
+		tool:      ev,
+		start:     time.Now(),
+		callNames: []string{ev.Name},
+	}
 	r.groups = append(r.groups, g)
 	if ev.ID != "" {
 		r.groupIndex[ev.ID] = len(r.groups) - 1

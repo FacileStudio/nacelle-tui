@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"sort"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -15,10 +18,11 @@ import (
 type command func(m *model) tea.Cmd
 
 var commands = map[string]command{
-	"clear": (*model).clear,
-	"cost":  (*model).cost,
-	"help":  (*model).help,
-	"quit":  (*model).quit,
+	"clear":  (*model).clear,
+	"cost":   (*model).cost,
+	"help":   (*model).help,
+	"quit":   (*model).quit,
+	"status": (*model).statusCmd,
 }
 
 // parseCommand reports the command a line names, and whether the line named
@@ -146,6 +150,7 @@ func (m *model) help() tea.Cmd {
 	m.say(fromClient, strings.Join([]string{
 		"/clear — start a new session, same client",
 		"/cost — what this session has spent so far",
+		"/status — session summary: questions, answers, tools, elapsed time, log size",
 		"/help — show this message",
 		"/quit — quit",
 		"/skill:name [what to do] — run a loaded skill directly, instead of waiting for the model to decide to",
@@ -157,6 +162,31 @@ func (m *model) help() tea.Cmd {
 		"Scroll, select and copy with the terminal as usual — what was said is ordinary terminal output, not a window this client owns.",
 		"Typing / opens a dropdown of commands and skills — up/down move, tab/enter pick, esc closes it.",
 	}, "\n"))
+	return nil
+}
+
+// statusCmd prints a summary of the session: question count, answer count,
+// tool call count, elapsed time, and current log file size.
+func (m *model) statusCmd() tea.Cmd {
+	var lines []string
+	lines = append(lines, fmt.Sprintf("session · %s", lasted(time.Since(m.began))))
+	lines = append(lines, fmt.Sprintf("tools · %d total · %d failed", m.tools, m.failed))
+	total := m.spent.Add(m.run.usage)
+	lines = append(lines, fmt.Sprintf("tokens · in %s · out %s",
+		shortTokens(total.InputTokens+total.CacheCreationTokens),
+		shortTokens(total.OutputTokens)))
+	if total.Cost > 0 {
+		lines = append(lines, fmt.Sprintf("cost · $%.4f", total.Cost))
+	}
+	if m.session != nil {
+		if info, err := os.Stat(m.session.path); err == nil {
+			lines = append(lines, fmt.Sprintf("log · %s (%d bytes)", m.session.path, info.Size()))
+		}
+		if m.session.HasWriteError() {
+			lines = append(lines, "log · ⚠️ write errors detected")
+		}
+	}
+	m.say(fromClient, strings.Join(lines, "\n"))
 	return nil
 }
 

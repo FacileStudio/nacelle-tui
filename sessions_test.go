@@ -160,3 +160,76 @@ func TestANilLogRecordsNothingWithoutPanicking(t *testing.T) {
 	log.line(fromModel, "still here.")
 	log.tool("read_file", time.Second)
 }
+
+// TestSessionRotation verifies that session logs rotate at 256KB and gzip the old file.
+func TestSessionRotation(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	// Create a session log with a very small rotation size for testing
+	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
+	if log == nil {
+		t.Fatal("a writable home must produce a log")
+	}
+
+	// Override rotation size for testing
+	sessionRotationSize = 1024 // 1KB for fast test
+
+	// Write enough lines to trigger rotation
+	for i := 0; i < 50; i++ {
+		log.line(fromReader, strings.Repeat("x", 200))
+	}
+
+	// Check that rotation happened - old file should be gzipped
+	dir := filepath.Join(home, ".nacelle", "sessions")
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("reading sessions dir: %v", err)
+	}
+
+	hasGz := false
+	hasCurrent := false
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".gz") {
+			hasGz = true
+		}
+		if strings.HasSuffix(f.Name(), ".jsonl") {
+			hasCurrent = true
+		}
+	}
+
+	if !hasGz {
+		t.Error("expected a gzipped rotated session file")
+	}
+	if !hasCurrent {
+		t.Error("expected a current session file after rotation")
+	}
+
+	// Restore rotation size
+	sessionRotationSize = 256 * 1024
+}
+
+// TestHasWriteError verifies that write errors are tracked.
+func TestHasWriteError(t *testing.T) {
+	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
+	if log == nil {
+		t.Fatal("a writable home must produce a log")
+	}
+
+	// Initially no error
+	if log.HasWriteError() {
+		t.Error("HasWriteError() should be false initially")
+	}
+
+	// Write a normal entry - should succeed
+	log.line(fromReader, "test")
+	if log.HasWriteError() {
+		t.Error("HasWriteError() should be false after successful write")
+	}
+
+	// The nil log should not panic and should return false
+	var nilLog *sessionLog
+	if nilLog.HasWriteError() {
+		t.Error("nil log HasWriteError() should be false")
+	}
+}

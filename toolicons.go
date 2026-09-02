@@ -10,6 +10,43 @@ import (
 // are text everywhere — geometric marks and arrows, nothing with an emoji
 // presentation, so the transcript never depends on a colour font being
 // installed. Tools outside the map, MCP ones especially, take the plain dot.
+// toolKind categorizes a tool by its glyph/color group for batching.
+// Returns the category name: "read", "write", "network", "delegate", or "other".
+func toolKind(name string) string {
+	glyph := toolGlyph(name)
+	switch glyph {
+	case "☰", "◎":
+		return "read"
+	case "$", "✎", "✚":
+		return "write"
+	case "↧":
+		return "network"
+	case "»":
+		return "delegate"
+	default:
+		return "other"
+	}
+}
+
+// toolKindGlyph returns the representative glyph for a tool kind.
+// Used when rendering aggregated batches.
+func toolKindGlyph(kind string) string {
+	switch kind {
+	case "read":
+		return "☰"
+	case "write":
+		return "$"
+	case "network":
+		return "↧"
+	case "delegate":
+		return "»"
+	default:
+		return "•"
+	}
+}
+
+var _ lipgloss.Style // keep available if needed
+
 var toolIcons = map[string]string{
 	"run_command":  "$",
 	"edit_file":    "✎",

@@ -40,6 +40,8 @@ func TestViewMenuSelectedRowAlignsWithUnselectedRows(t *testing.T) {
 	}
 }
 
+// TestViewMenuListsEveryVisibleMatch verifies that all built-in commands
+// appear in the dropdown menu including /status.
 func TestViewMenuListsEveryVisibleMatch(t *testing.T) {
 	m := sized()
 	m.prompt.SetValue("/")
@@ -47,7 +49,7 @@ func TestViewMenuListsEveryVisibleMatch(t *testing.T) {
 
 	got := m.viewMenu()
 
-	for _, want := range []string{"/clear", "/help", "/quit"} {
+	for _, want := range []string{"/clear", "/help", "/quit", "/status"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("viewMenu() = %q, want it to mention %q", got, want)
 		}

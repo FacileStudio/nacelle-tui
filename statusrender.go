@@ -25,6 +25,12 @@ func (m *model) status() string {
 			m.run.pending.name, truncate(unstyled(string(m.run.pending.input)), 60))
 	}
 
+	// Check for session log write errors
+	if m.session != nil && m.session.HasWriteError() {
+		state = "⚠️ could not write to session log · " + state
+		isReady = false
+	}
+
 	width := max(m.width, 1)
 	counts := strings.Join(m.footer(), " · ")
 	stateLine := truncate(state, width)

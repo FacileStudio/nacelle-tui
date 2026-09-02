@@ -22,7 +22,19 @@ while on `v0`, a breaking change bumps the minor.
   `shift+enter` to the textarea's `InsertNewline` key binding alongside the
   existing `alt+enter` and `ctrl+j`.
 
-## [0.20.3] — 2026-09-02
+## [0.21.0] — 2026-09-02
+
+### Added
+
+- **Session log rotation**: session files rotate at 256 KB. Old files are gzipped (`.gz`) and a new timestamped file starts. A `⚠️ could not write to session log` warning appears in the status line when `write()` fails.
+- **Broad tool grouping by kind**: consecutive calls of the same category (read, write, network, delegate) now batch into a single line showing `⏺ 4 commands · cmd1 · cmd2 · …` instead of N identical lines. Single calls render as before. Track D1, E5.
+- **`/status` command**: prints session summary — elapsed time, tool counts, tokens, cost, log size, and write-error status.
+
+### Fixed
+
+- **Session log write failures now surfaced**: `sessionLog.write` sets `writeError` on failure; the status line shows a warning so users know logging is broken.
+
+## [0.20.5] — 2026-09-02
 
 ### Fixed
 
