@@ -61,13 +61,6 @@ type account struct {
 }
 
 const (
-	// compactAt is the input-token size past which old tool results start
-	// being dropped. It sits well inside the smallest window nacelle is
-	// aimed at, so the first sign of trouble is never StopContext: the
-	// floor it leaves below itself is room for a full answer plus the next
-	// turn's tools and system prompt.
-	compactAt = 100_000
-
 	// compactKeepMessages is how many of the newest messages are never
 	// touched. What the model is reasoning about right now lives here;
 	// dropping it would save tokens and lose the plot.
@@ -93,7 +86,7 @@ func (m *model) sized(usage nacelle.Usage) {
 }
 
 // compact drops old tool results and thinking blocks once the conversation
-// outgrows compactAt.
+// outgrows m.compactAt, which the session reads from its config.
 //
 // Tool results and thinking blocks are what get dropped, deliberately. In an
 // agentic session they are the bulk of the context — a file read, a grep over
@@ -122,10 +115,10 @@ func (m *model) sized(usage nacelle.Usage) {
 // bytes per token is the rough English rate, and comparing the two directly
 // would trim about a quarter of what was intended.
 func (m *model) compact() {
-	if m.size <= compactAt || len(m.conversation) <= compactKeepMessages {
+	if m.compactAt <= 0 || m.size <= m.compactAt || len(m.conversation) <= compactKeepMessages {
 		return
 	}
-	budget := (m.size - compactAt + compactSlack) * 4
+	budget := (m.size - m.compactAt + compactSlack) * 4
 	limit := len(m.conversation) - compactKeepMessages
 	for i := 0; i < limit && budget > 0; i++ {
 		budget -= m.trimResults(&m.conversation[i], budget)

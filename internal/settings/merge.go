@@ -9,6 +9,9 @@ func (c *Config) merge(over Config) {
 	if over.MaxIterations != nil {
 		c.MaxIterations = over.MaxIterations
 	}
+	if over.CompactAt != nil {
+		c.CompactAt = over.CompactAt
+	}
 	if over.Budget != nil {
 		c.Budget = over.Budget
 	}

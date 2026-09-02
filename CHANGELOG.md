@@ -6,6 +6,10 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+
+- **`compact_at` setting**: the compaction threshold is now configurable through `~/.nacelle.yml`, the `NACELLE_COMPACT_AT` environment variable, or the `-compact-at` flag. Defaults to 100,000 (absolute tokens, matching the previous hard-coded constant). Setting it to 0 disables compaction entirely. Follows the same precedence chain as every other setting (flag beats env beats file beats default).
+
 ### Fixed
 
 - **`buildHeadlessAgent` use-after-close**: toolset and MCP resources are now

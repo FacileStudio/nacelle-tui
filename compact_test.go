@@ -7,6 +7,12 @@ import (
 	"github.com/FacileStudio/nacelle"
 )
 
+// compactAt is the session default, kept as a literal here rather than
+// imported from the internal settings package, which package main cannot
+// import. It must stay in step with settings.DefaultCompactAt: if that
+// moves, this and the 100_000 in sized()/bareBanner move with it by hand.
+const compactAt int64 = 100_000
+
 func bigConversation() []nacelle.Message {
 	result := func(id string, n int) nacelle.ToolResult {
 		return nacelle.ToolResult{ID: id, Name: "read", Result: strings.Repeat("x", n)}

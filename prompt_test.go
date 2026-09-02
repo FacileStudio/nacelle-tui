@@ -119,7 +119,7 @@ func drawnRows(m *model) int { return strings.Count(m.View().Content, "\n") + 1 
 // prompt, so the reader was typing into something they could not see.
 func TestThePromptNeverOutgrowsASmallWindow(t *testing.T) {
 	for _, height := range []int{6, 8, 12, 24} {
-		m := newModel(nil, "test · model", nil)
+		m := sized()
 		m.resize(tea.WindowSizeMsg{Width: 60, Height: height})
 		m.prompt.SetValue(strings.Repeat("word ", 300))
 		m.layout(m.windowHeight)

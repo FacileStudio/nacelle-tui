@@ -101,7 +101,7 @@ func TestARepeatedKeyIsSaidRatherThanSummarised(t *testing.T) {
 // never ran, so counting it would have the closing recap claim work nobody
 // did. Every other call, failures included, is counted exactly once.
 func TestADiscardedCallIsNotCountedAsWorkDone(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 
 	m.finished(&nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"x"}`})
 	m.finished(&nacelle.ToolEvent{ID: "b", Name: "run_command", Input: `{"command":"x"}`, Err: errors.New("nope")})

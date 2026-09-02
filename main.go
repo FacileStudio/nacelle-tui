@@ -152,7 +152,7 @@ func run() error {
 		skills: found.skills, hookNotice: hookNotice, gate: approvalGate,
 		root: config.Root, model: config.Model, backend: config.Backend,
 		diffs: *config.Diffs, groupTools: config.GroupTools,
-		showThinking: *config.ShowThinking,
+		showThinking: *config.ShowThinking, compactAt: *config.CompactAt,
 	})
 }
 
@@ -170,6 +170,12 @@ type uiSession struct {
 	diffs        bool
 	groupTools   *bool
 	showThinking bool
+	// compactAt is the token count at which the transcript compacts. It is
+	// read from the config, not a constant, so a session with a very large
+	// context window can raise it without editing source. int64, to match
+	// the transcript size and CountTokens rather than being compared in
+	// two widths.
+	compactAt int64
 }
 
 // launch opens the program, delivers whatever was queued for the transcript
@@ -200,7 +206,7 @@ type uiSession struct {
 // it before the program starts means the terminal has scrolled the way it
 // scrolls for every other command, and the frame opens underneath it.
 func launch(c uiSession) error {
-	opened := newModel(c.agent, c.banner, c.skills)
+	opened := newModel(c.agent, c.banner, c.skills, c.compactAt)
 	opened.groupTools = derefBool(c.groupTools)
 	opened.expanded = c.showThinking
 	opened.run.root = c.root

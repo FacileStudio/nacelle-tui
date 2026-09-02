@@ -14,7 +14,7 @@ import (
 // Measured before this was fixed: 0.6s of reasoning followed by a 0.6s answer
 // printed "thought for 1.2s".
 func TestTheClockStopsWhenTheAnswerStartsNotWhenTheTurnEnds(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.width = 80
 
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "pondering"})
@@ -33,7 +33,7 @@ func TestTheClockStopsWhenTheAnswerStartsNotWhenTheTurnEnds(t *testing.T) {
 // until the result arrives, so a slow tool would be billed to the model's
 // thinking in full.
 func TestAToolCallStopsTheClockTheSameWay(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.width = 80
 
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "which tool"})
@@ -50,7 +50,7 @@ func TestAToolCallStopsTheClockTheSameWay(t *testing.T) {
 // A cleared session is one somebody wanted gone. A key that reprints what the
 // model was thinking just before they cleared is that session coming back.
 func TestClearingTheSessionDropsWhatCtrlTWouldReprint(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "from the old session"})
 	m.flush()
 

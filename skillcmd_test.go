@@ -107,7 +107,7 @@ func TestSlashSkillStartsARunWithTheSkillsBodyAsTheQuestion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("nacelle.New: %v", err)
 	}
-	m := newModel(agent, "test · model", []skill{s})
+	m := newModel(agent, "test · model", []skill{s}, int64(100_000))
 	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
 	t.Cleanup(m.run.cancel)
 

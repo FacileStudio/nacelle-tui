@@ -60,6 +60,13 @@ type look struct {
 type model struct {
 	agent  *nacelle.Agent
 	banner string
+	// compactAt is the transcript size, in tokens, at which the session
+	// compacts. It is per-session rather than a package constant so a run
+	// with a very large context window can raise it without editing
+	// source. It is int64 to match the transcript size and CountTokens,
+	// which are both int64, so the comparison in compact() is not a width
+	// mismatch.
+	compactAt int64
 
 	prompt    textarea.Model
 	unprinted []string
@@ -81,13 +88,14 @@ type model struct {
 // skills is every skill loaded this run — kept keyed by name so
 // /skill:name is a lookup, not a scan, every time it's typed, and listed
 // alongside the client's own commands in the dropdown menu.
-func newModel(agent *nacelle.Agent, banner string, skills []skill) *model {
+func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64) *model {
 	byName := bySkillName(skills)
 
 	m := &model{
-		agent:  agent,
-		banner: banner,
-		prompt: newPrompt(),
+		agent:     agent,
+		banner:    banner,
+		compactAt: compactAt,
+		prompt:    newPrompt(),
 		look: look{
 			theme: themed(true),
 			spin:  spinner.New(spinner.WithSpinner(spinner.MiniDot)),

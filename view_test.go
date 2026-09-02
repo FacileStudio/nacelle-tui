@@ -224,7 +224,7 @@ func TestTheInlineRendererIsTheCommitBubbleteaWasTestedAgainst(t *testing.T) {
 // on the ordinary path by recording before it absorbs; settle is the path that
 // does not go through consume at all.
 func TestAnEndedRunSaysTheAnswerBeforeTheToolItWasStillHolding(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.width = 80
 	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "reading the file now"})
 	m.absorb(nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{

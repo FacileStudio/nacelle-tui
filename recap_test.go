@@ -11,7 +11,7 @@ import (
 // ranFor is a model that has been open for a fixed stretch, so a test can
 // assert on the duration a recap prints without sleeping through it.
 func ranFor(spent time.Duration) *model {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.began = time.Now().Add(-spent)
 	return m
 }

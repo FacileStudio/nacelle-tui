@@ -32,6 +32,14 @@ type Config struct {
 
 	MaxIterations *int `yaml:"max_iterations"`
 
+	// CompactAt is the transcript size, in tokens, at which the session
+	// compacts. It is int64 rather than int because a token count is a
+	// count: the transcript size is an int64, CountTokens returns an int64,
+	// and comparing the two in different widths is a type error waiting to
+	// happen. 0 means compaction is off entirely, which is what a session
+	// with a very large context window and no budget pressure wants.
+	CompactAt *int64 `yaml:"compact_at"`
+
 	Toggles `yaml:",inline"`
 
 	Reasoning `yaml:",inline"`
@@ -121,12 +129,20 @@ func DerefBool(b *bool) bool {
 	return b != nil && *b
 }
 
+// DefaultCompactAt is the transcript size, in tokens, at which a session
+// with no opinion of its own compacts. It sits well inside the smallest
+// window nacelle is aimed at, so the first sign of trouble is never
+// StopContext: the floor it leaves below itself is room for a full answer
+// plus the next turn's tools and system prompt.
+const DefaultCompactAt int64 = 100_000
+
 // Defaults is the bottom layer, and the only one that answers everything.
 func Defaults(system string) Config {
 	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
 		false, false, true, true, false, false, false, true
 	subagents := false
 	iterations, budget := 0, int64(0)
+	compactAt := DefaultCompactAt
 	search, fetch := "", true
 	groupTools, showThinking := true, true
 	return Config{
@@ -136,6 +152,7 @@ func Defaults(system string) Config {
 		System:        system,
 		Toggles:       Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
 		MaxIterations: &iterations,
+		CompactAt:     &compactAt,
 		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{
 			ProjectContext: &projectContext,

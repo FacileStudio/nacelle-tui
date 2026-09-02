@@ -18,6 +18,9 @@ type declared struct {
 	webFlags
 	togglesFlags
 	iterations *int
+	// compactAt is a token count, not a turn count, so it shares the width of
+	// budget rather than iterations.
+	compactAt *int64
 	sourceFlags
 	discoveryFlags
 }
@@ -70,6 +73,7 @@ func declareFlags(fallback Config) declared {
 			diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
 		},
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
+		compactAt:  flag.Int64("compact-at", *fallback.CompactAt, "transcript size in tokens at which the session compacts; 0 turns compaction off"),
 		discoveryFlags: discoveryFlags{
 			projectContext: flag.Bool("project-context", *fallback.ProjectContext,
 				"read CLAUDE.md and AGENTS.md from root upward into the system prompt"),
@@ -112,6 +116,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"approve-tools":    func(c *Config) { c.ApproveTools = f.approveTools },
 		"diffs":            func(c *Config) { c.Diffs = f.diffs },
 		"max-iterations":   func(c *Config) { c.MaxIterations = f.iterations },
+		"compact-at":       func(c *Config) { c.CompactAt = f.compactAt },
 		"reasoning-budget": func(c *Config) { c.Budget = f.budget },
 		"skill-dir":        func(c *Config) { c.SkillDirs = []string(*f.skillDirs) },
 		"mcp":              func(c *Config) { c.MCP = []string(*f.mcp) },

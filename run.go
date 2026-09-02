@@ -274,7 +274,7 @@ func (m *model) send(text string) tea.Cmd {
 	// grew past compactAt between turns compacts now rather than after this
 	// turn finishes. Some backends (OpenRouter) do not support CountTokens —
 	// skip on error, the post-turn compact in settle still catches it.
-	if count, err := m.agent.CountTokens(ctx, m.conversation); err == nil && count > compactAt+compactSlack {
+	if count, err := m.agent.CountTokens(ctx, m.conversation); err == nil && m.compactAt > 0 && count > m.compactAt+compactSlack {
 		m.size = count
 		m.compact()
 	}

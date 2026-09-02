@@ -19,6 +19,7 @@ func FromEnv() Config {
 		Root:          os.Getenv(EnvPrefix + "ROOT"),
 		System:        os.Getenv(EnvPrefix + "SYSTEM"),
 		MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"),
+		CompactAt:     envInt64(EnvPrefix + "COMPACT_AT"),
 		Sources:       Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
 		Toggles: Toggles{
 			Bash:         envBool(EnvPrefix + "BASH"),

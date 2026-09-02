@@ -123,7 +123,7 @@ func TestAnUnreportedCostIsLeftOutRatherThanShownAsZero(t *testing.T) {
 // started rather than from the moment the client did, and an idle line has no
 // timer at all rather than one frozen at whatever the last run reached.
 func TestTheElapsedTimerMeasuresTheRunAndDisappearsWithIt(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.began = time.Now().Add(-41 * time.Minute)
 	m.run.began = time.Now().Add(-12 * time.Second)
 	m.run.busy = true
@@ -146,7 +146,7 @@ func TestTheElapsedTimerMeasuresTheRunAndDisappearsWithIt(t *testing.T) {
 // sets busy by hand and never reaches send, and time.Since on a zero Time is a
 // span in the thousands of hours.
 func TestAStatusLineDrawnWithoutSendIsNotGivenAThousandHourTimer(t *testing.T) {
-	m := newModel(nil, "banner", nil)
+	m := bareBanner()
 	m.run.busy = true
 
 	if got := m.ongoing(); got != "" {
