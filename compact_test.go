@@ -118,7 +118,66 @@ func TestCompactIsNotPaidTwiceOnASecondPass(t *testing.T) {
 	}
 }
 
-func TestSizedCountsEveryBilledInputKind(t *testing.T) {
+func TestCompactDropsOldThinkingBlocks(t *testing.T) {
+	msg := func(role nacelle.Role, parts ...nacelle.Part) nacelle.Message {
+		return nacelle.Message{Role: role, Parts: parts}
+	}
+	thought := func(n int) nacelle.Reasoning {
+		return nacelle.Reasoning{Text: strings.Repeat("thinking about this ", n)}
+	}
+	m := sized()
+	m.conversation = []nacelle.Message{
+		msg(nacelle.RoleUser, nacelle.ToolResult{ID: "a", Name: "read", Result: strings.Repeat("x", 2000)}),
+		msg(nacelle.RoleAssistant, thought(5000), nacelle.Text{Text: "old conclusion"}),
+		msg(nacelle.RoleUser, nacelle.ToolResult{ID: "b", Name: "read", Result: strings.Repeat("x", 2000)}),
+		msg(nacelle.RoleAssistant, thought(3000), nacelle.Text{Text: "middle conclusion"}),
+		msg(nacelle.RoleUser, nacelle.ToolResult{ID: "c", Name: "read", Result: strings.Repeat("x", 2000)}),
+		msg(nacelle.RoleAssistant, thought(100), nacelle.Text{Text: "recent conclusion"}),
+	}
+	m.size = compactAt + 50_000
+
+	m.compact()
+
+	// Only the first assistant message (index 1) is outside the keep window.
+	// Index 3 is among the last 4 messages, so its thinking is preserved.
+	replaced, untouched := 0, 0
+	for _, message := range m.conversation {
+		for _, part := range message.Parts {
+			r, ok := part.(nacelle.Reasoning)
+			if !ok {
+				continue
+			}
+			if strings.HasPrefix(r.Text, droppedThinkingNotice) {
+				replaced++
+			} else {
+				untouched++
+			}
+		}
+	}
+	if replaced != 1 {
+		t.Errorf("%d thinking blocks replaced, want 1 (the one outside the keep window)", replaced)
+	}
+	if untouched != 2 {
+		t.Errorf("%d thinking blocks untouched, want 2 (the two inside the keep window)", untouched)
+	}
+	// The assistant text parts should still be there.
+	for i := 1; i < len(m.conversation); i += 2 {
+		hasText := false
+		for _, part := range m.conversation[i].Parts {
+			if _, ok := part.(nacelle.Text); ok {
+				hasText = true
+				break
+			}
+		}
+		if !hasText {
+			t.Errorf("assistant message %d lost its Text part after compact", i)
+		}
+	}
+	if m.trimmed < 2 {
+		t.Errorf("trimmed count = %d, want at least 2 (1 tool result + 1 thinking block)", m.trimmed)
+	}
+}
+	func TestSizedCountsEveryBilledInputKind(t *testing.T) {
 	m := sized()
 	m.sized(nacelle.Usage{InputTokens: 1000, CacheReadTokens: 9000, CacheCreationTokens: 500})
 	if m.size != 10_500 {

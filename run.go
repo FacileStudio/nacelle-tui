@@ -252,6 +252,16 @@ func (m *model) send(text string) tea.Cmd {
 	ctx, cancel := context.WithCancel(context.Background())
 	m.run.cancel = cancel
 	m.run.busy = true
+
+	// Pre-flight: check conversation size before sending, so a session that
+	// grew past compactAt between turns compacts now rather than after this
+	// turn finishes. Some backends (OpenRouter) do not support CountTokens —
+	// skip on error, the post-turn compact in settle still catches it.
+	if count, err := m.agent.CountTokens(ctx, m.conversation); err == nil && count > compactAt+compactSlack {
+		m.size = count
+		m.compact()
+	}
+
 	m.run.results = start(ctx, m.agent, m.conversation)
 	return tea.Batch(waitFor(m.run.results), m.spin.Tick)
 }

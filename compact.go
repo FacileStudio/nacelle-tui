@@ -26,9 +26,9 @@ type account struct {
 	// by the backend's own accounting, not guessed from bytes.
 	size int64
 
-	// trimmed is how many tool results have been replaced. It reaches the
-	// status line, because a model whose memory was quietly edited should
-	// not be the only one who knows.
+	// trimmed is how many tool results and thinking blocks have been replaced.
+	// It reaches the status line, because a model whose memory was quietly
+	// edited should not be the only one who knows.
 	trimmed int
 
 	// began is when this client started, stamped once in newModel. The
@@ -92,14 +92,16 @@ func (m *model) sized(usage nacelle.Usage) {
 	m.size = usage.InputTokens + usage.CacheReadTokens + usage.CacheCreationTokens
 }
 
-// compact drops old tool results once the conversation outgrows compactAt.
+// compact drops old tool results and thinking blocks once the conversation
+// outgrows compactAt.
 //
-// Tool results are what get dropped, deliberately. In an agentic session they
-// are the bulk of the context — a file read, a grep over a tree, a test run —
-// and their value decays fastest: by ten turns later the model needs the fact
-// it found, not the forty kilobytes it arrived inside. Assistant text stays,
-// because it is the reasoning chain, and everything recent stays, because
-// that is what the next turn is about.
+// Tool results and thinking blocks are what get dropped, deliberately. In an
+// agentic session they are the bulk of the context — a file read, a grep over
+// a tree, a test run, a chain-of-thought — and their value decays fastest: by
+// ten turns later the model needs the fact it found, not the forty kilobytes it
+// arrived inside, nor the reasoning that led to it. Assistant text stays,
+// because it is the conclusion, and everything recent stays, because that is
+// what the next turn is about.
 //
 // A replaced result keeps its ToolResult shell — same id, same name, same
 // failure flag — with the body swapped for a note saying what happened and
@@ -127,13 +129,14 @@ func (m *model) compact() {
 	limit := len(m.conversation) - compactKeepMessages
 	for i := 0; i < limit && budget > 0; i++ {
 		budget -= m.trimResults(&m.conversation[i], budget)
+		budget -= m.trimThinking(&m.conversation[i], budget)
 	}
 }
 
 // trimResults replaces the droppable tool results of one message, up to
-// budget bytes of original text, and reports how much it saved. A message on
-// the model's side of the conversation has nothing droppable: its parts are
-// the reasoning chain.
+// budget bytes of original text, and reports how much it saved. Only user
+// messages carry tool results, and the guard at the top makes this a quick
+// no-op for assistant messages that trimThinking handles instead.
 func (m *model) trimResults(message *nacelle.Message, budget int64) int64 {
 	if message.Role != nacelle.RoleUser {
 		return 0
@@ -159,7 +162,41 @@ func (m *model) trimResults(message *nacelle.Message, budget int64) int64 {
 	return saved
 }
 
+// trimThinking replaces long-form reasoning in old assistant messages with a
+// placeholder, up to budget bytes of original text, and reports how much it
+// saved. Reasoning that was dropped in an earlier pass is left alone.
+//
+// Thinking blocks are never sent back to the provider — nacelle drops them when
+// building the request — so replacing them is invisible on the wire. What the
+// model actually said (the Text part) stays untouched.
+func (m *model) trimThinking(message *nacelle.Message, budget int64) int64 {
+	if message.Role != nacelle.RoleAssistant {
+		return 0
+	}
+	saved := int64(0)
+	for j, part := range message.Parts {
+		if saved >= budget {
+			break
+		}
+		reasoning, ok := part.(nacelle.Reasoning)
+		if !ok || reasoning.Text == "" || strings.HasPrefix(reasoning.Text, droppedThinkingNotice) {
+			continue
+		}
+		saved += int64(len(reasoning.Text))
+		message.Parts[j] = nacelle.Reasoning{
+			Text: fmt.Sprintf("%s%d bytes%s", droppedThinkingNotice, len(reasoning.Text), ". See the assistant text above for the conclusion."),
+		}
+		m.trimmed++
+	}
+	return saved
+}
+
 // droppedNotice opens the text a trimmed result is replaced with. Compact
 // skips any result already opening with it, so a second pass never pays a
 // placeholder twice or counts it as savings.
 const droppedNotice = "[dropped "
+
+// droppedThinkingNotice opens the text a trimmed thinking block is replaced
+// with. It plays the same role as droppedNotice, and uses the same "dropped"
+// prefix so the reader sees it as the same mechanism.
+const droppedThinkingNotice = "[dropped thinking: "
