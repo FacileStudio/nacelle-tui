@@ -4,11 +4,13 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.18.0] — 2026-09-02
 
 ### Added
 
 - **`compact_at` setting**: the compaction threshold is now configurable through `~/.nacelle.yml`, the `NACELLE_COMPACT_AT` environment variable, or the `-compact-at` flag. Defaults to 100,000 (absolute tokens, matching the previous hard-coded constant). Setting it to 0 disables compaction entirely. Follows the same precedence chain as every other setting (flag beats env beats file beats default).
+
+## [Unreleased]
 
 ### Fixed
 
@@ -552,7 +554,8 @@ No changelog recorded — minor fixes between 0.15.0 and 0.16.1.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.18.0
 [0.17.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.17.0
 [0.15.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.15.0
 [0.16.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.16.0
