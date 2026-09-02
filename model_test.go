@@ -21,9 +21,6 @@ func visible(screen string) string { return ansi.Strip(screen) }
 
 // sized is a model with a window, because everything that renders needs one.
 func sized() *model {
-	// 100_000 matches settings.DefaultCompactAt, the session default. The
-	// test files are package main and cannot import the internal package,
-	// so the literal lives here rather than being shared by reference.
 	m := newModel(nil, "test · model", nil, int64(100_000))
 	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
 	return m

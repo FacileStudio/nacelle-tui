@@ -95,9 +95,9 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	byName := bySkillName(skills)
 
 	m := &model{
-		core: core{agent: agent, banner: banner},
+		core:           core{agent: agent, banner: banner},
 		transcriptSize: transcriptSize{compactAt: compactAt},
-		prompt:    newPrompt(),
+		prompt:         newPrompt(),
 		look: look{
 			theme: themed(true),
 			spin:  spinner.New(spinner.WithSpinner(spinner.MiniDot)),

@@ -101,9 +101,9 @@ func themed(dark bool) palette {
 			menu: lipgloss.NewStyle().
 				Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
 				Foreground(pick(lipgloss.Color("0"), lipgloss.Color("7"))),
-			plain:      lipgloss.NewStyle(),
-			waiting:    lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
-			ready:      lipgloss.NewStyle().Foreground(lipgloss.Color("2")),
+			plain:   lipgloss.NewStyle(),
+			waiting: lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
+			ready:   lipgloss.NewStyle().Foreground(lipgloss.Color("2")),
 			queued: lipgloss.NewStyle().
 				Background(faint).
 				Foreground(faintFg),

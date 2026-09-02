@@ -61,7 +61,6 @@ func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 // printing another identical block.
 func TestIdenticalFailuresCollapse(t *testing.T) {
 	m := sized()
-	// Two identical calls, both failing with the same error.
 	m.absorb(called("1", "run_command", `{"command":"go build ./..."}`))
 	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
 		ID: "1", Name: "run_command",

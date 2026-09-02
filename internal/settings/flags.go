@@ -75,14 +75,10 @@ func declareFlags(fallback Config) declared {
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
 		compactAt:  flag.Int64("compact-at", *fallback.CompactAt, "transcript size in tokens at which the session compacts; 0 turns compaction off"),
 		discoveryFlags: discoveryFlags{
-			projectContext: flag.Bool("project-context", *fallback.ProjectContext,
-				"read CLAUDE.md and AGENTS.md from root upward into the system prompt"),
-			skills: flag.Bool("skills", *fallback.Skills,
-				"tell the model about skills found in ~/.agents/skills and trusted .agents/skills directories"),
-			trustSkills: flag.Bool("trust-skills", *fallback.TrustSkills,
-				"trust every .agents/skills directory found under root this run, and remember the decision"),
-			trustHooks: flag.Bool("trust-hooks", *fallback.TrustHooks,
-				"trust this project's .nacelle/hooks.yml as it reads right now, and remember that version"),
+			projectContext: flag.Bool("project-context", *fallback.ProjectContext, "read CLAUDE.md and AGENTS.md from root upward into the system prompt"),
+			skills:         flag.Bool("skills", *fallback.Skills, "tell the model about skills found in ~/.agents/skills and trusted .agents/skills directories"),
+			trustSkills:    flag.Bool("trust-skills", *fallback.TrustSkills, "trust every .agents/skills directory found under root this run, and remember the decision"),
+			trustHooks:     flag.Bool("trust-hooks", *fallback.TrustHooks, "trust this project's .nacelle/hooks.yml as it reads right now, and remember that version"),
 		},
 	}
 }

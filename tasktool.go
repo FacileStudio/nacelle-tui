@@ -132,57 +132,13 @@ func stepUpdateSchema() map[string]any {
 // never read again, and a tool goroutine parked on a channel nobody drains
 // outlives the run that started it.
 func (t tasksTool) Run(ctx context.Context, input json.RawMessage) (string, error) {
-	var reported struct {
-		Tasks      taskList `json:"tasks,omitempty"`
-		StepUpdate *struct {
-			Index  int     `json:"index"`
-			Status *string `json:"status,omitempty"`
-			Title  *string `json:"title,omitempty"`
-			Reason *string `json:"reason,omitempty"`
-		} `json:"step_update,omitempty"`
+	merged, err := t.merge(input)
+	if err != nil {
+		return "", err
 	}
-	if err := json.Unmarshal(input, &reported); err != nil {
-		return "", fmt.Errorf("tasks: input is not the expected object: %w", err)
-	}
-
-	var merged taskList
-	var ok bool
-	switch {
-	case len(reported.Tasks) > 0:
-		merged = reported.Tasks
-	case reported.StepUpdate != nil:
-		cur := currentPlan.Load()
-		if cur == nil {
-			return "", fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
-		}
-		merged, ok = cur.(taskList)
-		if !ok {
-			return "", fmt.Errorf("tasks: internal error — plan is not a taskList")
-		}
-		if len(merged) == 0 {
-			return "", fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
-		}
-		idx := reported.StepUpdate.Index
-		if idx < 0 || idx >= len(merged) {
-			return "", fmt.Errorf("tasks: step_update index %d is out of range (plan has %d steps)", idx, len(merged))
-		}
-		if reported.StepUpdate.Status != nil {
-			merged[idx].Status = *reported.StepUpdate.Status
-		}
-		if reported.StepUpdate.Title != nil {
-			merged[idx].Title = *reported.StepUpdate.Title
-		}
-		if reported.StepUpdate.Reason != nil {
-			merged[idx].Reason = *reported.StepUpdate.Reason
-		}
-	default:
-		return "", fmt.Errorf("tasks: provide either tasks (full plan) or step_update (single step)")
-	}
-
 	if err := validate(merged); err != nil {
 		return "", err
 	}
-
 	select {
 	case reports <- taskUpdate(merged):
 		return summarise(merged), nil
@@ -191,64 +147,66 @@ func (t tasksTool) Run(ctx context.Context, input json.RawMessage) (string, erro
 	}
 }
 
-// validate refuses a list the screen could not honestly draw, naming what is
-// wrong so the model can fix it on the next call rather than guess.
-//
-// Two steps in progress is refused; zero is not. "Exactly one" is the rule the
-// description asks for, and it is right while there is work left — but a plan
-// whose last step has just been completed is a legitimate final snapshot, and
-// refusing it would leave the screen showing the last step as still running
-// forever. So the check enforces the half that is unambiguously a mistake.
-func validate(list taskList) error {
-	active := 0
-	for _, item := range list {
-		if strings.TrimSpace(item.Title) == "" {
-			return fmt.Errorf("tasks: every step needs a title")
-		}
-		switch item.Status {
-		case statusTodo, statusDone, statusBlocked, statusFailed:
-		case statusActive:
-			active++
-		default:
-			return fmt.Errorf("tasks: %q is not a status, use %s, %s, %s, %s or %s", item.Status, statusTodo, statusActive, statusDone, statusBlocked, statusFailed)
-		}
-	}
-	if active > 1 {
-		return fmt.Errorf("tasks: %d steps are %s at once, only one may be", active, statusActive)
-	}
-	return nil
+// stepUpdate is one step's changes, sent alone rather than as an element of
+// a full plan, keyed by the step's 0-based index.
+type stepUpdate struct {
+	Index  int     `json:"index"`
+	Status *string `json:"status,omitempty"`
+	Title  *string `json:"title,omitempty"`
+	Reason *string `json:"reason,omitempty"`
 }
 
-// summarise is what the model reads back: the shape of the plan and the step
-// it is meant to be on, short enough that repeating it every call costs
-// nothing in context.
-func summarise(list taskList) string {
-	done, running, blocked, failed := 0, "", 0, 0
-	for _, item := range list {
-		switch item.Status {
-		case statusDone:
-			done++
-		case statusActive:
-			running = item.Title
-		case statusBlocked:
-			blocked++
-		case statusFailed:
-			failed++
-		}
+// planInput is what the model sends: a full plan, or a single step_update
+// merged into the plan already on screen.
+type planInput struct {
+	Tasks      taskList    `json:"tasks,omitempty"`
+	StepUpdate *stepUpdate `json:"step_update,omitempty"`
+}
+
+// merge turns the model's input into the plan that should be on screen: the
+// full list when one was sent, or the current plan with one step patched.
+func (t tasksTool) merge(input json.RawMessage) (taskList, error) {
+	var reported planInput
+	if err := json.Unmarshal(input, &reported); err != nil {
+		return nil, fmt.Errorf("tasks: input is not the expected object: %w", err)
 	}
-	var extras []string
-	if blocked > 0 {
-		extras = append(extras, fmt.Sprintf("%d blocked", blocked))
+	switch {
+	case len(reported.Tasks) > 0:
+		return reported.Tasks, nil
+	case reported.StepUpdate != nil:
+		return applyStepUpdate(reported.StepUpdate)
+	default:
+		return nil, fmt.Errorf("tasks: provide either tasks (full plan) or step_update (single step)")
 	}
-	if failed > 0 {
-		extras = append(extras, fmt.Sprintf("%d failed", failed))
+}
+
+// applyStepUpdate patches the plan held in currentPlan with one step's
+// changes and returns the merged copy. The plan is copied rather than mutated
+// in place, because currentPlan is shared with the update loop.
+func applyStepUpdate(step *stepUpdate) (taskList, error) {
+	cur := currentPlan.Load()
+	if cur == nil {
+		return nil, fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
 	}
-	head := fmt.Sprintf("plan recorded: %d steps, %d done", len(list), done)
-	if len(extras) > 0 {
-		head += ", " + strings.Join(extras, ", ")
+	merged, ok := cur.(taskList)
+	if !ok {
+		return nil, fmt.Errorf("tasks: internal error — plan is not a taskList")
 	}
-	if running == "" {
-		return head + ", none in progress"
+	if len(merged) == 0 {
+		return nil, fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
 	}
-	return head + fmt.Sprintf(", now on %q", running)
+	idx := step.Index
+	if idx < 0 || idx >= len(merged) {
+		return nil, fmt.Errorf("tasks: step_update index %d is out of range (plan has %d steps)", idx, len(merged))
+	}
+	if step.Status != nil {
+		merged[idx].Status = *step.Status
+	}
+	if step.Title != nil {
+		merged[idx].Title = *step.Title
+	}
+	if step.Reason != nil {
+		merged[idx].Reason = *step.Reason
+	}
+	return merged, nil
 }

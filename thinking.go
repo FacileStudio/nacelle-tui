@@ -203,8 +203,6 @@ func (m *model) flush() string {
 	reasoning := m.run.reasoning.String()
 	m.run.reasoning.Reset()
 
-	// reasoningFull holds every line already committed to scrollback during
-	// streaming; the remaining partial line from the buffer goes after it.
 	if reasoning != "" || m.run.reasoningFull.Len() > 0 {
 		spent := m.elapsed()
 		m.begun, m.ended = time.Time{}, time.Time{}
@@ -212,8 +210,6 @@ func (m *model) flush() string {
 		m.run.reasoningFull.Reset()
 
 		if m.expanded {
-			// Only the remaining partial line needs printing now — full committed
-			// lines were already printed during streaming via commitReasoning.
 			if reasoning != "" {
 				m.say(fromThinking, reasoning)
 			}

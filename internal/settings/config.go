@@ -19,7 +19,7 @@ const ConfigFile = ".nacelle.yml"
 // every field still reads as c.MaxIterations and c.CompactAt — the group
 // exists only to keep the field count under filet's cap.
 type Limits struct {
-	MaxIterations *int  `yaml:"max_iterations"`
+	MaxIterations *int   `yaml:"max_iterations"`
 	CompactAt     *int64 `yaml:"compact_at"`
 }
 
@@ -146,13 +146,13 @@ func Defaults(system string) Config {
 	search, fetch := "", true
 	groupTools, showThinking := true, true
 	return Config{
-		Web:           Web{Search: &search, Fetch: &fetch},
-		Backend:       "anthropic",
-		Root:          ".",
-		System:        system,
-		Toggles:       Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
-		Limits:      Limits{MaxIterations: &iterations, CompactAt: &compactAt},
-		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
+		Web:       Web{Search: &search, Fetch: &fetch},
+		Backend:   "anthropic",
+		Root:      ".",
+		System:    system,
+		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
+		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
+		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{
 			ProjectContext: &projectContext,
 			Skills:         &skills,

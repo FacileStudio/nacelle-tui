@@ -1,0 +1,180 @@
+package main
+
+import (
+	"fmt"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle"
+)
+
+// run is the main function that flags.Parse delegates to.
+// -print enters headless mode: stream text to stdout, no TUI.
+// Detect and strip -print from Args before flag.Parse runs, so it
+// does not choke on an unknown flag.
+func run() error {
+	if hasPrintFlag() {
+		printArg := stripPrintFlag()
+		if printArg == "" {
+			piped, err := stdinPrompt()
+			if err != nil {
+				return fmt.Errorf("no prompt: neither -print nor stdin provided")
+			}
+			printArg = piped
+		}
+		return runHeadless(printArg)
+	}
+
+	config, err := settings(fromFlags())
+	if err != nil {
+		return err
+	}
+
+	set, local, err := localTools(config)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = set.Close() }()
+
+	mcp, local, err := mcpTools(config, local)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = mcp.set.Close() }()
+
+	found := augmentSystem(&config)
+	approvalGate, approve := buildApprovals(config)
+
+	hooks, hookNotice, err := sessionHooks(config)
+	if err != nil {
+		return err
+	}
+
+	agent, backend, err := build(config, local, approve, hooks)
+	if err != nil {
+		return err
+	}
+
+	return launch(uiSession{
+		agent: agent, banner: banner(backend, config, found, mcp),
+		skills: found.skills, hookNotice: hookNotice, gate: approvalGate,
+		root: config.Root, model: config.Model, backend: config.Backend,
+		diffs: *config.Diffs, groupTools: config.GroupTools,
+		showThinking: *config.ShowThinking, compactAt: *config.CompactAt,
+	})
+}
+
+// client is what run hands to the bubbletea program: everything built above
+// it, so run reads as setup and this as the one call that starts the UI.
+type uiSession struct {
+	agent        *nacelle.Agent
+	banner       string
+	skills       []skill
+	hookNotice   string
+	gate         *approvals
+	root         string
+	model        string
+	backend      string
+	diffs        bool
+	groupTools   *bool
+	showThinking bool
+	// compactAt is the token count at which the transcript compacts. It is
+	// read from the config, not a constant, so a session with a very large
+	// context window can raise it without editing source. int64, to match
+	// the transcript size and CountTokens rather than being compared in
+	// two widths.
+	compactAt int64
+}
+
+// launch opens the program, delivers whatever was queued for the transcript
+// before it opened, and says what the session came to on the way out.
+//
+// The recap is printed from the model Run hands back rather than from the one
+// built here, and they are the same pointer today — but only because bubbletea
+// happens to return the model it was given. Reading the returned one is what
+// keeps this correct if that ever stops being true, and it costs an assertion.
+//
+// That assertion is checked rather than forced. A failed type assertion panics,
+// and panicking on the way out of a session that has already finished — over a
+// closing line, of all things — would destroy the thing the recap exists to
+// hand over. No recap is the honest answer to a model this does not recognise.
+//
+// It is printed whatever Run returned, and before that error is reported. A
+// terminal falling over does not un-bill the tokens the session spent, and the
+// error goes to stderr while this goes to stdout, so the two do not interleave
+// even when both are on screen.
+//
+// The banner goes out here, as ordinary stdout, before the program takes the
+// screen — and it has to, because tea.Println cannot put it anywhere the reader
+// will see. Println does not append: it makes room by scrolling the screen up
+// and inserting above the frame, so on a freshly cleared terminal, where the
+// frame is standing on the first row, there is nothing above it to insert into
+// and the banner goes straight into the scrollback. Which backend and model are
+// about to be billed then sits one page up from where anybody looks. Printing
+// it before the program starts means the terminal has scrolled the way it
+// scrolls for every other command, and the frame opens underneath it.
+func launch(c uiSession) error {
+	opened := newModel(c.agent, c.banner, c.skills, c.compactAt)
+	opened.groupTools = derefBool(c.groupTools)
+	opened.expanded = c.showThinking
+	opened.run.root = c.root
+	opened.run.diffs = c.diffs
+	opened.sink = newUsageSink(c.root, c.model)
+	opened.session = newSessionLog(c.backend, c.model, c.root)
+	if c.hookNotice != "" {
+		opened.say(fromClient, c.hookNotice)
+	}
+	for _, line := range opened.unprinted {
+		fmt.Println(line)
+	}
+	opened.unprinted = nil
+
+	program := tea.NewProgram(opened)
+	wireApprovals(c.gate, program)
+	final, err := program.Run()
+
+	if done, ok := final.(*model); ok {
+		if recap := done.recap(); recap != "" {
+			fmt.Println(recap)
+		}
+	}
+	return err
+}
+
+// loaded is what augmentSystem folds into config.System, and enough about
+// what it actually found to summarize back — in the notice when something
+// needs the person running this to act, in the banner every time, and in
+// []skill so /skill:name has something to resolve a name against. One
+// call, not a second walk of the same files just to count them.
+type loaded struct {
+	notice       string
+	skills       []skill
+	contextFiles int
+}
+
+// augmentSystem folds this session's own facts, then project context, then
+// skills into config.System in place.
+//
+// The order is general to specific, the same rule projectContext sorts its
+// own levels by: how this machine works, then what this project expects,
+// then what is available to run. Only the first is unconditional — the
+// other two are switches, and a session that turned both off still needs to
+// be told where it is.
+func augmentSystem(config *Config) loaded {
+	var found loaded
+	config.System += environment(*config, time.Now())
+	if *config.ProjectContext {
+		text, files := projectContext(config.Root)
+		config.System += text
+		found.contextFiles = files
+	}
+	if !*config.Skills {
+		return found
+	}
+	skills := loadSkills(config.Root, *config.TrustSkills, config.SkillDirs)
+	config.System += skills.system
+	found.notice = skills.notice
+	found.skills = skills.skills
+	return found
+}

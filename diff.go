@@ -148,46 +148,43 @@ func priorContents(root, path string) string {
 	return string(raw)
 }
 
-// extractEditPath looks for a sed -i or similar in-place edit command and
-// returns the file path it targets. It is deliberately heuristic — only the
-// most common patterns are caught, and a command that does not match simply
-// produces no diff, which is always safe.
+// extractEditPath looks for a known in-place editing command (sed -i, awk -i,
+// perl -i) and extracts the file path from its arguments. It is deliberately
+// heuristic: only the most common patterns are caught, and a command that does
+// not match simply produces no diff, which is always safe.
 //
-// Detected patterns:
+// The markers list checks early, before the parsing loop, so a command with no
+// in-place flag returns fast and avoids the allocation.
 //
-//	sed -i 'expression' path
-//	sed -i 'expression' path args...
-// extractEditPath looks for a known in-place editing command (sed -i, awk -i
-// inplace, perl -i) and extracts the file path from its arguments. The markers
-// list checks early before the parsing loop, so a command with no in-place
-// flag returns fast and avoids the allocation.
-//
-// The function handles the flag-order variations that these commands accept:
+// The function handles the flag-order variations these commands accept:
 //
 //	sed -i.bak 'expression' path
 //	sed -i '' 'expression' path
-//	sed -i.bak 'expression' path
 //	sed -i -e 'expression' path
 //	awk -i inplace 'expression' path
 //	perl -i 'expression' path
-//
-// Other file-modifying commands (awk -i inplace, perl -i) use the same
-// flag-before-expression-before-path order, so they are caught too.
 func extractEditPath(cmd string) (string, bool) {
-	markers := []string{"sed -i", "awk -i", "perl -i"}
-	var after string
-	matched := false
-	for _, m := range markers {
-		if idx := strings.Index(cmd, m); idx >= 0 {
-			after = cmd[idx+len(m):]
-			matched = true
-			break
-		}
-	}
+	after, matched := matchInplaceMarker(cmd)
 	if !matched {
 		return "", false
 	}
+	return firstPathArg(after)
+}
 
+// matchInplaceMarker finds the first in-place editing marker in cmd and
+// returns the text after it.
+func matchInplaceMarker(cmd string) (string, bool) {
+	for _, m := range []string{"sed -i", "awk -i", "perl -i"} {
+		if idx := strings.Index(cmd, m); idx >= 0 {
+			return cmd[idx+len(m):], true
+		}
+	}
+	return "", false
+}
+
+// firstPathArg walks the fields after an in-place marker and returns the first
+// that is a path rather than a flag, expression, or backup suffix.
+func firstPathArg(after string) (string, bool) {
 	fields := strings.Fields(after)
 	for i, f := range fields {
 		if i == 0 {
@@ -247,41 +244,4 @@ func renderDiff(change editChange, width int, muted lipgloss.Style) string {
 		}
 	}
 	return out.String()
-}
-
-// renderBlock writes one hunk's lines, stopping at the display cap with a
-// marker saying the diff was cut rather than pretending it wasn't. It
-// returns how many lines are through and whether the cap was reached.
-func renderBlock(out *strings.Builder, block []diffOp, width, shown int, muted lipgloss.Style) (int, bool) {
-	for _, op := range block {
-		if shown >= shownDiffLines {
-			out.WriteString(muted.Render("  … more"))
-			return shown, true
-		}
-		out.WriteString(renderOp(op, width, muted))
-		shown++
-	}
-	return shown, false
-}
-
-// renderOp is one diff line as styled text, indented past the ⏺ that names
-// the call above it and cut to the window so nothing wraps.
-func renderOp(op diffOp, width int, muted lipgloss.Style) string {
-	style, prefix := muted, "    "
-	switch op.kind {
-	case '-':
-		style, prefix = diffRemoved, "  - "
-	case '+':
-		style, prefix = diffAdded, "  + "
-	}
-	return style.Render(prefix+truncate(op.text, max(width-lipgloss.Width(prefix), 1))) + "\n"
-}
-
-// splitLines breaks file contents into diffable lines, dropping a single
-// trailing newline — the marker of a well-formed text file, not a line of it.
-func splitLines(text string) []string {
-	if text == "" {
-		return nil
-	}
-	return strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 }
