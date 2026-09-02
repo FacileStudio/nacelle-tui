@@ -22,7 +22,7 @@ while on `v0`, a breaking change bumps the minor.
   `shift+enter` to the textarea's `InsertNewline` key binding alongside the
   existing `alt+enter` and `ctrl+j`.
 
-## [Unreleased]
+## [0.20.3] — 2026-09-02
 
 ### Fixed
 
@@ -572,7 +572,8 @@ No changelog recorded — minor fixes between 0.15.0 and 0.16.1.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.18.0...HEAD
+[0.20.3]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.20.3
+[0.20.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.20.0
 [0.18.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.18.0
 [0.17.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.17.0
 [0.15.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.15.0
