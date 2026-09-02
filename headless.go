@@ -14,10 +14,11 @@ import (
 // The prompt comes from the argument, or from stdin when piped.
 // Exit codes: 0 on clean completion, 1 on error.
 func runHeadless(prompt string) error {
-	agent, err := buildHeadlessAgent()
+	agent, cleanup, err := buildHeadlessAgent()
 	if err != nil {
 		return err
 	}
+	defer cleanup()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
@@ -36,38 +37,47 @@ func runHeadless(prompt string) error {
 }
 
 // buildHeadlessAgent assembles the agent the same way the TUI does,
-// without approval-gate wiring or banner construction.
-func buildHeadlessAgent() (*nacelle.Agent, error) {
+// without approval-gate wiring or banner construction. It returns the
+// agent and a cleanup function the caller must defer.
+func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 	config, err := settings(fromFlags())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	set, local, err := localTools(config)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	defer func() { _ = set.Close() }()
 
 	mcp, local, err := mcpTools(config, local)
 	if err != nil {
-		return nil, err
+		_ = set.Close()
+		return nil, nil, err
 	}
-	defer func() { _ = mcp.set.Close() }()
 
 	augmentSystem(&config)
 	_, approve := buildApprovals(config)
 
 	hooks, _, err := sessionHooks(config)
 	if err != nil {
-		return nil, err
+		_ = set.Close()
+		_ = mcp.set.Close()
+		return nil, nil, err
 	}
 
 	agent, _, err := build(config, local, approve, hooks)
 	if err != nil {
-		return nil, err
+		_ = set.Close()
+		_ = mcp.set.Close()
+		return nil, nil, err
 	}
-	return agent, nil
+
+	cleanup := func() {
+		_ = set.Close()
+		_ = mcp.set.Close()
+	}
+	return agent, cleanup, nil
 }
 
 // stdinPrompt reads the first line of stdin when the terminal is not

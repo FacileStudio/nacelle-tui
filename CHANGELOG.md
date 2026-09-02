@@ -6,6 +6,20 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`buildHeadlessAgent` use-after-close**: toolset and MCP resources are now
+  closed after the agent finishes streaming, not before it starts.
+- **`DeclareFlags`** renamed to `declareFlags` (unexported) — the return type
+  `declared` was also unexported, making the function impossible to call from
+  outside the package.
+- **`HookPointOf`** changed from a `var` to a `func` — same behaviour, no
+  mutable package-level state.
+- **Doc comments** restored on type aliases in `config.go` — each alias now
+  has a one-liner pointing to its `internal/settings` origin.
+
+## [0.17.0] — 2026-09-02
+
 ### Added
 
 - **Headless mode** (`-print "prompt"`): builds the agent the same way the TUI
@@ -534,7 +548,8 @@ No changelog recorded — minor fixes between 0.15.0 and 0.16.1.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.17.0
 [0.15.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.15.0
 [0.16.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.16.0
 [0.16.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.16.1

@@ -8,16 +8,29 @@ package main
 
 import s "github.com/FacileStudio/nacelle-tui/internal/settings"
 
-type (
-	Config    = s.Config
-	Toggles   = s.Toggles
-	UI        = s.UI
-	Reasoning = s.Reasoning
-	Web       = s.Web
-	Discovery = s.Discovery
-	Sources   = s.Sources
-	HookSpec  = s.HookSpec
-)
+// Config is an alias for settings.Config.
+type Config = s.Config
+
+// Toggles is an alias for settings.Toggles.
+type Toggles = s.Toggles
+
+// UI is an alias for settings.UI.
+type UI = s.UI
+
+// Reasoning is an alias for settings.Reasoning.
+type Reasoning = s.Reasoning
+
+// Web is an alias for settings.Web.
+type Web = s.Web
+
+// Discovery is an alias for settings.Discovery.
+type Discovery = s.Discovery
+
+// Sources is an alias for settings.Sources.
+type Sources = s.Sources
+
+// HookSpec is an alias for settings.HookSpec.
+type HookSpec = s.HookSpec
 
 type hookConfig []HookSpec
 

@@ -45,9 +45,9 @@ type discoveryFlags struct {
 	projectContext, skills, trustSkills, trustHooks *bool
 }
 
-// DeclareFlags registers every flag against fallback's values and returns
+// declareFlags registers every flag against fallback's values and returns
 // the pointers flag.Parse will fill in.
-func DeclareFlags(fallback Config) declared {
+func declareFlags(fallback Config) declared {
 	return declared{
 		sourceFlags: declareSources(),
 		backend:     flag.String("backend", fallback.Backend, "anthropic, google, openai, or openrouter"),
@@ -122,7 +122,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 //
 // Only the flags actually typed are collected. It calls flag.Parse internally.
 func FromFlags(fallback Config) Config {
-	f := DeclareFlags(fallback)
+	f := declareFlags(fallback)
 	flag.Parse()
 	typed := typedSetters(f)
 

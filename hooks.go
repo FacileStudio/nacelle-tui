@@ -19,7 +19,9 @@ const HooksFile = ".nacelle/hooks.yml"
 const HookTrustFile = "hooks.json"
 
 // HookPointOf returns the nacelle.HookPoint for a YAML event string.
-var HookPointOf = s.HookPointOf
+func HookPointOf(event string) nacelle.HookPoint {
+	return s.HookPointOf(event)
+}
 
 // buildHooks turns config entries into live library hooks, refusing any
 // spec that would otherwise fail silently mid-session.
