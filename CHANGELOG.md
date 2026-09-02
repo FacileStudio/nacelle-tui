@@ -4,10 +4,20 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.14.0] — 2026-09-02
 
 ### Added
 
+- **Pre-flight token count compaction**: `send()` now calls `agent.CountTokens()`
+  before launching the stream. If the conversation already exceeds `compactAt`,
+  compaction runs synchronously before the turn starts — catching growth that
+  happened between turns rather than only after a turn finishes. Silent skip
+  on backends that don't support `CountTokens` (OpenRouter).
+- **Old thinking blocks are now trimmed alongside tool results**: `compact()`
+  replaces `nacelle.Reasoning` parts outside the keep window with a
+  `[dropped thinking: N bytes...]` placeholder. Thinking is never sent back to
+  the API, so the replacement is invisible on the wire; the assistant's
+  conclusion (its `Text` part) stays untouched.
 - **Checkmark icon and green styling on the "ready" status line**: when the agent
   finishes work and the client is idle, the status line now shows `✓ ready` in
   green (ANSI 2) instead of plain `ready`. A new `palette.ready` style in
