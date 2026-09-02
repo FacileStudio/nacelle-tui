@@ -245,13 +245,6 @@ func (m *model) stranded() {
 	m.run.edits = map[string]editChange{}
 }
 
-// failed is what a tool that fell over reads as. It is reported rather than
-// hidden, because the model is about to be told the same thing and the person
-// watching should see what it sees.
-func failed(tool *nacelle.ToolEvent) string {
-	return fmt.Sprintf("%s failed after %s: %v", tool.Name, took(tool.Duration), tool.Err)
-}
-
 // took is how long a call took, at the resolution a reader cares about.
 //
 // A sub-millisecond call is floored to 1ms rather than rounded to zero: `· 0s`

@@ -111,7 +111,6 @@ func TestDifferentFailuresAreNotCollapsed(t *testing.T) {
 	}
 }
 
-
 // A discarded call belongs to an attempt that was superseded and never ran, so
 // announcing it would be the transcript describing work nobody did.
 func TestADiscardedCallDropsItsHeldLine(t *testing.T) {
