@@ -8,6 +8,29 @@ while on `v0`, a breaking change bumps the minor.
 
 ### Added
 
+- **Headless mode** (`-print "prompt"`): builds the agent the same way the TUI
+  does, streams text to stdout, no bubbletea. Piped stdin works when `-print` is
+  passed alone (`echo "list files" | nacelle`). Track G.
+- **Settings chain extracted to `internal/settings/`**: `Config`, `Toggles`,
+  `UI`, `Reasoning`, `Web`, `Discovery`, `Sources`, `HookSpec` and the full
+  precedence chain (defaults → file → env → flags) now live in their own
+  package. Net -779 lines in `package main`. Track G.
+
+## [0.16.1] — 2026-09-02
+
+### Fixed
+
+- **Trailing whitespace clipped** from streaming ansified text, and every
+  completed line committed to scrollback rather than whole paragraphs.
+
+## [0.16.0] — 2026-09-02
+
+No changelog recorded — minor fixes between 0.15.0 and 0.16.1.
+
+## [0.15.0] — 2026-09-02
+
+### Added
+
 - **Duplicate-key tool input is refused unconditionally** — `strictObject` now runs
   on every tool call, not only when `-approve-tools` is on. A call with a repeated
   JSON key (`{"command":"ls","command":"rm -rf /"}`) is refused as ambiguous before
@@ -511,7 +534,11 @@ while on `v0`, a breaking change bumps the minor.
   Homebrew formula in `FacileStudio/tap`, an `install.sh` shim, and a `nacelle` entry in the
   `facile` catalog.
 
-[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/nacelle-tui/compare/v0.16.1...HEAD
+[0.15.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.15.0
+[0.16.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.16.0
+[0.16.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.16.1
+[0.14.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.14.0
 [0.12.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.12.0
 [0.11.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.11.0
 [0.10.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.10.0

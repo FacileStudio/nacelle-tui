@@ -21,7 +21,7 @@ import (
 func execHook(spec HookSpec) nacelle.Hook {
 	command := expandTilde(spec.Run)
 	return func(ctx context.Context, ev nacelle.HookEvent) nacelle.HookResult {
-		if !spec.matches(ev.Tool) {
+		if !spec.Matches(ev.Tool) {
 			return nacelle.HookResult{}
 		}
 		out, errOut, runErr := runCommand(ctx, command, hookPayload{

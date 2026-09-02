@@ -1,246 +1,32 @@
+// config.go — type aliases and shim functions.
+//
+// Config and the types below it alias the settings package, keeping bare names
+// for every file that already uses them. The shim functions bridge main's
+// naming convention to the settings package API.
+
 package main
 
-import (
-	"errors"
-	"fmt"
-	"io"
-	"os"
-	"path/filepath"
+import s "github.com/FacileStudio/nacelle-tui/internal/settings"
 
-	"go.yaml.in/yaml/v4"
+type (
+	Config    = s.Config
+	Toggles   = s.Toggles
+	UI        = s.UI
+	Reasoning = s.Reasoning
+	Web       = s.Web
+	Discovery = s.Discovery
+	Sources   = s.Sources
+	HookSpec  = s.HookSpec
 )
 
-// ConfigFile is where settings are read from when the flags leave them out.
-const ConfigFile = ".nacelle.yml"
+type hookConfig []HookSpec
 
-// Config is one layer of settings. Every field is a pointer or an empty-able
-// string so that a layer can say nothing about a setting rather than saying
-// zero, which is the whole difficulty of a precedence chain: "false" and "not
-// mentioned" are different answers and a bool cannot tell them apart.
-//
-// It holds no credentials, deliberately. They already have two homes — the
-// environment, and the Anthropic SDK's own profile — and a file with a key in
-// it is a file that can never be committed to a dotfiles repo, which is the
-// only reason to want one of these on two machines.
-type Config struct {
-	Backend string `yaml:"backend"`
-	Model   string `yaml:"model"`
-	Root    string `yaml:"root"`
-	System  string `yaml:"system"`
+const ConfigFile = s.ConfigFile
 
-	MaxIterations *int `yaml:"max_iterations"`
-
-	// Toggles is embedded and inlined so Bash, ApproveTools and Diffs keep
-	// the keys they always had at the file's top level, and so this struct's
-	// own field count stops growing every time a switch joins them — the
-	// same reason Discovery below exists.
-	Toggles `yaml:",inline"`
-
-	// Reasoning is embedded and inlined for both of the reasons the three
-	// groups below are, and the inlining is load-bearing in a way it is
-	// nowhere else here. Effort and Thinking were top-level fields until a
-	// third setting joined them, so `effort:` and `thinking:` are already
-	// written at the top level of every ~/.nacelle.yml that mentions them.
-	// load() decodes with KnownFields, which means a key that quietly
-	// relocated under a heading would not be a warning on the next launch,
-	// it would be a refusal to start. The tag is what keeps both keys
-	// exactly where they were, and config.Effort and config.Thinking still
-	// resolve, so no call site moved either.
-	Reasoning `yaml:",inline"`
-
-	// Web is embedded rather than named, so every field on it is still
-	// reached as config.Search, for the reason Discovery is: it keeps this
-	// struct's own field count from growing every time the list does.
-	// yaml:",inline" keeps the keys at the file's top level.
-	Web `yaml:",inline"`
-
-	// Discovery is embedded rather than named so every field on it is still
-	// reached as config.Skills, not config.Discovery.Skills — the grouping
-	// exists only to keep this struct's own field count from growing by one
-	// every time that list does, not to change how anything reads it.
-	// yaml:",inline" is load-bearing for the same reason on the file side:
-	// every key stays at ~/.nacelle.yml's top level, exactly where it was
-	// before this existed.
-	Discovery `yaml:",inline"`
-
-	// UI is embedded and inlined for the same reason as the groups above:
-	// group_tools stays at the top level of ~/.nacelle.yml, exactly where a
-	// user would expect a look-and-feel switch to live, rather than moving
-	// under a heading nobody has.
-	UI `yaml:",inline"`
-
-	// Sources is embedded, and inlined, for both of the reasons just
-	// given — and the inlining is what keeps skill_dirs at the top level
-	// of every config file already written rather than relocating it
-	// under a key nobody has.
-	Sources `yaml:",inline"`
-
-	// Hooks are lifecycle commands compiled down to library hooks at
-	// launch. Inline so the key stays at the file's top level like every
-	// other; accumulated by merge for the reason MCP is — a second
-	// layer's hooks are more hooks, not replacements.
-	Hooks hookConfig `yaml:"hooks"`
-}
-
-// Toggles is the on/off settings: whether the model may run commands, whether
-// a human is asked before tools run, and whether file edits are drawn as
-// diffs. One field per key, all pointers, for the reason Config's own doc
-// comment gives.
-type Toggles struct {
-	Bash         *bool `yaml:"bash"`
-	Subagents    *bool `yaml:"subagents"`
-	ApproveTools *bool `yaml:"approve_tools"`
-
-	// Diffs draws what an editing tool did to a file as a git-style diff
-	// under its one-line report. Purely a display choice, which is why it
-	// defaults on where Bash defaults off: it costs nothing when nothing
-	// edited a file, and `diffs: false` restores the bare one-line
-	// rendering.
-	Diffs *bool `yaml:"diffs"`
-}
-
-// UI holds the look-and-feel choices that are not about what the agent is
-// allowed to do. GroupTools is on by default because a model that calls the
-// same read ten times in a row is the common case, and ten lines of identical
-// icon are noise; turning it off is for the session where you want to watch
-// every call land.
-//
-// ShowThinking controls whether thinking traces are expanded by default. When
-// true (the default), every turn's chain of thought is printed in full rather
-// than collapsed to "thought for 2.9s". The ctrl+t key still toggles per-session
-// either way, and show_thinking only sets the starting position.
-type UI struct {
-	GroupTools   *bool `yaml:"group_tools"`
-	ShowThinking *bool `yaml:"show_thinking"`
-}
-
-// defaults is the bottom layer, and the only one that answers everything.
-//
-// ProjectContext and Skills default on, unlike Bash: both fail soft with
-// nothing to show for it when there is nothing to find — no CLAUDE.md or
-// AGENTS.md anywhere above Root, no ~/.agents/skills/ — so a machine without
-// either is no worse off for asking, and a machine with them gets the benefit
-// without a flag to discover first.
-//
-// TrustSkills and ApproveTools default off, and neither is the reasoning
-// above. Loading skills found globally or already trusted is one thing; a
-// project's own .agents/skills/ can carry instructions to run arbitrary
-// scripts, and blanket-trusting whatever a directory happens to contain is a
-// decision only the person running this should make, not a default.
-// ApproveTools is off for a plainer reason: every tool this client has ever
-// run, it has run unasked, and a gate that started asking by default would
-// change that for everyone who never asked for one. Most consumers of an
-// agent loop — a script, a CI job, someone who trusts the model to just get
-// on with it — have nobody to ask and want none of this; the interactive
-// human who does is the one who turns it on.
-//
-// Budget defaults to zero, which is the one answer here that really is "say
-// nothing": no reasoning ceiling is set from this side and the backend applies
-// whatever it applies. It is still filled in rather than left nil, because
-// this is the layer that answers everything and every deref above it depends
-// on that being true.
-// derefBool reads a pointer out of a toggle. Every toggle is filled in by
-// defaults, so the pointer is never nil by the time it reaches a caller —
-// this is the one dereference that is safe to do without a check, and naming
-// it makes that explicit rather than leaving a bare * scattered through the
-// call sites.
-func derefBool(b *bool) bool {
-	return b != nil && *b
-}
-
-func defaults() Config {
-	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
-		false, false, true, true, false, false, false, true
-	subagents := false
-	iterations, budget := 0, int64(0)
-	search, fetch := "", true
-	groupTools, showThinking := true, true
-	return Config{
-		Web:           Web{Search: &search, Fetch: &fetch},
-		Backend:       "anthropic",
-		Root:          ".",
-		System:        defaultSystem,
-		Toggles:       Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
-		MaxIterations: &iterations,
-		Reasoning:     Reasoning{Thinking: &thinking, Budget: &budget},
-		Discovery: Discovery{
-			ProjectContext: &projectContext,
-			Skills:         &skills,
-			TrustSkills:    &trustSkills,
-			TrustHooks:     &trustHooks,
-		},
-		UI: UI{GroupTools: &groupTools, ShowThinking: &showThinking},
-	}
-}
-
-// configPath is where the file lives, honouring HOME so a test does not have to
-// write to the real one, and the empty string when there is no home to look in.
-//
-// No home is not a failure. Under systemd, cron or `env -i` there is no HOME
-// and there is no config file either, which is the ordinary case this client
-// already handles — refusing to start there meant nacelle could not run with
-// every setting passed on the command line, for want of a file it was never
-// going to read.
-func configPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ConfigFile)
-}
-
-// load reads the config file. A missing file is not an error — most people
-// never write one — but an unreadable or malformed one is, because a config
-// silently ignored is worse than no config at all: the setting you carefully
-// wrote is simply not in effect and nothing says so.
-//
-// KnownFields is that promise applied to the keys as well as to the syntax.
-// Unmarshal accepts anything it does not recognise, so `max_iteration: 3` — one
-// letter short — parses cleanly, leaves the ceiling at 40, and costs real money
-// on the next long run without a word about it. A refused key is a typo found
-// in one second instead of one invoice.
-//
-// An empty path means there is no home directory to hold a file, and an empty
-// file decodes to io.EOF; both are the same ordinary "no config" answer.
-func load(path string) (Config, error) {
-	if path == "" {
-		return Config{}, nil
-	}
-	file, err := os.Open(path)
-	if os.IsNotExist(err) {
-		return Config{}, nil
-	}
-	if err != nil {
-		return Config{}, fmt.Errorf("reading %s: %w", path, err)
-	}
-	defer func() { _ = file.Close() }()
-
-	decoder := yaml.NewDecoder(file)
-	decoder.KnownFields(true)
-
-	var settings Config
-	if err := decoder.Decode(&settings); err != nil && !errors.Is(err, io.EOF) {
-		return Config{}, fmt.Errorf("parsing %s: %w", path, err)
-	}
-	return settings, nil
-}
-
-// settings resolves every layer in one place.
-//
-// Flag beats environment beats file beats default, and it is resolved here and
-// nowhere else. The suite has already paid for the alternative: a CLI that read
-// its environment inside one branch and its file inside another turned what the
-// README called overrides into two mutually exclusive modes, and four copies of
-// a precedence chain are four chances to disagree.
 func settings(flags Config) (Config, error) {
-	file, err := load(configPath())
-	if err != nil {
-		return Config{}, err
-	}
-
-	resolved := defaults()
-	resolved.merge(file)
-	resolved.merge(fromEnv())
-	resolved.merge(flags)
-	return resolved, nil
+	return s.Settings(defaultSystem, flags)
 }
+
+func defaults() Config { return s.Defaults("") }
+
+var derefBool = s.DerefBool

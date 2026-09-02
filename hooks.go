@@ -7,39 +7,35 @@ import (
 	"path/filepath"
 
 	"github.com/FacileStudio/nacelle"
+	s "github.com/FacileStudio/nacelle-tui/internal/settings"
 )
 
 // HooksFile is the project-level hooks file, read in addition to the
-// `hooks:` entries in the user's own config. That one is trusted by
-// definition — it is already a file of commands this person chose to run —
-// but a file that ships inside a project runs arbitrary code on load, and
-// gets the same first-sight question project skills get.
+// `hooks:` entries in the user's own config.
 const HooksFile = ".nacelle/hooks.yml"
 
 // HookTrustFile records, per absolute path, the hash of the last hooks file
-// trusted from there. It sits beside trust.json on purpose: skills are
-// trusted by directory, hooks by content, and one record type each is
-// clearer than one store pretending to do both.
+// trusted from there.
 const HookTrustFile = "hooks.json"
 
+// HookPointOf returns the nacelle.HookPoint for a YAML event string.
+var HookPointOf = s.HookPointOf
+
 // buildHooks turns config entries into live library hooks, refusing any
-// spec that would otherwise fail silently mid-session. Errors name the
-// offending command, because "one bad line refused my whole agent" is only
-// tolerable when it says which line.
-func buildHooks(specs hookConfig) (map[nacelle.HookPoint][]nacelle.Hook, error) {
+// spec that would otherwise fail silently mid-session.
+func buildHooks(specs []HookSpec) (map[nacelle.HookPoint][]nacelle.Hook, error) {
 	var hooks map[nacelle.HookPoint][]nacelle.Hook
 	for _, spec := range specs {
-		if err := spec.validate(); err != nil {
+		if err := spec.Validate(); err != nil {
 			return nil, err
 		}
 		var hook nacelle.Hook
 		if spec.Async {
 			hook = nacelle.Async(execHook(spec))
 		} else {
-			hook = nacelle.WithTimeout(spec.duration(), execHook(spec))
+			hook = nacelle.WithTimeout(spec.Duration(), execHook(spec))
 		}
-		p := point[spec.On]
-		hooks = appendHook(hooks, p, hook)
+		hooks = appendHook(hooks, HookPointOf(spec.On), hook)
 	}
 	return hooks, nil
 }
@@ -52,9 +48,7 @@ func appendHook(hooks map[nacelle.HookPoint][]nacelle.Hook, p nacelle.HookPoint,
 	return hooks
 }
 
-// hookPayload is the process contract's input: one JSON object on stdin,
-// nothing else. Field names follow Claude Code's, because hooks written for
-// one harness reading .tool / .input should read the same names here.
+// hookPayload is the process contract's input: one JSON object on stdin.
 type hookPayload struct {
 	Event  string `json:"event"`
 	Tool   string `json:"tool"`
@@ -63,11 +57,7 @@ type hookPayload struct {
 	Retry  bool   `json:"retry"`
 }
 
-// sessionHooks resolves every hooks layer in one place: the user's own
-// config entries, always trusted by origin, then the project file through
-// its trust gate. The returned notice is what the untrusted case wants said
-// — the caller renders it in the transcript, where a refusal buried in a
-// launch error would read as breakage rather than as a decision waiting.
+// sessionHooks resolves every hooks layer in one place.
 func sessionHooks(config Config) (map[nacelle.HookPoint][]nacelle.Hook, string, error) {
 	hooks, err := buildHooks(config.Hooks)
 	if err != nil {
@@ -86,14 +76,7 @@ func sessionHooks(config Config) (map[nacelle.HookPoint][]nacelle.Hook, string, 
 	return hooks, notice, nil
 }
 
-// loadProjectHooks reads <root>/.nacelle/hooks.yml through the trust gate
-// and returns whatever hooks it adds, alongside the message worth showing
-// when the file exists but has never been approved.
-//
-// The gate is keyed by content hash, not path: editing the file re-arms the
-// question, which is the whole difference between trusting a thing once and
-// trusting everything it will ever become. A missing file is the ordinary
-// case and loads nothing quietly.
+// loadProjectHooks reads <root>/.nacelle/hooks.yml through the trust gate.
 func loadProjectHooks(root string, trustNew bool) (map[nacelle.HookPoint][]nacelle.Hook, string, error) {
 	path := filepath.Join(root, HooksFile)
 	raw, err := os.ReadFile(path)
@@ -126,11 +109,7 @@ func loadProjectHooks(root string, trustNew bool) (map[nacelle.HookPoint][]nacel
 	return hooks, "", nil
 }
 
-// hookIsTrusted reports whether this exact file content has been approved,
-// remembering it now if trustNew asks. Validation runs before this is ever
-// reached, so a file recorded here is a file that parsed — trusting first
-// and failing later would pin broken content and turn every launch after it
-// into a parse error instead of a question.
+// hookIsTrusted reports whether this exact file content has been approved.
 func hookIsTrusted(path, hash string, trustNew bool) (bool, error) {
 	store, err := loadHookTrust()
 	if err != nil {

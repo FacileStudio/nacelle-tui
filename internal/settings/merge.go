@@ -1,14 +1,7 @@
-package main
+package settings
 
 // merge overwrites every setting the layer above actually mentions, and leaves
-// the rest alone. SkillDirs reads "mentioned" the same way mergeStrings reads
-// an empty string: nothing yet lets a layer clear it on purpose, so an empty
-// slice only ever means a layer that never mentioned it.
-//
-// MCP is the one list that accumulates rather than replaces — Hooks now
-// accumulates with it, for the same reason. Sources.MCP is
-// where the reason is written down, because it is a fact about what that list
-// is for and not about how layers are resolved.
+// the rest alone.
 func (c *Config) merge(over Config) {
 	c.mergeStrings(over)
 	c.mergeToggles(over)
@@ -32,9 +25,7 @@ func (c *Config) merge(over Config) {
 	c.Hooks = append(c.Hooks, over.Hooks...)
 }
 
-// mergeStrings overwrites every string setting over actually mentions. Empty
-// is "not mentioned" for these — none has a meaningful empty value, which is
-// exactly what makes a string safe to use unlike the toggles below.
+// mergeStrings overwrites every string setting over actually mentions.
 func (c *Config) mergeStrings(over Config) {
 	if over.Backend != "" {
 		c.Backend = over.Backend
@@ -53,10 +44,7 @@ func (c *Config) mergeStrings(over Config) {
 	}
 }
 
-// mergeToggles overwrites every *bool setting over actually mentions. These
-// stay pointers rather than joining mergeStrings' plain-value treatment
-// because a layer saying nothing and a layer saying false are different
-// answers a bool cannot tell apart.
+// mergeToggles overwrites every *bool setting over actually mentions.
 func (c *Config) mergeToggles(over Config) {
 	if over.Bash != nil {
 		c.Bash = over.Bash
@@ -87,9 +75,7 @@ func (c *Config) mergeToggles(over Config) {
 	}
 }
 
-// mergeUI overwrites every pointer field in UI that over actually mentions,
-// for the same reason mergeToggles uses pointers: an absent value and a false
-// one are different answers.
+// mergeUI overwrites every pointer field in UI that over actually mentions.
 func (c *Config) mergeUI(over Config) {
 	if over.GroupTools != nil {
 		c.GroupTools = over.GroupTools

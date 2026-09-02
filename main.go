@@ -64,7 +64,59 @@ func unprefixed(err error) string {
 	return strings.TrimPrefix(err.Error(), "nacelle: ")
 }
 
+// hasPrintFlag reports whether -print was set, for routing to headless mode
+// before the full flag setup in run().
+func hasPrintFlag() bool {
+	for _, arg := range os.Args[1:] {
+		if arg == "-print" || strings.HasPrefix(arg, "-print=") {
+			return true
+		}
+	}
+	return false
+}
+
+// stripPrintFlag removes -print and its argument from os.Args and returns
+// the prompt value. It must run before flag.Parse.
+// stripPrintFlag removes -print and its argument from os.Args and returns
+// the prompt value. It must run before flag.Parse.
+func stripPrintFlag() string {
+	value := ""
+	filtered := make([]string, 0, len(os.Args))
+	filtered = append(filtered, os.Args[0])
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		// skip the arg that follows -print
+		if arg == "-print" {
+			if i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
+				value = os.Args[i+1]
+				i++ // skip next arg
+			}
+		} else if strings.HasPrefix(arg, "-print=") {
+			value = strings.TrimPrefix(arg, "-print=")
+		} else {
+			filtered = append(filtered, arg)
+		}
+	}
+	os.Args = filtered
+	return value
+}
+
 func run() error {
+	// -print enters headless mode: stream text to stdout, no TUI.
+	// Detect and strip -print from Args before flag.Parse runs, so it
+	// does not choke on an unknown flag.
+	if hasPrintFlag() {
+		printArg := stripPrintFlag()
+		if printArg == "" {
+			piped, err := stdinPrompt()
+			if err != nil {
+				return fmt.Errorf("no prompt: neither -print nor stdin provided")
+			}
+			printArg = piped
+		}
+		return runHeadless(printArg)
+	}
+
 	config, err := settings(fromFlags())
 	if err != nil {
 		return err
