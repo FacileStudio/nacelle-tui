@@ -100,16 +100,14 @@ func TestCommitParagraphsTracksCommittedBytes(t *testing.T) {
 
 	m.commitParagraphs()
 
-	// commitParagraphs commits up to the last newline, so "first line\nsecond line\n"
 	want := "first line\nsecond line\n"
 	if m.run.committedLen != len(want) {
 		t.Errorf("committedLen = %d, want %d after committing up to last newline", m.run.committedLen, len(want))
 	}
 
-	// Flush should now only return the partial line, not duplicate the committed ones
 	answer := m.flush()
-	if answer != "partial" {
-		t.Errorf("flush() = %q, want the uncommitted partial", answer)
+	if answer != "first line\nsecond line\npartial" {
+		t.Errorf("flush() = %q, want full answer", answer)
 	}
 }
 
@@ -120,23 +118,30 @@ func TestFlushDoesNotDuplicateCommittedLines(t *testing.T) {
 	m.run.answer.WriteString("line one\nline two\npartial")
 	m.run.fullAnswer.WriteString("line one\nline two\npartial")
 
-	// CommitParagraphs commits up to the last newline and prints it
 	m.commitParagraphs()
 
-	// Remember what was printed by commitParagraphs
 	committed := strings.Join(spoken(m), "\n")
 
-	// Flush should return only the un-committed tail
 	answer := m.flush()
-	if answer != "partial" {
-		t.Errorf("flush() returned %q, want only the trailing partial", answer)
+	if answer != "line one\nline two\npartial" {
+		t.Errorf("flush() returned %q, want full answer", answer)
 	}
-	// The committed lines should still be visible from the earlier commit
 	if !strings.Contains(committed, "line one") {
 		t.Errorf("commitParagraphs did not print 'line one', want it in scrollback")
 	}
 	if !strings.Contains(committed, "line two") {
 		t.Errorf("commitParagraphs did not print 'line two', want it in scrollback")
+	}
+
+	allSpoken := strings.Join(spoken(m), "\n")
+	if strings.Count(allSpoken, "line one") != 1 {
+		t.Errorf("line one printed %d times, want 1", strings.Count(allSpoken, "line one"))
+	}
+	if strings.Count(allSpoken, "line two") != 1 {
+		t.Errorf("line two printed %d times, want 1", strings.Count(allSpoken, "line two"))
+	}
+	if !strings.Contains(allSpoken, "partial") {
+		t.Errorf("flush did not print 'partial' to scrollback")
 	}
 }
 

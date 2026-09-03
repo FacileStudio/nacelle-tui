@@ -183,7 +183,7 @@ func (m *model) statusCmd() tea.Cmd {
 			lines = append(lines, fmt.Sprintf("log · %s (%d bytes)", m.session.path, info.Size()))
 		}
 		if m.session.HasWriteError() {
-			lines = append(lines, "log · ⚠️ write errors detected")
+			lines = append(lines, "log · [!] write errors detected")
 		}
 	}
 	m.say(fromClient, strings.Join(lines, "\n"))

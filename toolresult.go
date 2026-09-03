@@ -52,28 +52,41 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 
 	m.tools++
 
+	if tool.Err != nil {
+		m.failed++
+		m.trackFailure(line, tool)
+	}
+
 	if !m.canPrintTool(tool.ID, held) {
 		return
 	}
 
+	if held && m.run.isGroup(tool.ID) && m.run.isGroupFailed(tool.ID) {
+		m.flushFailures()
+		return
+	}
+
 	if tool.Err != nil {
-		m.failed++
-		m.trackFailure(line, tool)
 		return
 	}
 
 	m.flushFailures()
 	m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+took(tool.Duration))
 	m.session.tool(tool.Name, tool.Duration)
+	m.finishEdit(tool.ID)
+}
 
-	if change, edited := m.run.edits[tool.ID]; edited {
-		delete(m.run.edits, tool.ID)
-		if change.after == "" && change.before != "" {
-			change.after = priorContents(m.run.root, change.path)
-		}
-		if diff := renderDiff(change, m.width, m.theme.muted); diff != "" {
-			m.say(fromDiff, diff)
-		}
+func (m *model) finishEdit(id string) {
+	change, edited := m.run.edits[id]
+	if !edited {
+		return
+	}
+	delete(m.run.edits, id)
+	if change.after == "" && change.before != "" {
+		change.after = priorContents(m.run.root, change.path)
+	}
+	if diff := renderDiff(change, m.width, m.theme.muted); diff != "" {
+		m.say(fromDiff, diff)
 	}
 }
 

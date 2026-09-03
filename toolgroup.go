@@ -60,9 +60,8 @@ func (g toolGroup) groupLine(width int) string {
 		return g.groupGlyph() + " " + g.name + "(" + inner + ")"
 	}
 
-	// Kind-based batch rendering
 	kind := toolKind(g.name)
-	glyph := toolKindGlyph(kind)
+	glyph := g.groupGlyph()
 	if len(g.callNames) > 0 {
 		return fmt.Sprintf("%s %d %ss · %s", glyph, g.count, kind, strings.Join(g.callNames[:min(len(g.callNames), 4)], " · "))
 	}
@@ -97,4 +96,18 @@ func (g toolGroup) inFlightLine(width int) string {
 	}
 	elapsed := time.Since(g.start)
 	return base + " · " + max(elapsed.Round(time.Millisecond), time.Millisecond).String()
+}
+
+func (g *toolGroup) finishCall(ev nacelle.ToolEvent) {
+	g.tool = ev
+	g.finishedCount++
+	if ev.Err != nil {
+		g.failed = true
+	}
+	if ev.Discarded {
+		g.discarded = true
+	}
+	if g.finishedCount >= g.count {
+		g.end = time.Now()
+	}
 }

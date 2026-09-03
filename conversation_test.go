@@ -202,3 +202,22 @@ func TestWhyTheRunStoppedIsRecordedWithTheTurn(t *testing.T) {
 		t.Errorf("stop = %q, want the ceiling that cut it off", finish.Stop)
 	}
 }
+
+// Absorbing multiple paragraphs streams and commits them via commitParagraphs,
+// but the completed turn in m.conversation must preserve the full answer.
+func TestConversationPreservesFullAnswerAcrossParagraphs(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "paragraph one\n\nparagraph two\n\npartial"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd})
+	m.settle()
+
+	if len(m.conversation) == 0 {
+		t.Fatalf("conversation empty, want assistant message")
+	}
+	lastMsg := m.conversation[len(m.conversation)-1]
+	want := "paragraph one\n\nparagraph two\n\npartial"
+	if got := said(lastMsg); got != want {
+		t.Errorf("said = %q, want %q", got, want)
+	}
+}

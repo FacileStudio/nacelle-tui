@@ -11,9 +11,9 @@ import (
 // answerStream holds the text buffers produced during a run. Embedded in
 // inflight so every field still reads as m.run.answer, m.run.fullAnswer, etc.
 type answerStream struct {
-	answer        strings.Builder // streaming: partial line shown in the live region
-	fullAnswer    strings.Builder // conversation: every word the model said this turn
-	committedLen  int             // bytes of fullAnswer already committed to scrollback via commitParagraphs
+	answer        strings.Builder
+	fullAnswer    strings.Builder
+	committedLen  int
 	reasoning     strings.Builder
 	reasoningFull strings.Builder
 }
@@ -85,6 +85,22 @@ type editState struct {
 // or starts a fresh row. Grouping by kind aggregates consecutive calls of the
 // same category (read, write, network, delegate) even when the specific tool
 // or input differs, showing a combined line like "⏺ 4 commands · cmd1 · cmd2 · …".
+func (r *inflight) appendToLastGroup(ev nacelle.ToolEvent) bool {
+	if len(r.groups) == 0 {
+		return false
+	}
+	g := &r.groups[len(r.groups)-1]
+	if !g.end.IsZero() || toolKind(ev.Name) != toolKind(g.tool.Name) {
+		return false
+	}
+	g.count++
+	g.callNames = append(g.callNames, primaryArg(ev.Input))
+	if ev.ID != "" {
+		r.groupIndex[ev.ID] = len(r.groups) - 1
+	}
+	return true
+}
+
 func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 	if r.groups == nil {
 		r.groups = make([]toolGroup, 0, 4)
@@ -92,17 +108,8 @@ func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 	if r.groupIndex == nil {
 		r.groupIndex = make(map[string]int, 4)
 	}
-	if groupTools && len(r.groups) > 0 {
-		g := &r.groups[len(r.groups)-1]
-		if g.end.IsZero() && toolKind(ev.Name) == toolKind(g.tool.Name) {
-			g.count++
-			// Track the individual call arguments for rendering
-			g.callNames = append(g.callNames, primaryArg(ev.Input))
-			if ev.ID != "" {
-				r.groupIndex[ev.ID] = len(r.groups) - 1
-			}
-			return
-		}
+	if groupTools && r.appendToLastGroup(ev) {
+		return
 	}
 	g := toolGroup{
 		name:      ev.Name,
@@ -127,25 +134,36 @@ func (r *inflight) finishTool(ev nacelle.ToolEvent) {
 	if ev.ID == "" {
 		for i := len(r.groups) - 1; i >= 0; i-- {
 			if r.groups[i].end.IsZero() {
-				r.groups[i].tool = ev
-				r.groups[i].end = time.Now()
-				r.groups[i].failed = ev.Err != nil
-				r.groups[i].discarded = ev.Discarded
-				r.groups[i].finishedCount++
+				r.groups[i].finishCall(ev)
 				return
 			}
 		}
 		return
 	}
-	i, ok := r.groupIndex[ev.ID]
-	if !ok || i >= len(r.groups) {
-		return
+	if i, ok := r.groupIndex[ev.ID]; ok && i < len(r.groups) {
+		r.groups[i].finishCall(ev)
 	}
-	r.groups[i].tool = ev
-	r.groups[i].end = time.Now()
-	r.groups[i].failed = ev.Err != nil
-	r.groups[i].discarded = ev.Discarded
-	r.groups[i].finishedCount++
+}
+
+// isGroupFailed reports whether any call in a group failed.
+func (r *inflight) isGroupFailed(id string) bool {
+	i, ok := r.groupIndex[id]
+	if !ok || i >= len(r.groups) {
+		return false
+	}
+	return r.groups[i].failed
+}
+
+// isGroup reports whether a tool ID belongs to a multi-call group.
+func (r *inflight) isGroup(id string) bool {
+	if id == "" {
+		return false
+	}
+	i, ok := r.groupIndex[id]
+	if !ok || i >= len(r.groups) {
+		return false
+	}
+	return r.groups[i].count > 1
 }
 
 // heldLine returns the line a finished call will print, and whether the call

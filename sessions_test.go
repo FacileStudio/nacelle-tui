@@ -161,52 +161,54 @@ func TestANilLogRecordsNothingWithoutPanicking(t *testing.T) {
 	log.tool("read_file", time.Second)
 }
 
-// TestSessionRotation verifies that session logs rotate at 256KB and gzip the old file.
-func TestSessionRotation(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-
-	// Create a session log with a very small rotation size for testing
-	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
-	if log == nil {
-		t.Fatal("a writable home must produce a log")
-	}
-
-	// Override rotation size for testing
-	sessionRotationSize = 1024 // 1KB for fast test
-	t.Cleanup(func() { sessionRotationSize = 256 * 1024 })
-
-	// Write enough lines to trigger rotation
-	for i := 0; i < 50; i++ {
-		log.line(fromReader, strings.Repeat("x", 200))
-	}
-
-	// Check that rotation happened - old file should be gzipped
-	dir := filepath.Join(home, ".nacelle", "sessions")
+func checkRotatedFiles(t *testing.T, dir string) {
+	t.Helper()
 	files, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("reading sessions dir: %v", err)
 	}
-
-	hasGz := false
-	hasCurrent := false
+	hasGz, hasCurrent := false, false
+	var gzMode os.FileMode
 	for _, f := range files {
 		if strings.HasSuffix(f.Name(), ".gz") {
 			hasGz = true
+			if info, err := f.Info(); err == nil {
+				gzMode = info.Mode().Perm()
+			}
 		}
 		if strings.HasSuffix(f.Name(), ".jsonl") {
 			hasCurrent = true
 		}
 	}
-
 	if !hasGz {
 		t.Error("expected a gzipped rotated session file")
+	}
+	if gzMode != 0o600 {
+		t.Errorf("rotated gz file mode = %04o, want 0600", gzMode)
 	}
 	if !hasCurrent {
 		t.Error("expected a current session file after rotation")
 	}
+}
 
-	// Restore rotation size — handled by t.Cleanup above
+// TestSessionRotation verifies that session logs rotate at 256KB and gzip the old file.
+func TestSessionRotation(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
+	if log == nil {
+		t.Fatal("a writable home must produce a log")
+	}
+
+	sessionRotationSize = 1024
+	t.Cleanup(func() { sessionRotationSize = 256 * 1024 })
+
+	for i := 0; i < 50; i++ {
+		log.line(fromReader, strings.Repeat("x", 200))
+	}
+
+	checkRotatedFiles(t, filepath.Join(home, ".nacelle", "sessions"))
 }
 
 // TestHasWriteError verifies that write errors are tracked.
@@ -216,18 +218,15 @@ func TestHasWriteError(t *testing.T) {
 		t.Fatal("a writable home must produce a log")
 	}
 
-	// Initially no error
 	if log.HasWriteError() {
 		t.Error("HasWriteError() should be false initially")
 	}
 
-	// Write a normal entry - should succeed
 	log.line(fromReader, "test")
 	if log.HasWriteError() {
 		t.Error("HasWriteError() should be false after successful write")
 	}
 
-	// The nil log should not panic and should return false
 	var nilLog *sessionLog
 	if nilLog.HasWriteError() {
 		t.Error("nil log HasWriteError() should be false")

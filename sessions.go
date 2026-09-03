@@ -1,7 +1,6 @@
 package main
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -115,8 +114,6 @@ func newSessionLog(backend, model, root string) *sessionLog {
 	}) {
 		return nil
 	}
-	// Initialize lastSize with header size
-	log.lastSize = int64(len(name)) // approximation; will be updated on next write
 	return log
 }
 
@@ -197,58 +194,11 @@ func (l *sessionLog) write(entry any) bool {
 		l.writeError = true
 		return false
 	}
-	l.lastSize += int64(len(line)) + 1 // +1 for newline
+	l.lastSize += int64(len(line)) + 1
 	if l.lastSize >= sessionRotationSize {
 		l.rotate()
 	}
 	return true
-}
-
-// rotate closes the current session file, gzips it, and starts a new one.
-// Reads the current file, writes a gzipped copy next to it, removes the
-// original, and sets the log's path to a fresh timestamped file.
-func (l *sessionLog) rotate() {
-	content, err := os.ReadFile(l.path)
-	if err != nil {
-		return
-	}
-	gzPath := l.path + ".gz"
-	if _, err := os.Stat(gzPath); err == nil {
-		// A previous rotation left a .gz file (crash, manual intervention, etc.).
-		// Skip this rotation rather than silently clobbering it.
-		l.lastSize = 0
-		return
-	}
-	gzFile, err := os.Create(gzPath)
-	if err != nil {
-		return
-	}
-	gz := gzip.NewWriter(gzFile)
-	if _, err := gz.Write(content); err != nil {
-		_ = gzFile.Close()
-		return
-	}
-	if err := gz.Close(); err != nil {
-		_ = gzFile.Close()
-		return
-	}
-	_ = gzFile.Close()
-	_ = os.Remove(l.path)
-
-	// Start fresh timestamped file with preserved context
-	now := time.Now()
-	name := now.UTC().Format("20060102T150405Z") + "-" + strconv.Itoa(os.Getpid()) + ".jsonl"
-	dir := filepath.Dir(l.path)
-	l.path = filepath.Join(dir, name)
-	l.lastSize = 0
-	// Write new header with preserved context
-	l.write(sessionHeader{
-		Version: 1,
-		Started: now.Format(time.RFC3339Nano),
-		Backend: l.backend,
-		Model:   l.model,
-		Root:    l.root,
-	})
 }
 
 // stamped is the wall clock at nanosecond resolution, which is what keeps two
