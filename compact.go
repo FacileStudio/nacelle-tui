@@ -123,9 +123,22 @@ func (m *model) compact() {
 	m.compacting = true
 	budget := (m.size - m.compactAt + compactSlack) * 4
 	limit := len(m.conversation) - compactKeepMessages
-	for i := 0; i < limit && budget > 0; i++ {
-		budget -= m.trimResults(&m.conversation[i], budget)
-		budget -= m.trimThinking(&m.conversation[i], budget)
+	var totalSaved int64
+	for i := 0; i < limit; i++ {
+		if budget > 0 {
+			saved := m.trimResults(&m.conversation[i], budget)
+			budget -= saved
+			totalSaved += saved
+		}
+		m.trimThinking(&m.conversation[i], 0)
+	}
+	if totalSaved > 0 {
+		tokensSaved := totalSaved / 4
+		if tokensSaved > m.size {
+			m.size = 0
+		} else {
+			m.size -= tokensSaved
+		}
 	}
 	m.compacting = false
 }
@@ -172,7 +185,7 @@ func (m *model) trimThinking(message *nacelle.Message, budget int64) int64 {
 	}
 	saved := int64(0)
 	for j, part := range message.Parts {
-		if saved >= budget {
+		if budget > 0 && saved >= budget {
 			break
 		}
 		reasoning, ok := part.(nacelle.Reasoning)

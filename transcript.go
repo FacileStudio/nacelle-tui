@@ -159,9 +159,6 @@ func (m *model) streaming() []string {
 	if answer := m.run.answer.String(); answer != "" {
 		live = append(live, m.markdown(answer))
 	}
-	// In-flight tool groups are drawn in the live region so they re-render
-	// every frame with a ticking duration. Finished groups are printed once
-	// by toolresult.go; showing them here too duplicates the line.
 	if groups := m.inFlightGroups(); len(groups) > 0 {
 		if len(live) > 0 {
 			live = append(live, "")

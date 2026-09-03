@@ -4,14 +4,16 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.21.6] — 2026-09-03
 
 ### Fixed
-- **Conversation preservation across streaming commits**: `flush()` now returns the full answer to `closeTurn()` while printing only the uncommitted tail to the terminal, preventing multi-line responses from being truncated in conversation history.
-- **Tool grouping lifecycle and failure tracking**: in-flight tool groups keep their ticking live display until all calls in the batch finish, and failures in intermediate calls are recorded without being swallowed by subsequent successful calls.
-- **Session rotation hardening**: extracted rotation to `sessionrotate.go` to keep file length under the limit, set file permissions to `0600`, clean up failed archives, and use millisecond timestamps to avoid collisions.
-- **CLI output style**: replaced decorative emojis with standard terminal status indicators.
-- **Dependency bump**: updated `nacelle` to `v0.8.6`.
+- **Tool group deduplication across multiple failures**: grouped tool lines now print exactly once on batch completion regardless of distinct failure messages, followed by each failure report.
+- **Diff preservation in partially failed tool groups**: completed edits in a group are rendered even when subsequent calls in the batch fail.
+- **Group duration accuracy**: grouped tool lines now show the total duration of the batch rather than only the final call's duration.
+- **Compaction wire budget isolation**: thinking block trimming no longer consumes wire token budget, and context size is immediately adjusted upon compaction.
+- **Conversation preservation across streaming commits**: `flush()` now returns the full answer to `closeTurn()` while printing only the uncommitted tail to the terminal.
+- **Session rotation hardening**: extracted rotation to `sessionrotate.go`, set file permissions to `0600`, clean up failed archives, and use millisecond timestamps.
+- **Code cleanliness**: removed unused blank identifier, inline comments, and in-body comments.
 
 ## [0.21.4] — 2026-09-03
 

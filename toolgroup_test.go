@@ -151,3 +151,56 @@ func TestGroupLineShowsArguments(t *testing.T) {
 		t.Errorf("group line = %q, want the tool name mentioned at most once", line)
 	}
 }
+
+func TestGroupMultipleDistinctFailures(t *testing.T) {
+	m := sized()
+	m.groupTools = true
+
+	m.run.beginTool(nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"view.go"}`}, true)
+	m.run.beginTool(nacelle.ToolEvent{ID: "b", Name: "read_file", Input: `{"path":"run.go"}`}, true)
+
+	m.run.finishTool(nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"view.go"}`, Err: errors.New("file not found")})
+	m.finished(&nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"view.go"}`, Err: errors.New("file not found")})
+
+	m.run.finishTool(nacelle.ToolEvent{ID: "b", Name: "read_file", Input: `{"path":"run.go"}`, Err: errors.New("permission denied")})
+	m.finished(&nacelle.ToolEvent{ID: "b", Name: "read_file", Input: `{"path":"run.go"}`, Err: errors.New("permission denied")})
+
+	lines := spoken(m)
+	joined := strings.Join(lines, "\n")
+	if count := strings.Count(joined, "✗ 2 reads"); count != 1 {
+		t.Errorf("expected group line '✗ 2 reads' exactly once, got count %d in %q", count, joined)
+	}
+	if !strings.Contains(joined, "file not found") {
+		t.Errorf("expected 'file not found' in output, got: %q", joined)
+	}
+	if !strings.Contains(joined, "permission denied") {
+		t.Errorf("expected 'permission denied' in output, got: %q", joined)
+	}
+}
+
+func TestGroupPreservesDiffsOnPartialFailure(t *testing.T) {
+	m := sized()
+	m.groupTools = true
+	if m.run.edits == nil {
+		m.run.edits = map[string]editChange{}
+	}
+	m.run.edits["a"] = editChange{path: "view.go", before: "old", after: "new"}
+
+	m.run.beginTool(nacelle.ToolEvent{ID: "a", Name: "edit_file", Input: `{"path":"view.go"}`}, true)
+	m.run.beginTool(nacelle.ToolEvent{ID: "b", Name: "edit_file", Input: `{"path":"run.go"}`}, true)
+
+	m.run.finishTool(nacelle.ToolEvent{ID: "a", Name: "edit_file", Input: `{"path":"view.go"}`})
+	m.finished(&nacelle.ToolEvent{ID: "a", Name: "edit_file", Input: `{"path":"view.go"}`})
+
+	m.run.finishTool(nacelle.ToolEvent{ID: "b", Name: "edit_file", Input: `{"path":"run.go"}`, Err: errors.New("write error")})
+	m.finished(&nacelle.ToolEvent{ID: "b", Name: "edit_file", Input: `{"path":"run.go"}`, Err: errors.New("write error")})
+
+	if _, ok := m.run.edits["a"]; ok {
+		t.Errorf("edit for call 'a' should be completed and deleted from edits map")
+	}
+	lines := spoken(m)
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, "write error") {
+		t.Errorf("expected write error in output, got: %q", joined)
+	}
+}

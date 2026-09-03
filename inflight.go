@@ -96,6 +96,7 @@ func (r *inflight) appendToLastGroup(ev nacelle.ToolEvent) bool {
 	g.count++
 	g.callNames = append(g.callNames, primaryArg(ev.Input))
 	if ev.ID != "" {
+		g.callIDs = append(g.callIDs, ev.ID)
 		r.groupIndex[ev.ID] = len(r.groups) - 1
 	}
 	return true
@@ -118,6 +119,9 @@ func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 		tool:      ev,
 		start:     time.Now(),
 		callNames: []string{primaryArg(ev.Input)},
+	}
+	if ev.ID != "" {
+		g.callIDs = []string{ev.ID}
 	}
 	r.groups = append(r.groups, g)
 	if ev.ID != "" {
@@ -145,60 +149,30 @@ func (r *inflight) finishTool(ev nacelle.ToolEvent) {
 	}
 }
 
-// isGroupFailed reports whether any call in a group failed.
-func (r *inflight) isGroupFailed(id string) bool {
-	i, ok := r.groupIndex[id]
-	if !ok || i >= len(r.groups) {
-		return false
-	}
-	return r.groups[i].failed
-}
-
-// isGroup reports whether a tool ID belongs to a multi-call group.
-func (r *inflight) isGroup(id string) bool {
+func (r *inflight) findGroup(id string) *toolGroup {
 	if id == "" {
-		return false
+		return nil
 	}
 	i, ok := r.groupIndex[id]
 	if !ok || i >= len(r.groups) {
-		return false
+		return nil
 	}
-	return r.groups[i].count > 1
+	return &r.groups[i]
 }
 
-// heldLine returns the line a finished call will print, and whether the call
-// had one. It looks the group up by ID — the same lookup finishTool uses — so
-// a result that arrives for a call the model did not name still finds the one
-// unfinished row there.
 func (r *inflight) heldLine(id string, width int) (string, bool) {
-	if id == "" {
+	g := r.findGroup(id)
+	if g == nil {
 		return "", false
 	}
-	i, ok := r.groupIndex[id]
-	if !ok || i >= len(r.groups) {
-		return "", false
-	}
-	return r.groups[i].groupLine(width), true
+	return g.groupLine(width), true
 }
 
-// isGroupComplete reports whether all calls in a group have finished.
-// Returns true for non-grouped tools (count == 1) and for groups where
-// finishedCount has caught up to count.
 func (r *inflight) isGroupComplete(id string) bool {
-	i, ok := r.groupIndex[id]
-	if !ok || i >= len(r.groups) {
-		return true
-	}
-	g := &r.groups[i]
-	if g.count <= 1 {
-		return true
-	}
-	return g.finishedCount >= g.count
+	g := r.findGroup(id)
+	return g == nil || g.count <= 1 || g.finishedCount >= g.count
 }
 
-// clearGroups drops the run's tool rows. It is called from settle and from
-// stranded, the same two places that empty running and edits, so the three
-// stay in lockstep and a run never inherits another run's tool rows.
 func (r *inflight) clearGroups() {
 	r.groups = nil
 	r.groupIndex = nil

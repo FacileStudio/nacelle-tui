@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 )
@@ -44,8 +45,6 @@ func toolKindGlyph(kind string) string {
 		return "•"
 	}
 }
-
-var _ lipgloss.Style // keep available if needed
 
 var toolIcons = map[string]string{
 	"run_command":  "$",
@@ -157,4 +156,26 @@ func toolLinePainted(text string) string {
 		}
 	}
 	return plainTool.Render(text)
+}
+
+func colorGlyph(line, color, restoreColour string) string {
+	for i := 0; i < len(line); i++ {
+		if line[i] == '\x1b' {
+			end := strings.IndexByte(line[i:], 'm')
+			if end < 0 {
+				break
+			}
+			i += end
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(line[i:])
+		if r == utf8.RuneError {
+			break
+		}
+		before := line[:i]
+		glyph := line[i : i+size]
+		rest := line[i+size:]
+		return before + "\x1b[" + color + "m" + glyph + "\x1b[" + restoreColour + "m" + rest
+	}
+	return line
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/FacileStudio/nacelle"
 )
@@ -51,29 +50,72 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 	}
 
 	m.tools++
+	m.session.tool(tool.Name, tool.Duration)
 
 	if tool.Err != nil {
 		m.failed++
-		m.trackFailure(line, tool)
 	}
 
 	if !m.canPrintTool(tool.ID, held) {
 		return
 	}
 
-	if held && m.run.isGroup(tool.ID) && m.run.isGroupFailed(tool.ID) {
-		m.flushFailures()
-		return
+	if held {
+		if g := m.run.findGroup(tool.ID); g != nil && g.count > 1 {
+			dur := took(g.duration())
+			if g.failed {
+				m.printGroupFailure(line, tool.Name, g.errors, dur)
+			} else {
+				m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+dur)
+			}
+			for _, id := range g.callIDs {
+				m.finishEdit(id)
+			}
+			return
+		}
 	}
 
 	if tool.Err != nil {
+		m.trackFailure(line, tool)
 		return
 	}
 
 	m.flushFailures()
 	m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+took(tool.Duration))
-	m.session.tool(tool.Name, tool.Duration)
 	m.finishEdit(tool.ID)
+}
+
+func (m *model) printGroupFailure(line, name string, errs []toolError, dur string) {
+	styled := colorGlyph(line, "31", toolRestore(name)) + " · " + dur
+	toolStr := m.paint(fromTool, styled)
+	m.session.line(fromTool, styled)
+	if len(errs) == 0 {
+		m.unprinted = append(m.unprinted, toolStr)
+		return
+	}
+	type collapse struct {
+		toolError
+		count int
+	}
+	var collapsed []collapse
+	for _, e := range errs {
+		if n := len(collapsed); n > 0 && collapsed[n-1].name == e.name && collapsed[n-1].err == e.err {
+			collapsed[n-1].count++
+			collapsed[n-1].duration = e.duration
+		} else {
+			collapsed = append(collapsed, collapse{toolError: e, count: 1})
+		}
+	}
+	lines := []string{toolStr}
+	for _, c := range collapsed {
+		text := fmt.Sprintf("%s failed after %s: %s", c.name, took(c.duration), c.err)
+		if c.count > 1 {
+			text = fmt.Sprintf("%s failed %d times · last: %s: %s", c.name, c.count, took(c.duration), c.err)
+		}
+		lines = append(lines, m.paint(fromResult, text))
+		m.session.line(fromResult, text)
+	}
+	m.unprinted = append(m.unprinted, strings.Join(lines, "\n"))
 }
 
 func (m *model) finishEdit(id string) {
@@ -173,30 +215,4 @@ func (m *model) stranded() {
 // comparing 300µs against 700µs in a scrollback.
 func took(spent time.Duration) string {
 	return max(spent.Round(time.Millisecond), time.Millisecond).String()
-}
-
-// colorGlyph wraps the first visible rune of line (the icon) in an ANSI colour
-// so only the icon changes while the rest of the line stays in restoreColour.
-// The color and restoreColour are ANSI colour indices: "31" for red, "32" for
-// green, "34" for the default blue, etc.
-func colorGlyph(line, color, restoreColour string) string {
-	for i := 0; i < len(line); i++ {
-		if line[i] == '\x1b' {
-			end := strings.IndexByte(line[i:], 'm')
-			if end < 0 {
-				break
-			}
-			i += end
-			continue
-		}
-		r, size := utf8.DecodeRuneInString(line[i:])
-		if r == utf8.RuneError {
-			break
-		}
-		before := line[:i]
-		glyph := line[i : i+size]
-		rest := line[i+size:]
-		return before + "\x1b[" + color + "m" + glyph + "\x1b[" + restoreColour + "m" + rest
-	}
-	return line
 }

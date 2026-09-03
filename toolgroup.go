@@ -21,28 +21,24 @@ import (
 // repaints, and between the two the transcript shows a gap. A group is
 // painted once when it closes, so there is no intermediate frame to leave a
 // blank line sitting where the next tool's row belongs.
+type toolError struct {
+	name     string
+	err      string
+	duration time.Duration
+}
+
 type toolGroup struct {
-	name      string
-	input     string
-	count     int
-	start     time.Time
-	end       time.Time
-	failed    bool
-	discarded bool
-	// callNames tracks individual primary arguments in a kind-based batch for rendering.
-	// Each entry is the human-readable one-line summary of that call's input
-	// (the same string toolLine renders), so a batch of four shell commands reads
-	// as "⏺ 4 commands · ls docs · read_file(view.go) · git status · …" rather than
-	// repeating the tool name four times.
-	callNames []string
-	// the call that decided the group's fate — the one whose result or error
-	// is shown, and whose input is the one rendered. Earlier calls in the
-	// group are identical in shape, so their input is the same string and
-	// picking the last is as good as picking any.
-	tool nacelle.ToolEvent
-	// finishedCount tracks how many calls in this group have completed.
-	// The group line is printed only when this reaches count, preventing
-	// duplicate lines when each tool result in a batch triggers finished().
+	name          string
+	input         string
+	count         int
+	start         time.Time
+	end           time.Time
+	failed        bool
+	discarded     bool
+	callNames     []string
+	callIDs       []string
+	errors        []toolError
+	tool          nacelle.ToolEvent
 	finishedCount int
 }
 
@@ -98,11 +94,23 @@ func (g toolGroup) inFlightLine(width int) string {
 	return base + " · " + max(elapsed.Round(time.Millisecond), time.Millisecond).String()
 }
 
+func (g toolGroup) duration() time.Duration {
+	if g.end.IsZero() {
+		return time.Since(g.start)
+	}
+	return g.end.Sub(g.start)
+}
+
 func (g *toolGroup) finishCall(ev nacelle.ToolEvent) {
 	g.tool = ev
 	g.finishedCount++
 	if ev.Err != nil {
 		g.failed = true
+		g.errors = append(g.errors, toolError{
+			name:     ev.Name,
+			err:      ev.Err.Error(),
+			duration: ev.Duration,
+		})
 	}
 	if ev.Discarded {
 		g.discarded = true
