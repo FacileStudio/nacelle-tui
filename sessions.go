@@ -213,6 +213,12 @@ func (l *sessionLog) rotate() {
 		return
 	}
 	gzPath := l.path + ".gz"
+	if _, err := os.Stat(gzPath); err == nil {
+		// A previous rotation left a .gz file (crash, manual intervention, etc.).
+		// Skip this rotation rather than silently clobbering it.
+		l.lastSize = 0
+		return
+	}
 	gzFile, err := os.Create(gzPath)
 	if err != nil {
 		return

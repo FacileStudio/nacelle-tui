@@ -174,6 +174,7 @@ func TestSessionRotation(t *testing.T) {
 
 	// Override rotation size for testing
 	sessionRotationSize = 1024 // 1KB for fast test
+	t.Cleanup(func() { sessionRotationSize = 256 * 1024 })
 
 	// Write enough lines to trigger rotation
 	for i := 0; i < 50; i++ {
@@ -205,8 +206,7 @@ func TestSessionRotation(t *testing.T) {
 		t.Error("expected a current session file after rotation")
 	}
 
-	// Restore rotation size
-	sessionRotationSize = 256 * 1024
+	// Restore rotation size — handled by t.Cleanup above
 }
 
 // TestHasWriteError verifies that write errors are tracked.
