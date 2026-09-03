@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -192,5 +193,33 @@ func TestTheQuestionIsPrintedWithoutWaitingOnTheAnswer(t *testing.T) {
 
 	if !strings.Contains(printed, "a question") {
 		t.Errorf("printed = %q, want the question handed over before the run is waited on", printed)
+	}
+}
+
+func TestKindTurnRendersBoundaryWithoutBreakingConversation(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.run.cancel = func() {}
+	m.run.turnBegan = time.Now().Add(-1500 * time.Millisecond)
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "the answer\n"})
+	m.record(nacelle.Event{Kind: nacelle.KindText, Text: "the answer\n"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindTurn, Usage: nacelle.Usage{InputTokens: 100, OutputTokens: 50, Cost: 0.0025}})
+	m.absorb(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd})
+	m.settle()
+
+	saidLines := spoken(m)
+	if len(saidLines) != 2 || !strings.Contains(saidLines[0], "the answer") {
+		t.Fatalf("spoken = %v, want answer and turn boundary", saidLines)
+	}
+	if !strings.Contains(saidLines[1], "150 tokens") || !strings.Contains(saidLines[1], "$0.0025") {
+		t.Errorf("turn boundary = %q, want tokens and cost", saidLines[1])
+	}
+	raw := m.unprinted[len(m.unprinted)-1]
+	if !strings.Contains(raw, "\x1b[38;5;2") {
+		t.Errorf("turn boundary raw = %q, want muted style", raw)
+	}
+	if len(m.conversation) != 1 || said(m.conversation[0]) != "the answer\n" {
+		t.Errorf("conversation = %v, want full answer preserved", m.conversation)
 	}
 }

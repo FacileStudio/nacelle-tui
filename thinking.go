@@ -200,23 +200,7 @@ func (m *model) reveal() (bool, tea.Cmd) {
 // out. Recording it here would fill the conversation with something that is
 // only ever skipped.
 func (m *model) flush() string {
-	reasoning := m.run.reasoning.String()
-	m.run.reasoning.Reset()
-
-	if reasoning != "" || m.run.reasoningFull.Len() > 0 {
-		spent := m.elapsed()
-		m.begun, m.ended = time.Time{}, time.Time{}
-		m.retained = m.run.reasoningFull.String() + reasoning
-		m.run.reasoningFull.Reset()
-
-		if m.expanded {
-			if reasoning != "" {
-				m.say(fromThinking, reasoning)
-			}
-		} else {
-			m.say(fromThinking, m.collapsed(spent))
-		}
-	}
+	m.flushThinking()
 
 	full := m.run.fullAnswer.String()
 	unprinted := ""

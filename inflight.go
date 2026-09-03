@@ -59,6 +59,7 @@ type inflight struct {
 type clock struct {
 	began       time.Time
 	interrupted time.Time
+	turnBegan   time.Time
 }
 
 // turn is the assistant turn being built for the conversation: the tools it

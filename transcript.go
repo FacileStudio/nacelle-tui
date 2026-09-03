@@ -36,6 +36,9 @@ const (
 
 	// fromFailure is the run falling over.
 	fromFailure
+
+	// fromTurn is the boundary line closing an assistant turn.
+	fromTurn
 )
 
 // say commits one finished thing to the terminal's own scrollback.
@@ -118,6 +121,8 @@ func (m *model) paint(who speaker, text string) string {
 		return text
 	case fromFailure:
 		return m.theme.failure.Width(width).Render(text)
+	case fromTurn:
+		return m.theme.muted.Render(text)
 	default:
 		return m.theme.client.Render(text)
 	}

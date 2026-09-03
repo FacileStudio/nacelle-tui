@@ -6,6 +6,11 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [0.21.6] — 2026-09-03
 
+### Added
+- **Turn boundary subtotals**: assistant turns print a muted turn boundary line on `KindTurn` displaying elapsed duration, turn tokens, and cost when greater than zero.
+- **Parallel read-only tool guidance**: `defaultSystem` instructs the model to run independent read-only inspection calls in parallel.
+- **Tool batch headroom clamping**: grouped tool lines and in-flight status truncate within terminal width to prevent wrapping in the live region.
+
 ### Fixed
 - **Tool group deduplication across multiple failures**: grouped tool lines now print exactly once on batch completion regardless of distinct failure messages, followed by each failure report.
 - **Diff preservation in partially failed tool groups**: completed edits in a group are rendered even when subsequent calls in the batch fail.

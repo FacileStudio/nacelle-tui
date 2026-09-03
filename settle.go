@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -46,6 +47,7 @@ func (m *model) settle() tea.Cmd {
 	m.sayNothingCame()
 	m.spent = m.spent.Add(m.run.usage)
 	m.run.usage = nacelle.Usage{}
+	m.run.turnBegan = time.Time{}
 	m.compact()
 
 	m.taskReminder()

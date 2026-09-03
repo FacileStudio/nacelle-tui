@@ -58,10 +58,19 @@ func (g toolGroup) groupLine(width int) string {
 
 	kind := toolKind(g.name)
 	glyph := g.groupGlyph()
+	prefix := fmt.Sprintf("%s %d %ss", glyph, g.count, kind)
 	if len(g.callNames) > 0 {
-		return fmt.Sprintf("%s %d %ss · %s", glyph, g.count, kind, strings.Join(g.callNames[:min(len(g.callNames), 4)], " · "))
+		args := strings.Join(g.callNames[:min(len(g.callNames), 4)], " · ")
+		if width > 0 {
+			room := width - lipgloss.Width(prefix) - len(" · ") - durationRoom
+			if room > 0 {
+				return prefix + " · " + truncate(unstyled(args), room)
+			}
+			return truncate(prefix, width-durationRoom)
+		}
+		return prefix + " · " + args
 	}
-	return fmt.Sprintf("%s %d %ss", glyph, g.count, kind)
+	return prefix
 }
 
 // groupGlyph returns the icon for a group, honouring the same tone map a
@@ -91,7 +100,11 @@ func (g toolGroup) inFlightLine(width int) string {
 		return ""
 	}
 	elapsed := time.Since(g.start)
-	return base + " · " + max(elapsed.Round(time.Millisecond), time.Millisecond).String()
+	line := base + " · " + max(elapsed.Round(time.Millisecond), time.Millisecond).String()
+	if width > 0 {
+		line = truncate(line, width)
+	}
+	return line
 }
 
 func (g toolGroup) duration() time.Duration {

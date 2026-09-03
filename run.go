@@ -18,6 +18,7 @@ func (m *model) send(text string) tea.Cmd {
 	m.run.stop = ""
 	m.run.usage = nacelle.Usage{}
 	m.run.began = time.Now()
+	m.run.turnBegan = time.Now()
 	m.run.interrupted = time.Time{}
 	m.run.asked, m.run.answered = nil, nil
 	m.run.reported = false

@@ -93,6 +93,9 @@ func (m *model) View() tea.View {
 // past, because this is where a turn stops thinking and starts doing. See
 // thought for what measuring it anywhere later billed to thinking instead.
 func (m *model) absorb(event nacelle.Event) {
+	if m.run.turnBegan.IsZero() && event.Kind != nacelle.KindTurn && event.Kind != nacelle.KindDone && event.Kind != nacelle.KindToolResult {
+		m.run.turnBegan = time.Now()
+	}
 	switch event.Kind {
 	case nacelle.KindText:
 		m.thought()
@@ -119,10 +122,7 @@ func (m *model) absorb(event nacelle.Event) {
 		m.run.finishTool(*event.Tool)
 		m.finished(event.Tool)
 	case nacelle.KindTurn:
-		m.run.usage = m.run.usage.Add(event.Usage)
-		m.sink.record(event.Usage, time.Now())
-		m.sized(event.Usage)
-		m.compact()
+		m.turn(event)
 	case nacelle.KindDone:
 		m.run.usage = event.Usage
 		m.run.stop = event.Stop
