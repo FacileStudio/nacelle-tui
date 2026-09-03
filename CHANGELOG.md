@@ -4,7 +4,14 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.22.0] - 2026-09-04
+### Added
+- Added `--continue` flag to auto-resume the newest session for the current project on startup
+- Added `/resume` command to interactively resume a session from `~/.nacelle/sessions/`
+- Added `/sessions` command to list all available sessions for the current project with timestamps
+- Model now loads conversation history from session file on resume
+- Session project detection (current directory or -root) - handles both absolute and relative paths
+- Made the tasks tool more permissive with input preprocessing to handle common model syntax errors
 
 ## [0.21.9] - 2026-09-03
 ### Added

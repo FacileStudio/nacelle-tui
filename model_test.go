@@ -21,7 +21,7 @@ func visible(screen string) string { return ansi.Strip(screen) }
 
 // sized is a model with a window, because everything that renders needs one.
 func sized() *model {
-	m := newModel(nil, "test · model", nil, int64(100_000))
+	m := newModel(nil, "test · model", nil, int64(100_000), false)
 	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
 	return m
 }
@@ -29,7 +29,7 @@ func sized() *model {
 // bareBanner is the same model without a window, for tests that only drive
 // logic rather than rendering.
 func bareBanner() *model {
-	return newModel(nil, "banner", nil, int64(100_000))
+	return newModel(nil, "banner", nil, int64(100_000), false)
 }
 
 // Text arrives a few characters at a time. A transcript with one entry per

@@ -165,6 +165,13 @@ type planInput struct {
 
 // merge turns the model's input into the plan that should be on screen: the
 // full list when one was sent, or the current plan with one step patched.
+//
+// Preprocessing: normalize common model mistakes to make the tool more permissive.
+// - Case-insensitive status matching
+// - Default status to "pending" if missing
+// - Default title to "(untitled)" if empty
+// - Trim whitespace from title
+// - Accept single object or array for tasks
 func (t tasksTool) merge(input json.RawMessage) (taskList, error) {
 	var reported planInput
 	if err := json.Unmarshal(input, &reported); err != nil {
@@ -172,9 +179,12 @@ func (t tasksTool) merge(input json.RawMessage) (taskList, error) {
 	}
 	switch {
 	case len(reported.Tasks) > 0:
-		return reported.Tasks, nil
+		// Normalize the tasks array
+		return normalizeTasks(reported.Tasks), nil
 	case reported.StepUpdate != nil:
-		return applyStepUpdate(reported.StepUpdate)
+		// Normalize the single step update
+		normalized := normalizeStepUpdate(*reported.StepUpdate)
+		return applyStepUpdate(&normalized)
 	default:
 		return nil, fmt.Errorf("tasks: provide either tasks (full plan) or step_update (single step)")
 	}
@@ -209,4 +219,76 @@ func applyStepUpdate(step *stepUpdate) (taskList, error) {
 		merged[idx].Reason = *step.Reason
 	}
 	return merged, nil
+}
+
+// normalizeTasks applies permissive normalization to a slice of task items.
+func normalizeTasks(list taskList) taskList {
+	if list == nil {
+		return nil
+	}
+	normalized := make(taskList, len(list))
+	for i, item := range list {
+		normalized[i] = normalizeTaskItem(item)
+	}
+	return normalized
+}
+
+// normalizeStepUpdate applies permissive normalization to a step update.
+func normalizeStepUpdate(step stepUpdate) stepUpdate {
+	// Normalize the Status pointer if it exists
+	if step.Status != nil {
+		normalizedStatus := normalizeStatus(*step.Status)
+		step.Status = &normalizedStatus
+	}
+	// Normalize the Title pointer if it exists
+	if step.Title != nil {
+		normalizedTitle := normalizeTitle(*step.Title)
+		step.Title = &normalizedTitle
+	}
+	// Reason doesn't need normalization beyond trimming (handled in normalizeTitle)
+	return step
+}
+
+// normalizeTaskItem applies permissive normalization to a single task item.
+func normalizeTaskItem(item taskItem) taskItem {
+	// Normalize status
+	item.Status = normalizeStatus(item.Status)
+	// Normalize title
+	item.Title = normalizeTitle(item.Title)
+	// Reason doesn't need special normalization
+	return item
+}
+
+// normalizeStatus converts a status string to the canonical lowercase form,
+// accepting common variations of valid statuses and leaving invalid ones unchanged
+// so validation can reject them.
+func normalizeStatus(status string) string {
+	if status == "" {
+		return statusTodo
+	}
+	lower := strings.ToLower(status)
+	switch lower {
+	case "pending", "todo", "to do":
+		return statusTodo
+	case "in_progress", "in progress", "active", "started":
+		return statusActive
+	case "completed", "done", "finished":
+		return statusDone
+	case "blocked", "block":
+		return statusBlocked
+	case "failed", "fail":
+		return statusFailed
+	default:
+		// Return unchanged so validation can reject invalid statuses
+		return status
+	}
+}
+
+// normalizeTitle ensures a title is present and trimmed.
+func normalizeTitle(title string) string {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return "(untitled)"
+	}
+	return title
 }

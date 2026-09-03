@@ -48,7 +48,6 @@ func TestALongPlanShowsAllSteps(t *testing.T) {
 	if !strings.Contains(drawn, "the running one") {
 		t.Errorf("the running step is off screen:\n%s", drawn)
 	}
-	// Ensure no "... and N more" line appears (we show all steps)
 	if strings.Contains(drawn, "… and") {
 		t.Errorf("unexpected hidden count line found:\n%s", drawn)
 	}

@@ -62,6 +62,7 @@ func run() error {
 		root: config.Root, model: config.Model, backend: config.Backend,
 		diffs: *config.Diffs, groupTools: config.GroupTools,
 		showThinking: *config.ShowThinking, compactAt: resolveCompactAt(*config.CompactAt, backend),
+		autoResume: *config.Continue,
 	})
 }
 
@@ -84,7 +85,8 @@ type uiSession struct {
 	// context window can raise it without editing source. int64, to match
 	// the transcript size and CountTokens rather than being compared in
 	// two widths.
-	compactAt int64
+	compactAt  int64
+	autoResume bool
 }
 
 // launch opens the program, delivers whatever was queued for the transcript
@@ -115,7 +117,7 @@ type uiSession struct {
 // it before the program starts means the terminal has scrolled the way it
 // scrolls for every other command, and the frame opens underneath it.
 func launch(c uiSession) error {
-	opened := newModel(c.agent, c.banner, c.skills, c.compactAt)
+	opened := newModel(c.agent, c.banner, c.skills, c.compactAt, c.autoResume)
 	opened.groupTools = derefBool(c.groupTools)
 	opened.expanded = c.showThinking
 	opened.run.root = c.root

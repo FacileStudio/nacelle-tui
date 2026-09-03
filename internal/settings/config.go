@@ -38,6 +38,8 @@ type Config struct {
 	Root    string `yaml:"root"`
 	System  string `yaml:"system"`
 
+	Continue *bool `yaml:"continue"`
+
 	Limits `yaml:",inline"`
 
 	Toggles `yaml:",inline"`
@@ -146,11 +148,13 @@ func Defaults(system string) Config {
 	compactAt := DefaultCompactAt
 	search, fetch := "", true
 	groupTools, showThinking := true, true
+	cont := false
 	return Config{
 		Web:       Web{Search: &search, Fetch: &fetch},
 		Backend:   "anthropic",
 		Root:      ".",
 		System:    system,
+		Continue:  &cont,
 		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
 	"time"
 
 	"charm.land/bubbles/v2/spinner"
@@ -84,6 +86,8 @@ type model struct {
 	thoughts
 	hist promptHistory
 	run  inflight
+
+	autoResume bool
 }
 
 // newModel builds the client. The banner names the backend and model, so
@@ -91,7 +95,7 @@ type model struct {
 // skills is every skill loaded this run — kept keyed by name so
 // /skill:name is a lookup, not a scan, every time it's typed, and listed
 // alongside the client's own commands in the dropdown menu.
-func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64) *model {
+func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64, autoResume bool) *model {
 	byName := bySkillName(skills)
 
 	m := &model{
@@ -113,6 +117,7 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 			editState: editState{
 				edits: map[string]editChange{}},
 		},
+		autoResume: autoResume,
 	}
 	m.pretty = prettier(m.theme.markdown, m.width)
 	m.promptStyles = m.prompt.Styles()
@@ -134,6 +139,23 @@ func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 // terminal's, positioned by View, and a blink tick for a cursor nobody renders
 // is a timer that wakes the program up to change nothing.
 func (m *model) Init() tea.Cmd {
+	if m.autoResume {
+		projectRoot := m.run.root
+		if projectRoot == "" {
+			projectRoot = "."
+		}
+
+		sessionFiles := listSessionFiles(projectRoot)
+		if len(sessionFiles) > 0 {
+			mostRecent := sessionFiles[0]
+			conversation := loadSession(mostRecent)
+			if conversation != nil {
+				m.conversation = conversation
+				m.say(fromClient, fmt.Sprintf("resumed session from %s (%d messages)",
+					filepath.Base(mostRecent), len(conversation)))
+			}
+		}
+	}
 	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks())
 }
 

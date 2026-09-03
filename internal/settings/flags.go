@@ -21,6 +21,7 @@ type declared struct {
 	// compactAt is a token count, not a turn count, so it shares the width of
 	// budget rather than iterations.
 	compactAt *int64
+	contFlag  *bool
 	sourceFlags
 	discoveryFlags
 }
@@ -57,6 +58,7 @@ func declareFlags(fallback Config) declared {
 		model:       flag.String("model", fallback.Model, "model id, defaulting to the backend's own"),
 		root:        flag.String("root", fallback.Root, "directory the file tools may reach"),
 		system:      flag.String("system", fallback.System, "system prompt"),
+		contFlag:    flag.Bool("continue", *fallback.Continue, "auto-resume newest session"),
 		reasoningFlags: reasoningFlags{
 			effort:   flag.String("effort", fallback.Effort, "none, minimal, low, medium, high, xhigh or max"),
 			thinking: flag.Bool("thinking", *fallback.Thinking, "stream the model's reasoning"),
@@ -101,6 +103,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"effort":           func(c *Config) { c.Effort = *f.effort },
 		"root":             func(c *Config) { c.Root = *f.root },
 		"system":           func(c *Config) { c.System = *f.system },
+		"continue":         func(c *Config) { c.Continue = f.contFlag },
 		"search":           func(c *Config) { c.Search = f.search },
 		"fetch":            func(c *Config) { c.Fetch = f.fetch },
 		"bash":             func(c *Config) { c.Bash = f.bash },

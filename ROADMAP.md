@@ -27,7 +27,8 @@ This file tracks UI-only work. Core SDK changes live in `../nacelle/ROADMAP.md`.
 - **Log rotation & write-failure warning** — rotate session files at 256 KB, gzip old file (`.gz`), start new timestamped file. *Done via `sessionrotate.go`.*
 - **Session summary command** — *Done via `/status` command.*
 - **Dynamic compaction window** — automatically scales `compactAt` to 75% of `Capabilities.ContextWindow` when unconfigured. *Done in v0.21.7.*
-- **Resume** (planned next) — `--continue` picks the newest session under `~/.nacelle/sessions/<project>/`; `/resume` picker in the TUI to resume past conversation.
+- **Resume** — `--continue` picks the newest session under `~/.nacelle/sessions/<project>/`; `/resume` picker in the TUI to resume past conversation. *Done via `--continue` flag and `/resume` command.*
+- **Subagents overview** — show list of running subagents and current task progress one per line under the input prompt (like pi or antigravity).
 
 ---
 

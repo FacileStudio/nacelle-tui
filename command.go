@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -18,11 +19,13 @@ import (
 type command func(m *model) tea.Cmd
 
 var commands = map[string]command{
-	"clear":  (*model).clear,
-	"cost":   (*model).cost,
-	"help":   (*model).help,
-	"quit":   (*model).quit,
-	"status": (*model).statusCmd,
+	"clear":    (*model).clear,
+	"cost":     (*model).cost,
+	"help":     (*model).help,
+	"quit":     (*model).quit,
+	"resume":   (*model).resumeCmd,
+	"sessions": (*model).sessionsCmd,
+	"status":   (*model).statusCmd,
 }
 
 // parseCommand reports the command a line names, and whether the line named
@@ -150,9 +153,11 @@ func (m *model) help() tea.Cmd {
 	m.say(fromClient, strings.Join([]string{
 		"/clear — start a new session, same client",
 		"/cost — what this session has spent so far",
-		"/status — session summary: questions, answers, tools, elapsed time, log size",
 		"/help — show this message",
 		"/quit — quit",
+		"/resume — resume the most recent session for this project",
+		"/sessions — list all available sessions for this project",
+		"/status — session summary: questions, answers, tools, elapsed time, log size",
 		"/skill:name [what to do] — run a loaded skill directly, instead of waiting for the model to decide to",
 		"",
 		"Esc stops a run and nothing else. Ctrl+C stops one too, or quits when idle; ctrl+\\ force-quits.",
@@ -185,6 +190,49 @@ func (m *model) statusCmd() tea.Cmd {
 		if m.session.HasWriteError() {
 			lines = append(lines, "log · [!] write errors detected")
 		}
+	}
+	m.say(fromClient, strings.Join(lines, "\n"))
+	return nil
+}
+
+// resumeCmd loads the most recent session for the current project and resumes the conversation.
+func (m *model) resumeCmd() tea.Cmd {
+	projectRoot := m.run.root
+	if projectRoot == "" {
+		projectRoot = "."
+	}
+	sessionFiles := listSessionFiles(projectRoot)
+	if len(sessionFiles) == 0 {
+		m.say(fromClient, "no previous sessions found for this project")
+		return nil
+	}
+	mostRecent := sessionFiles[0]
+	conversation := loadSession(mostRecent)
+	if conversation == nil {
+		m.say(fromClient, "failed to load session: "+mostRecent)
+		return nil
+	}
+	m.conversation = conversation
+	m.say(fromClient, fmt.Sprintf("resumed session from %s (%d messages)",
+		filepath.Base(mostRecent), len(conversation)))
+	return nil
+}
+
+// sessionsCmd lists all available sessions for the current project with timestamps.
+func (m *model) sessionsCmd() tea.Cmd {
+	projectRoot := m.run.root
+	if projectRoot == "" {
+		projectRoot = "."
+	}
+	sessionFiles := listSessionFiles(projectRoot)
+	if len(sessionFiles) == 0 {
+		m.say(fromClient, "no previous sessions found for this project")
+		return nil
+	}
+	var lines []string
+	lines = append(lines, fmt.Sprintf("sessions for project %s:", projectRoot))
+	for _, filePath := range sessionFiles {
+		lines = append(lines, formatSessionEntry(filePath))
 	}
 	m.say(fromClient, strings.Join(lines, "\n"))
 	return nil
