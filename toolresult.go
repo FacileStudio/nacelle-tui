@@ -52,6 +52,11 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 
 	m.tools++
 
+	// For grouped tools, only print once — when the last call finishes.
+	if held && !m.run.isGroupComplete(tool.ID) {
+		return
+	}
+
 	if tool.Err != nil {
 		m.failed++
 

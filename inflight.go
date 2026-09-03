@@ -11,8 +11,9 @@ import (
 // answerStream holds the text buffers produced during a run. Embedded in
 // inflight so every field still reads as m.run.answer, m.run.fullAnswer, etc.
 type answerStream struct {
-	answer        strings.Builder
-	fullAnswer    strings.Builder
+	answer        strings.Builder // streaming: partial line shown in the live region
+	fullAnswer    strings.Builder // conversation: every word the model said this turn
+	committedLen  int             // bytes of fullAnswer already committed to scrollback via commitParagraphs
 	reasoning     strings.Builder
 	reasoningFull strings.Builder
 }
@@ -95,8 +96,8 @@ func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 		g := &r.groups[len(r.groups)-1]
 		if g.end.IsZero() && toolKind(ev.Name) == toolKind(g.tool.Name) {
 			g.count++
-			// Track the individual calls for rendering
-			g.callNames = append(g.callNames, ev.Name)
+			// Track the individual call arguments for rendering
+			g.callNames = append(g.callNames, primaryArg(ev.Input))
 			if ev.ID != "" {
 				r.groupIndex[ev.ID] = len(r.groups) - 1
 			}
@@ -109,7 +110,7 @@ func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 		count:     1,
 		tool:      ev,
 		start:     time.Now(),
-		callNames: []string{ev.Name},
+		callNames: []string{primaryArg(ev.Input)},
 	}
 	r.groups = append(r.groups, g)
 	if ev.ID != "" {
@@ -130,6 +131,7 @@ func (r *inflight) finishTool(ev nacelle.ToolEvent) {
 				r.groups[i].end = time.Now()
 				r.groups[i].failed = ev.Err != nil
 				r.groups[i].discarded = ev.Discarded
+				r.groups[i].finishedCount++
 				return
 			}
 		}
@@ -143,6 +145,7 @@ func (r *inflight) finishTool(ev nacelle.ToolEvent) {
 	r.groups[i].end = time.Now()
 	r.groups[i].failed = ev.Err != nil
 	r.groups[i].discarded = ev.Discarded
+	r.groups[i].finishedCount++
 }
 
 // heldLine returns the line a finished call will print, and whether the call
@@ -158,6 +161,21 @@ func (r *inflight) heldLine(id string, width int) (string, bool) {
 		return "", false
 	}
 	return r.groups[i].groupLine(width), true
+}
+
+// isGroupComplete reports whether all calls in a group have finished.
+// Returns true for non-grouped tools (count == 1) and for groups where
+// finishedCount has caught up to count.
+func (r *inflight) isGroupComplete(id string) bool {
+	i, ok := r.groupIndex[id]
+	if !ok || i >= len(r.groups) {
+		return true
+	}
+	g := &r.groups[i]
+	if g.count <= 1 {
+		return true
+	}
+	return g.finishedCount >= g.count
 }
 
 // clearGroups drops the run's tool rows. It is called from settle and from

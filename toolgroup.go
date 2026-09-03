@@ -29,13 +29,21 @@ type toolGroup struct {
 	end       time.Time
 	failed    bool
 	discarded bool
-	// callNames tracks individual tool names in a kind-based batch for rendering.
+	// callNames tracks individual primary arguments in a kind-based batch for rendering.
+	// Each entry is the human-readable one-line summary of that call's input
+	// (the same string toolLine renders), so a batch of four shell commands reads
+	// as "⏺ 4 commands · ls docs · read_file(view.go) · git status · …" rather than
+	// repeating the tool name four times.
 	callNames []string
 	// the call that decided the group's fate — the one whose result or error
 	// is shown, and whose input is the one rendered. Earlier calls in the
 	// group are identical in shape, so their input is the same string and
 	// picking the last is as good as picking any.
 	tool nacelle.ToolEvent
+	// finishedCount tracks how many calls in this group have completed.
+	// The group line is printed only when this reaches count, preventing
+	// duplicate lines when each tool result in a batch triggers finished().
+	finishedCount int
 }
 
 // groupLine is a group as the one line it reads as. For a single call, it's
@@ -76,4 +84,17 @@ func (g toolGroup) groupGlyph() string {
 		return toolKindGlyph(toolKind(g.name))
 	}
 	return toolGlyph(g.name)
+}
+
+// inFlightLine is a group still running, with its elapsed time appended.
+// It renders the same layout as groupLine but with a duration suffix so the
+// reader can see how long the batch has been open. Re-rendering each frame
+// keeps the clock moving while the tool is in flight.
+func (g toolGroup) inFlightLine(width int) string {
+	base := g.groupLine(width)
+	if base == "" {
+		return ""
+	}
+	elapsed := time.Since(g.start)
+	return base + " · " + max(elapsed.Round(time.Millisecond), time.Millisecond).String()
 }
