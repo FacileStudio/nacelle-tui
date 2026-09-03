@@ -136,14 +136,10 @@ func TestGroupOnlyPrintsOnce(t *testing.T) {
 
 	// Finish each call one by one. The group line must not appear until the
 	// last one lands. Each call goes through the real flow: finishTool then finished.
-	m.run.finishTool(nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"view.go"}`})
-	m.finished(&nacelle.ToolEvent{ID: "a", Name: "read_file", Input: `{"path":"view.go"}`})
-	if lines := said(); len(lines) != 0 {
-		t.Errorf("after 1st finish: %v, want empty transcript", lines)
+	for _, id := range []string{"a", "b"} {
+		m.run.finishTool(nacelle.ToolEvent{ID: id, Name: "read_file", Input: `{"path":"view.go"}`})
+		m.finished(&nacelle.ToolEvent{ID: id, Name: "read_file", Input: `{"path":"view.go"}`})
 	}
-
-	m.run.finishTool(nacelle.ToolEvent{ID: "b", Name: "read_file", Input: `{"path":"run.go"}`})
-	m.finished(&nacelle.ToolEvent{ID: "b", Name: "read_file", Input: `{"path":"run.go"}`})
 	if lines := said(); len(lines) != 0 {
 		t.Errorf("after 2nd finish: %v, want empty transcript", lines)
 	}

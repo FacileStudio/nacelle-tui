@@ -52,49 +52,59 @@ func (m *model) finished(tool *nacelle.ToolEvent) {
 
 	m.tools++
 
-	// For grouped tools, only print once — when the last call finishes.
-	if held && !m.run.isGroupComplete(tool.ID) {
+	if !m.canPrintTool(tool.ID, held) {
 		return
 	}
 
 	if tool.Err != nil {
 		m.failed++
-
-		errText := tool.Err.Error()
-		if m.run.failures.name == tool.Name && m.run.failures.err == errText {
-			m.run.failures.count++
-			m.run.failures.duration = tool.Duration
-			return
-		}
-
-		// Different failure — flush the previous batch first.
-		m.flushFailures()
-		m.run.failures = failureCollapse{
-			toolLine: line,
-			name:     tool.Name,
-			err:      errText,
-			duration: tool.Duration,
-			count:    1,
-		}
+		m.trackFailure(line, tool)
 		return
 	}
 
-	// Success — flush any pending failures first.
 	m.flushFailures()
-
 	m.say(fromTool, colorGlyph(line, "32", toolRestore(tool.Name))+" · "+took(tool.Duration))
 	m.session.tool(tool.Name, tool.Duration)
 
 	if change, edited := m.run.edits[tool.ID]; edited {
 		delete(m.run.edits, tool.ID)
-		// run_command edits only capture the before content at call time;
-		// read the file now that the command has finished to get the after.
 		if change.after == "" && change.before != "" {
 			change.after = priorContents(m.run.root, change.path)
 		}
 		if diff := renderDiff(change, m.width, m.theme.muted); diff != "" {
 			m.say(fromDiff, diff)
 		}
+	}
+}
+
+// canPrintTool returns false when a grouped tool result has not yet had its
+// last call — printing the group line here would duplicate it on every call
+// in the batch. Non-grouped tools always return true.
+func (m *model) canPrintTool(id string, held bool) bool {
+	if !held {
+		return true
+	}
+	return m.run.isGroupComplete(id)
+}
+
+// trackFailure increments the failure counter and either extends an existing
+// collapse batch or starts a new one. The collapse matches on (name, err), so
+// identical failures render as "name · N times · duration" rather than one
+// line per repeated error.
+func (m *model) trackFailure(line string, tool *nacelle.ToolEvent) {
+	errText := tool.Err.Error()
+	if m.run.failures.name == tool.Name && m.run.failures.err == errText {
+		m.run.failures.count++
+		m.run.failures.duration = tool.Duration
+		return
+	}
+	m.flushFailures()
+	m.run.failures = failureCollapse{
+		toolLine: line,
+		name:     tool.Name,
+		err:      errText,
+		duration: tool.Duration,
+		count:    1,
 	}
 }
 

@@ -4,7 +4,17 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [0.18.0] — 2026-09-02
+## [0.21.4] — 2026-09-03
+
+### Fixed
+- **Grouped tool lines now print once**: finishing each call in a kind-based batch no longer duplicates the group line. A `finishedCount` counter and `isGroupComplete()` guard ensure the group renders only after the last call lands.
+- **`flush()` no longer reprints committed paragraphs**: `committedLen` tracks how much of the streaming answer has already been said, so `flush()` returns only the uncommitted tail and `commitParagraphs()` no longer leaks duplicates.
+- **In-flight tool groups render correctly in the live region**: streaming groups show their ticking duration each frame; finished groups are printed once and do not reappear in the live view.
+
+### Refactored
+- **`finished()` split into three helpers** — `canPrintTool()`, `trackFailure()`, and the original body — to reduce cognitive complexity and make the group-guard path explicit.
+
+## [0.21.0] — 2026-09-02
 
 ### Added
 

@@ -218,9 +218,13 @@ func (m *model) flush() string {
 		}
 	}
 
-	answer := m.run.fullAnswer.String()
+	answer := ""
+	if m.run.committedLen < m.run.fullAnswer.Len() {
+		answer = m.run.fullAnswer.String()[m.run.committedLen:]
+	}
 	m.run.answer.Reset()
 	m.run.fullAnswer.Reset()
+	m.run.committedLen = 0
 	if answer != "" {
 		m.say(fromModel, answer)
 	}

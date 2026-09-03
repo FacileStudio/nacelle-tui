@@ -159,9 +159,36 @@ func (m *model) streaming() []string {
 	if answer := m.run.answer.String(); answer != "" {
 		live = append(live, m.markdown(answer))
 	}
+	// In-flight tool groups are drawn in the live region so they re-render
+	// every frame with a ticking duration. Finished groups are printed once
+	// by toolresult.go; showing them here too duplicates the line.
+	if groups := m.inFlightGroups(); len(groups) > 0 {
+		if len(live) > 0 {
+			live = append(live, "")
+		}
+		live = append(live, groups...)
+	}
 	if len(live) == 0 {
 		return nil
 	}
 
 	return strings.Split(strings.Join(live, "\n"), "\n")
+}
+
+// inFlightGroups renders every tool group still running as a row the live
+// region redraws each frame. A finished group is printed once and belongs to
+// the terminal — only the still-open ones can grow.
+func (m *model) inFlightGroups() []string {
+	var groups []string
+	for _, g := range m.run.groups {
+		if !g.end.IsZero() {
+			continue
+		}
+		line := g.inFlightLine(m.width)
+		if line == "" {
+			continue
+		}
+		groups = append(groups, toolLinePainted(line))
+	}
+	return groups
 }

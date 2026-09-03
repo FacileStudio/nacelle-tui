@@ -149,6 +149,7 @@ func (m *model) commitParagraphs() {
 
 	m.run.answer.Reset()
 	m.run.answer.WriteString(partial)
+	m.run.committedLen += len(complete) + 1
 
 	if complete != "" {
 		m.say(fromModel, complete)
