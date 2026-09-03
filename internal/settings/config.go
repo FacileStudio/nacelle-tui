@@ -56,14 +56,15 @@ type Config struct {
 }
 
 // Toggles is the on/off settings: whether the model may run commands, whether
-// a human is asked before tools run, and whether file edits are drawn as
-// diffs. One field per key, all pointers, for the reason Config's own doc
-// comment gives.
+// a human is asked before tools run, whether file edits are drawn as
+// diffs, and whether the task planning tool is available. One field per key,
+// all pointers, for the reason Config's own doc comment gives.
 type Toggles struct {
 	Bash         *bool `yaml:"bash"`
 	Subagents    *bool `yaml:"subagents"`
 	ApproveTools *bool `yaml:"approve_tools"`
 	Diffs        *bool `yaml:"diffs"`
+	Tasks        *bool `yaml:"tasks"`
 }
 
 // UI holds the look-and-feel choices that are not about what the agent is
@@ -138,8 +139,8 @@ const DefaultCompactAt int64 = 100_000
 
 // Defaults is the bottom layer, and the only one that answers everything.
 func Defaults(system string) Config {
-	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs :=
-		false, false, true, true, false, false, false, true
+	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks :=
+		false, false, true, true, false, false, false, true, true
 	subagents := false
 	iterations, budget := 0, int64(0)
 	compactAt := DefaultCompactAt
@@ -150,7 +151,7 @@ func Defaults(system string) Config {
 		Backend:   "anthropic",
 		Root:      ".",
 		System:    system,
-		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs},
+		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{

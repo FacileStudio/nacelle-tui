@@ -25,6 +25,7 @@ func FromEnv() Config {
 			Subagents:    envBool(EnvPrefix + "SUBAGENTS"),
 			ApproveTools: envBool(EnvPrefix + "APPROVE_TOOLS"),
 			Diffs:        envBool(EnvPrefix + "DIFFS"),
+			Tasks:        envBool(EnvPrefix + "TASKS"),
 		},
 		Reasoning: Reasoning{
 			Effort:   os.Getenv(EnvPrefix + "EFFORT"),

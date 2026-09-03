@@ -76,6 +76,9 @@ func (c *Config) mergeToggles(over Config) {
 	if over.Diffs != nil {
 		c.Diffs = over.Diffs
 	}
+	if over.Tasks != nil {
+		c.Tasks = over.Tasks
+	}
 }
 
 // mergeUI overwrites every pointer field in UI that over actually mentions.

@@ -26,7 +26,7 @@ type declared struct {
 }
 
 type togglesFlags struct {
-	bash, subagents, approveTools, diffs *bool
+	bash, subagents, approveTools, diffs, tasks *bool
 }
 
 type reasoningFlags struct {
@@ -71,6 +71,7 @@ func declareFlags(fallback Config) declared {
 			subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
 			approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
 			diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
+			tasks:        flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),
 		},
 		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
 		compactAt:  flag.Int64("compact-at", *fallback.CompactAt, "transcript size in tokens at which the session compacts; 0 turns compaction off"),
@@ -111,6 +112,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"trust-hooks":      func(c *Config) { c.TrustHooks = f.trustHooks },
 		"approve-tools":    func(c *Config) { c.ApproveTools = f.approveTools },
 		"diffs":            func(c *Config) { c.Diffs = f.diffs },
+		"tasks":            func(c *Config) { c.Tasks = f.tasks },
 		"max-iterations":   func(c *Config) { c.MaxIterations = f.iterations },
 		"compact-at":       func(c *Config) { c.CompactAt = f.compactAt },
 		"reasoning-budget": func(c *Config) { c.Budget = f.budget },

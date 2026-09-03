@@ -153,7 +153,7 @@ func TestThePlanToolIsMountedAfterTheDelegateTakesItsCopy(t *testing.T) {
 	if named(local, "tasks") != 0 {
 		t.Errorf("localTools returned the plan tool, so a delegate inherits it")
 	}
-	if got := named(withTasks(local), "tasks"); got != 1 {
+	if got := named(withTasks(config, local), "tasks"); got != 1 {
 		t.Errorf("withTasks mounted the plan tool %d times, want exactly one", got)
 	}
 }

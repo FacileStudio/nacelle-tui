@@ -6,6 +6,9 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+- **`tasks` toggle**: the task planning tool is now configurable through `~/.nacelle.yml` (`tasks:`), `NACELLE_TASKS` environment variable, or `-tasks`/`-no-tasks` flag. Default is on. Follows the standard precedence chain (flag > env > file > default). This completes the set of tool toggles — every tool now has a setting.
+
 ## [0.21.7] — 2026-09-03
 
 ### Added
