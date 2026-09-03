@@ -29,11 +29,9 @@ func plan(n, active int) taskList {
 }
 
 // layout reserves rows() lines and View draws view(), so the two disagreeing
-// by one pushes the prompt off the bottom of the screen. The cap is where
-// that is easiest to get wrong: the extra "and N more" line is a row layout
-// has to have counted.
+// by one pushes the prompt off the bottom of the screen.
 func TestEveryPlanDrawsExactlyTheRowsItReserved(t *testing.T) {
-	for _, size := range []int{0, 1, taskRows - 1, taskRows, taskRows + 1, 40} {
+	for _, size := range []int{0, 1, 4, 5, 6, 40} {
 		list := plan(size, size/2)
 		if got, want := len(list.view(80, lipgloss.NewStyle())), list.rows(); got != want {
 			t.Errorf("%d steps drew %d lines, reserved %d", size, got, want)
@@ -41,10 +39,8 @@ func TestEveryPlanDrawsExactlyTheRowsItReserved(t *testing.T) {
 	}
 }
 
-// Past the cap the list scrolls to the step in flight. A plan whose first
-// steps are done would otherwise draw nothing but ticks, hiding the one line
-// the reader is watching.
-func TestALongPlanShowsTheStepInFlight(t *testing.T) {
+// A long plan shows all steps (no scrolling, no hidden count).
+func TestALongPlanShowsAllSteps(t *testing.T) {
 	list := plan(20, 15)
 	list[15].Title = "the running one"
 
@@ -52,8 +48,9 @@ func TestALongPlanShowsTheStepInFlight(t *testing.T) {
 	if !strings.Contains(drawn, "the running one") {
 		t.Errorf("the running step is off screen:\n%s", drawn)
 	}
-	if !strings.Contains(drawn, "15 more") {
-		t.Errorf("the hidden steps are not counted:\n%s", drawn)
+	// Ensure no "... and N more" line appears (we show all steps)
+	if strings.Contains(drawn, "… and") {
+		t.Errorf("unexpected hidden count line found:\n%s", drawn)
 	}
 }
 

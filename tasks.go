@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync/atomic"
 
 	tea "charm.land/bubbletea/v2"
@@ -56,45 +55,12 @@ var reports = make(chan taskUpdate, 16)
 // first plan arrives, and callers check that.
 var currentPlan atomic.Value
 
-// taskRows is how many steps are drawn before the rest are counted in one
-// line instead, for the reason queuedRows spells out: layout reserves a row
-// per line drawn here, so an unbounded list is a transcript squeezed to
-// nothing and a prompt pushed off the bottom. A plan is a reminder of where
-// the work is, not a document.
-const taskRows = 5
-
 // rows is how many lines view draws for this list. layout reserves exactly
 // this many, so the two must never be able to disagree — which is why it is
 // this function and not a len() at both call sites. See queuedHeight, which
 // carries the same warning about the same bug.
 func (t taskList) rows() int {
-	if len(t) <= taskRows {
-		return len(t)
-	}
-	return taskRows + 1
-}
-
-// window is the slice of steps that fits on screen, and how many are left
-// out.
-//
-// It scrolls to the step in flight rather than always showing the top of the
-// list. A twenty-step plan whose first five are done would otherwise draw
-// five ticks and a count, which is the one part of the plan nobody needs to
-// see: the reader is watching for what is happening now. One finished step is
-// kept above it for context, because a running step with nothing before it
-// reads as the beginning of the plan.
-func (t taskList) window() (taskList, int) {
-	if len(t) <= taskRows {
-		return t, 0
-	}
-	start := 0
-	for i, item := range t {
-		if item.Status == statusActive {
-			start = min(max(i-1, 0), len(t)-taskRows)
-			break
-		}
-	}
-	return t[start : start+taskRows], len(t) - taskRows
+	return len(t)
 }
 
 // view is the plan as it stands, drawn between the blank row and the status
@@ -110,9 +76,8 @@ func (t taskList) window() (taskList, int) {
 // survives the width check, and leaves the terminal in reverse video for
 // everything printed after it — see unstyled.
 func (t taskList) view(width int, muted lipgloss.Style) []string {
-	shown, hidden := t.window()
 	lines := make([]string, 0, t.rows())
-	for _, item := range shown {
+	for _, item := range t {
 		glyph := taskGlyphStyle(item.Status).Render(taskGlyph(item.Status))
 		title := truncate(unstyled(item.Title), max(0, width-lipgloss.Width(glyph)-1))
 		if title == "" {
@@ -120,9 +85,6 @@ func (t taskList) view(width int, muted lipgloss.Style) []string {
 		} else {
 			lines = append(lines, glyph+" "+muted.Render(title))
 		}
-	}
-	if hidden > 0 {
-		lines = append(lines, muted.Render(truncate(fmt.Sprintf("… and %d more", hidden), width)))
 	}
 	return lines
 }
