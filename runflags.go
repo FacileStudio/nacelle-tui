@@ -61,7 +61,7 @@ func run() error {
 		skills: found.skills, hookNotice: hookNotice, gate: approvalGate,
 		root: config.Root, model: config.Model, backend: config.Backend,
 		diffs: *config.Diffs, groupTools: config.GroupTools,
-		showThinking: *config.ShowThinking, compactAt: *config.CompactAt,
+		showThinking: *config.ShowThinking, compactAt: resolveCompactAt(*config.CompactAt, backend),
 	})
 }
 
@@ -177,4 +177,11 @@ func augmentSystem(config *Config) loaded {
 	found.notice = skills.notice
 	found.skills = skills.skills
 	return found
+}
+
+func resolveCompactAt(compactAt int64, backend nacelle.Backend) int64 {
+	if compactAt == 100000 && backend.Capabilities().ContextWindow > 0 {
+		return backend.Capabilities().ContextWindow * 3 / 4
+	}
+	return compactAt
 }
