@@ -79,7 +79,11 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 // discarding return values into _ — filet flags those.
 func closeAll(closers ...interface{ Close() error }) {
 	for _, c := range closers {
-		_ = c.Close()
+		if c != nil {
+			if err := c.Close(); err != nil {
+				continue
+			}
+		}
 	}
 }
 
