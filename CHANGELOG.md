@@ -4,6 +4,15 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Fixed
+- **Conversation preservation across streaming commits**: `flush()` now returns the full answer to `closeTurn()` while printing only the uncommitted tail to the terminal, preventing multi-line responses from being truncated in conversation history.
+- **Tool grouping lifecycle and failure tracking**: in-flight tool groups keep their ticking live display until all calls in the batch finish, and failures in intermediate calls are recorded without being swallowed by subsequent successful calls.
+- **Session rotation hardening**: extracted rotation to `sessionrotate.go` to keep file length under the limit, set file permissions to `0600`, clean up failed archives, and use millisecond timestamps to avoid collisions.
+- **CLI output style**: replaced decorative emojis with standard terminal status indicators.
+- **Dependency bump**: updated `nacelle` to `v0.8.6`.
+
 ## [0.21.4] — 2026-09-03
 
 ### Fixed
