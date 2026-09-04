@@ -65,8 +65,9 @@ func TestAStreamErrorIsCommittedAfterTheAnswerItInterrupted(t *testing.T) {
 // reasoning on screen to run into the answer.
 func TestReasoningIsShownApartAndKeptOutOfTheConversation(t *testing.T) {
 	m := sized()
-	m.expanded = true
+	m.Expanded = true
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "let me think"})
+
 	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "the answer"})
 	m.settle()
 

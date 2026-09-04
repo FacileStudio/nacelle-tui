@@ -9,6 +9,7 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/tui/approval"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/layout"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/status"
+	"github.com/FacileStudio/nacelle-tui/internal/tui/thinking"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/toolview"
 )
 
@@ -18,6 +19,12 @@ type taskList = tasks.TaskList
 type taskUpdate = tasks.TaskUpdate
 type toolGroup = toolview.Group
 type toolError = toolview.ToolError
+type thoughts = thinking.Thoughts
+
+var bySkillName = skills.BySkillName
+var skillCommandNames = skills.SkillCommandNames
+var skillPrompt = skills.SkillPrompt
+var roughly = thinking.Roughly
 
 type approvalDecision = approval.Decision
 type approvalRequest = approval.Request

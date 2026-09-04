@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"context"
+	"iter"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -121,5 +124,66 @@ func TestSlashCostDurationsFromSessionStart(t *testing.T) {
 	said := printedBy(m.ask())
 	if !strings.Contains(said, "session · 1m30s") {
 		t.Errorf("said = %q, want the session's own span", said)
+	}
+}
+
+type answeringStub struct{ received nacelle.Request }
+
+func (s *answeringStub) Name() string                       { return "stub" }
+func (s *answeringStub) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{} }
+func (s *answeringStub) Stream(_ context.Context, request nacelle.Request) iter.Seq2[nacelle.Event, error] {
+	s.received = request
+	return func(yield func(nacelle.Event, error) bool) {
+		yield(nacelle.Event{Kind: nacelle.KindDone}, nil)
+	}
+}
+func (s *answeringStub) CountTokens(_ context.Context, request nacelle.Request) (int64, error) {
+	s.received = request
+	return 0, nil
+}
+
+func TestSlashSkillStartsARunWithTheSkillsBodyAsTheQuestion(t *testing.T) {
+	dir := t.TempDir()
+	writeSkill(t, dir, "Name: deploy\ndescription: ships the app")
+	s := skill{Name: "deploy", Path: filepath.Join(dir, "SKILL.md")}
+
+	agent, err := nacelle.New(nacelle.Config{Backend: &answeringStub{}, System: "test"})
+	if err != nil {
+		t.Fatalf("nacelle.New: %v", err)
+	}
+	m := newModel(agent, "test · model", []skill{s}, int64(100_000), false)
+	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
+	t.Cleanup(m.run.cancel)
+
+	m.prompt.SetValue("/skill:deploy to staging")
+	m.ask()
+
+	if !m.run.busy {
+		t.Fatal("/skill:deploy did not start a run")
+	}
+	if len(m.conversation) != 1 {
+		t.Fatalf("conversation = %v, want exactly the expanded skill sent", m.conversation)
+	}
+	sent := m.conversation[0].Parts[0].(nacelle.Text).Text
+	if !strings.Contains(sent, "Do the thing.") || !strings.HasSuffix(sent, "User: to staging") {
+		t.Errorf("sent = %q, want the skill body plus the args as a User: line", sent)
+	}
+}
+
+func TestSlashSkillReportsAnUnknownSkillWithoutStartingARun(t *testing.T) {
+	m := sized()
+	m.prompt.SetValue("/skill:nope")
+
+	printed := printedBy(m.ask())
+
+	if m.run.busy {
+		t.Error("an unknown skill started a run")
+	}
+	echo, reply := strings.Index(printed, "/skill:nope"), strings.Index(printed, "unknown skill")
+	if reply < 0 || !strings.Contains(printed, "nope") {
+		t.Fatalf("printed = %q, want a line naming the unknown skill", printed)
+	}
+	if echo < 0 || echo > reply {
+		t.Errorf("printed = %q, want the echoed input above the reply to it", printed)
 	}
 }

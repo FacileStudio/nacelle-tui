@@ -66,11 +66,11 @@ func (m *Model) flushThinking() {
 
 	if reasoning != "" || m.run.reasoningFull.Len() > 0 {
 		spent := m.elapsed()
-		m.begun, m.ended = time.Time{}, time.Time{}
-		m.retained = m.run.reasoningFull.String() + reasoning
+		m.Begun, m.Ended = time.Time{}, time.Time{}
+		m.Retained = m.run.reasoningFull.String() + reasoning
 		m.run.reasoningFull.Reset()
 
-		if m.expanded {
+		if m.Expanded {
 			if reasoning != "" {
 				m.say(fromThinking, reasoning)
 			}
@@ -78,6 +78,7 @@ func (m *Model) flushThinking() {
 			m.say(fromThinking, m.collapsed(spent))
 		}
 	}
+
 }
 
 func watchTasks() tea.Cmd {

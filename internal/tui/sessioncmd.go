@@ -48,3 +48,14 @@ func (m *Model) sessionsCmd() tea.Cmd {
 	m.say(fromClient, strings.Join(lines, "\n"))
 	return nil
 }
+
+func runSkill(s skill, args string) command {
+	return func(m *Model) tea.Cmd {
+		text, err := skillPrompt(s, args)
+		if err != nil {
+			m.say(fromClient, "reading "+s.Path+": "+err.Error())
+			return nil
+		}
+		return m.send(text)
+	}
+}

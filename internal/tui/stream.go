@@ -2,6 +2,8 @@ package tui
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -43,12 +45,6 @@ func start(ctx context.Context, agent *nacelle.Agent, conversation []nacelle.Mes
 }
 
 // waitFor takes exactly one result and re-arms itself from Update.
-//
-// This is the shape Bubble Tea wants for a stream, rather than sending into
-// the program from the goroutine: each command runs on its own goroutine, so
-// the blocking receive costs nothing, and every state change still happens in
-// the update loop where it can be reasoned about. A closed channel arriving as
-// finished is the end-of-run signal, so no separate sentinel is needed.
 func waitFor(results <-chan result) tea.Cmd {
 	return func() tea.Msg {
 		next, open := <-results
@@ -56,5 +52,86 @@ func waitFor(results <-chan result) tea.Cmd {
 			return finished{}
 		}
 		return next
+	}
+}
+
+func (m *Model) absorb(event nacelle.Event) {
+	if m.run.turnBegan.IsZero() && event.Kind != nacelle.KindTurn && event.Kind != nacelle.KindDone && event.Kind != nacelle.KindToolResult {
+		m.run.turnBegan = time.Now()
+	}
+	switch event.Kind {
+	case nacelle.KindText:
+		m.thought()
+		m.run.reported = m.run.reported || event.Text != ""
+		m.run.answer.WriteString(event.Text)
+		m.run.fullAnswer.WriteString(event.Text)
+		m.commitParagraphs()
+	case nacelle.KindThinking:
+		m.run.reasoning.WriteString(event.Text)
+		if m.Expanded {
+			m.commitReasoning()
+		}
+
+	case nacelle.KindToolCall:
+		m.absorbToolCall(*event.Tool)
+	case nacelle.KindToolResult:
+		m.run.finishTool(*event.Tool)
+		m.finished(event.Tool)
+	case nacelle.KindTurn:
+		m.turn(event)
+	case nacelle.KindDone:
+		m.run.usage = event.Usage
+		m.run.stop = event.Stop
+		m.sized(event.Usage)
+		m.compact()
+	}
+}
+
+func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
+	m.commitParagraphs()
+	m.thought()
+	m.run.reported = true
+	m.run.beginTool(tool, m.groupTools)
+	if m.run.diffs {
+		if change, ok := captureEdit(m.run.root, tool.Name, tool.Input); ok {
+			m.run.edits[tool.ID] = change
+		}
+	}
+}
+
+func (m *Model) commitParagraphs() {
+	text := m.run.answer.String()
+	idx := strings.LastIndex(text, "\n")
+	if idx < 0 {
+		return
+	}
+	complete := text[:idx]
+	partial := text[idx+1:]
+
+	m.run.answer.Reset()
+	m.run.answer.WriteString(partial)
+	m.run.committedLen += len(complete) + 1
+
+	if complete != "" {
+		m.say(fromModel, complete)
+	}
+}
+
+func (m *Model) commitReasoning() {
+	text := m.run.reasoning.String()
+	idx := strings.LastIndex(text, "\n")
+	if idx < 0 {
+		return
+	}
+	complete := text[:idx]
+	partial := text[idx+1:]
+
+	m.run.reasoning.Reset()
+	m.run.reasoning.WriteString(partial)
+
+	if complete != "" {
+		m.run.reasoningFull.WriteString(complete)
+		m.run.reasoningFull.WriteString("\n")
+		m.say(fromThinking, complete)
 	}
 }

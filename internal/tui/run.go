@@ -39,8 +39,8 @@ type UISession struct {
 // before it opened, and prints the recap on exit.
 func Launch(c UISession) error {
 	opened := NewModel(c.Agent, c.Banner, c.Skills, c.CompactAt, c.AutoResume)
-	opened.groupTools = derefBool(c.GroupTools)
-	opened.expanded = c.ShowThinking
+	opened.groupTools = c.GroupTools != nil && *c.GroupTools
+	opened.Expanded = c.ShowThinking
 	opened.run.root = c.Root
 	opened.run.diffs = c.Diffs
 	opened.sink = usage.NewSink(c.Root, c.Model)
@@ -63,10 +63,6 @@ func Launch(c UISession) error {
 		}
 	}
 	return err
-}
-
-func derefBool(b *bool) bool {
-	return b != nil && *b
 }
 
 // send starts a run over text.
@@ -141,4 +137,34 @@ func (m *Model) consume(next result) tea.Cmd {
 	m.record(next.event)
 	m.absorb(next.event)
 	return waitFor(m.run.results)
+}
+
+func (m *Model) recap() string {
+	total := m.spent.Add(m.run.usage)
+	tokens := total.InputTokens + total.OutputTokens + total.CacheReadTokens + total.CacheCreationTokens
+	if m.tools == 0 && tokens == 0 {
+		return ""
+	}
+
+	shape := "session · " + lasted(time.Since(m.began))
+	switch {
+	case m.tools == 1:
+		shape += " · 1 tool"
+	case m.tools > 1:
+		shape += fmt.Sprintf(" · %d tools", m.tools)
+	}
+	if m.failed > 0 {
+		shape += fmt.Sprintf(" · %d failed", m.failed)
+	}
+
+	spend := fmt.Sprintf("in %s · out %s",
+		shortTokens(total.InputTokens+total.CacheCreationTokens),
+		shortTokens(total.OutputTokens))
+	if total.CacheReadTokens > 0 {
+		spend += fmt.Sprintf(" · %s cached", shortTokens(total.CacheReadTokens))
+	}
+	if total.Cost > 0 {
+		spend += fmt.Sprintf(" · $%.4f", total.Cost)
+	}
+	return shape + "\n" + spend
 }

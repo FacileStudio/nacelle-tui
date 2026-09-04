@@ -2,7 +2,6 @@ package tui
 
 import (
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -82,113 +81,6 @@ func (m *Model) View() tea.View {
 // written into one buffer come out concatenated with no separator, and that
 // concatenation is what would go back as the assistant's message on every
 // later turn, putting a chain of thought in the one field no provider wants it
-// replayed in.
-//
-// A tool call says nothing here. Its line is built and held against the call
-// id, and finished is what says it once the result names how long it took —
-// see toolline.go for why the duration cannot be added to a line that has
-// already been printed.
-//
-// The two events that are not reasoning stop the thinking clock on their way
-// past, because this is where a turn stops thinking and starts doing. See
-// thought for what measuring it anywhere later billed to thinking instead.
-func (m *Model) absorb(event nacelle.Event) {
-	if m.run.turnBegan.IsZero() && event.Kind != nacelle.KindTurn && event.Kind != nacelle.KindDone && event.Kind != nacelle.KindToolResult {
-		m.run.turnBegan = time.Now()
-	}
-	switch event.Kind {
-	case nacelle.KindText:
-		m.thought()
-		m.run.reported = m.run.reported || event.Text != ""
-		m.run.answer.WriteString(event.Text)
-		m.run.fullAnswer.WriteString(event.Text)
-		m.commitParagraphs()
-	case nacelle.KindThinking:
-		m.run.reasoning.WriteString(event.Text)
-		if m.expanded {
-			m.commitReasoning()
-		}
-	case nacelle.KindToolCall:
-		m.commitParagraphs()
-		m.thought()
-		m.run.reported = true
-		m.run.beginTool(*event.Tool, m.groupTools)
-		if m.run.diffs {
-			if change, ok := captureEdit(m.run.root, event.Tool.Name, event.Tool.Input); ok {
-				m.run.edits[event.Tool.ID] = change
-			}
-		}
-	case nacelle.KindToolResult:
-		m.run.finishTool(*event.Tool)
-		m.finished(event.Tool)
-	case nacelle.KindTurn:
-		m.turn(event)
-	case nacelle.KindDone:
-		m.run.usage = event.Usage
-		m.run.stop = event.Stop
-		m.sized(event.Usage)
-		m.compact()
-	}
-}
-
-// commitParagraphs finishes every complete line from the streaming answer to
-// scrollback, so text appears line by line rather than as a block that grows
-// in the live region and jumps into view when clipped. A line is complete
-// when it has ended with a newline (\n). The trailing partial line stays in
-// the answer buffer for the live streaming region.
-//
-// Callers: absorb after every text delta, and flush before finishing the turn.
-func (m *Model) commitParagraphs() {
-	text := m.run.answer.String()
-	idx := strings.LastIndex(text, "\n")
-	if idx < 0 {
-		return
-	}
-	complete := text[:idx]
-	partial := text[idx+1:]
-
-	m.run.answer.Reset()
-	m.run.answer.WriteString(partial)
-	m.run.committedLen += len(complete) + 1
-
-	if complete != "" {
-		m.say(fromModel, complete)
-	}
-}
-
-// commitReasoning finishes every complete line from the streaming reasoning
-// buffer to scrollback, so expanded thinking flows line by line instead of
-// accumulating until the live region clips it. Same pattern as commitParagraphs
-// but writes through fromThinking and accumulates the full text for ctrl+t replay.
-//
-// Callers: absorb after every thinking delta when expanded.
-func (m *Model) commitReasoning() {
-	text := m.run.reasoning.String()
-	idx := strings.LastIndex(text, "\n")
-	if idx < 0 {
-		return
-	}
-	complete := text[:idx]
-	partial := text[idx+1:]
-
-	m.run.reasoning.Reset()
-	m.run.reasoning.WriteString(partial)
-
-	if complete != "" {
-		m.run.reasoningFull.WriteString(complete)
-		m.run.reasoningFull.WriteString("\n")
-		m.say(fromThinking, complete)
-	}
-}
-
-// cutShort is how a run that stopped short reads, and the empty string for one
-// that finished.
-//
-// A truncated, refused or abandoned answer arrives as a well-formed stream
-// that simply ends, so the screen shows a paragraph stopping mid-sentence and
-// a status line saying "ready". Saying which of them happened, in words rather
-// than in the wire's vocabulary, is the whole point: the person reading has to
-// know whether to ask again or to ask differently.
 func cutShort(stop nacelle.Stop) string {
 	if stop == "" || stop.Complete() {
 		return ""

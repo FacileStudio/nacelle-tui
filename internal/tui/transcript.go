@@ -160,12 +160,13 @@ func (m *Model) streaming() []string {
 
 	var live []string
 	if reasoning := m.run.reasoning.String(); reasoning != "" {
-		if m.expanded {
+		if m.Expanded {
 			live = append(live, m.markdown(reasoning))
 		} else {
 			live = append(live, m.theme.Thinking.Render(m.collapsed(m.elapsed())))
 		}
 	}
+
 	if answer := m.run.answer.String(); answer != "" {
 		live = append(live, m.markdown(answer))
 	}

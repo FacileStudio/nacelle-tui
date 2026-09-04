@@ -16,7 +16,7 @@ import (
 func thought(text string, ago time.Duration) *model {
 	m := sized()
 	m.run.reasoning.WriteString(text)
-	m.begun = time.Now().Add(-ago)
+	m.Begun = time.Now().Add(-ago)
 	return m
 }
 
@@ -86,7 +86,7 @@ func TestTheExpandHintIsShownOnceAndNotAgain(t *testing.T) {
 
 	m.unprinted = nil
 	m.run.reasoning.WriteString("thinking again")
-	m.begun = time.Now().Add(-time.Second)
+	m.Begun = time.Now().Add(-time.Second)
 	m.flush()
 
 	if second := strings.Join(m.unprinted, "\n"); strings.Contains(second, "ctrl+t") {
@@ -101,8 +101,8 @@ func TestTheFullReasoningIsRetainedAfterCollapsing(t *testing.T) {
 
 	m.flush()
 
-	if m.retained != "the whole chain of thought" {
-		t.Errorf("retained = %q, want the reasoning kept in memory", m.retained)
+	if m.Retained != "the whole chain of thought" {
+		t.Errorf("retained = %q, want the reasoning kept in memory", m.Retained)
 	}
 }
 
@@ -134,7 +134,7 @@ func TestExpandingSticksForTheTurnsAfterIt(t *testing.T) {
 	m.unprinted = nil
 
 	m.run.reasoning.WriteString("the second turn's reasoning")
-	m.begun = time.Now().Add(-time.Second)
+	m.Begun = time.Now().Add(-time.Second)
 	m.flush()
 	said := visible(strings.Join(m.unprinted, "\n"))
 
@@ -155,7 +155,7 @@ func TestPressingItAgainCollapsesAgain(t *testing.T) {
 	m.unprinted = nil
 
 	m.run.reasoning.WriteString("the second turn's reasoning")
-	m.begun = time.Now().Add(-time.Second)
+	m.Begun = time.Now().Add(-time.Second)
 	m.flush()
 
 	if said := visible(strings.Join(m.unprinted, "\n")); !strings.Contains(said, "▶ thought for") {
@@ -175,7 +175,7 @@ func TestCtrlTWithNothingRetainedSaysSoQuietly(t *testing.T) {
 	if !handled || cmd != nil {
 		t.Fatalf("handled, cmd = %v, %v; want the press claimed and nothing started", handled, cmd)
 	}
-	if !m.expanded {
+	if !m.Expanded {
 		t.Error("expanded = false, want the mode toggled with nothing to print")
 	}
 	if said := visible(strings.Join(m.unprinted, "\n")); !strings.Contains(said, "reasoning will be shown in full") {
@@ -189,20 +189,36 @@ func TestCtrlTWithNothingRetainedSaysSoQuietly(t *testing.T) {
 func TestTheClockStartsAtTheFirstThinkingDeltaAndOnlyThen(t *testing.T) {
 	m := sized()
 	m.streaming()
-	if !m.begun.IsZero() {
+	if !m.Begun.IsZero() {
 		t.Fatal("begun was stamped with nothing streaming, want no clock until there is reasoning")
 	}
 
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "first"})
 	m.streaming()
-	first := m.begun
+	first := m.Begun
 	if first.IsZero() {
 		t.Fatal("begun is zero, want the first delta to start the clock")
 	}
 
 	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: " and more"})
 	m.streaming()
-	if !m.begun.Equal(first) {
-		t.Errorf("begun = %v, want the first delta's stamp kept, not the latest frame's", m.begun)
+	if !m.Begun.Equal(first) {
+		t.Errorf("begun = %v, want the first delta's stamp kept, not the latest frame's", m.Begun)
+	}
+}
+
+func TestClearingTheSessionDropsWhatCtrlTWouldReprint(t *testing.T) {
+	m := bareBanner()
+	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "from the old session"})
+	m.flush()
+
+	m.clear()
+	m.unprinted = nil
+	m.reveal()
+
+	for _, line := range m.unprinted {
+		if strings.Contains(line, "from the old session") {
+			t.Errorf("ctrl+t after /clear reprinted the cleared session: %q", line)
+		}
 	}
 }

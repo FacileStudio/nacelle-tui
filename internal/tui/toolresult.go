@@ -3,7 +3,6 @@ package tui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/FacileStudio/nacelle"
 
@@ -63,19 +62,8 @@ func (m *Model) finished(tool *nacelle.ToolEvent) {
 		return
 	}
 
-	if held {
-		if g := m.run.findGroup(tool.ID); g != nil && g.Count > 1 {
-			dur := took(g.Duration())
-			if g.Failed {
-				m.printGroupFailure(line, tool.Name, g.Errors, dur)
-			} else {
-				m.say(fromTool, toolview.ColorGlyph(line, "32", toolview.ToolRestore(tool.Name))+" · "+dur)
-			}
-			for _, id := range g.CallIDs {
-				m.finishEdit(id)
-			}
-			return
-		}
+	if held && m.finishGroup(line, tool) {
+		return
 	}
 
 	if tool.Err != nil {
@@ -86,6 +74,23 @@ func (m *Model) finished(tool *nacelle.ToolEvent) {
 	m.flushFailures()
 	m.say(fromTool, toolview.ColorGlyph(line, "32", toolview.ToolRestore(tool.Name))+" · "+took(tool.Duration))
 	m.finishEdit(tool.ID)
+}
+
+func (m *Model) finishGroup(line string, tool *nacelle.ToolEvent) bool {
+	g := m.run.findGroup(tool.ID)
+	if g == nil || g.Count <= 1 {
+		return false
+	}
+	dur := took(g.Duration())
+	if g.Failed {
+		m.printGroupFailure(line, tool.Name, g.Errors, dur)
+	} else {
+		m.say(fromTool, toolview.ColorGlyph(line, "32", toolview.ToolRestore(tool.Name))+" · "+dur)
+	}
+	for _, id := range g.CallIDs {
+		m.finishEdit(id)
+	}
+	return true
 }
 
 func (m *Model) printGroupFailure(line, name string, errs []toolError, dur string) {
@@ -209,13 +214,4 @@ func (m *Model) stranded() {
 	}
 	m.run.clearGroups()
 	m.run.edits = map[string]editChange{}
-}
-
-// took is how long a call took, at the resolution a reader cares about.
-//
-// A sub-millisecond call is floored to 1ms rather than rounded to zero: `· 0s`
-// on a tool that plainly did something reads as a broken clock, and nobody is
-// comparing 300µs against 700µs in a scrollback.
-func took(spent time.Duration) string {
-	return max(spent.Round(time.Millisecond), time.Millisecond).String()
 }
