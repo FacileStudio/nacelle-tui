@@ -22,7 +22,7 @@ func (m *Model) status() string {
 	}
 	if m.run.pending != nil {
 		state = fmt.Sprintf("approve %s(%s)? y = once · a = always this session · n = deny",
-			m.run.pending.name, truncate(unstyled(string(m.run.pending.input)), 60))
+			m.run.pending.Name, truncate(unstyled(string(m.run.pending.Input)), 60))
 	}
 
 	if m.session != nil && m.session.HasWriteError() {

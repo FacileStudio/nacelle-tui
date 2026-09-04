@@ -14,6 +14,8 @@ import (
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/history"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/menu"
+	"github.com/FacileStudio/nacelle-tui/internal/tui/queue"
+	"github.com/FacileStudio/nacelle-tui/internal/tui/status"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/theme"
 )
 
@@ -53,7 +55,7 @@ type commandState struct {
 type look struct {
 	theme        theme.Palette
 	pretty       *glamour.TermRenderer
-	spin         spinner.Model
+	spin         status.Spinner
 	groupTools   bool
 	promptStyles textarea.Styles
 }
@@ -61,8 +63,15 @@ type look struct {
 // core groups the agent and the startup banner so model stays under filet's
 // field cap. Embedded, so every field still reads as m.agent and m.banner.
 type core struct {
-	agent  *nacelle.Agent
-	banner string
+	agent      *nacelle.Agent
+	banner     string
+	autoResume bool
+}
+
+// transcript groups the conversation and unprinted lines.
+type transcript struct {
+	conversation []nacelle.Message
+	unprinted    []string
 }
 
 // transcriptSize groups the transcript-size settings so model stays under
@@ -78,11 +87,11 @@ type transcriptSize struct {
 type Model struct {
 	core
 	transcriptSize
+	transcript
+	queue.Queue
 
-	prompt    textarea.Model
-	unprinted []string
+	prompt textarea.Model
 
-	conversation []nacelle.Message
 	account
 	look
 	commandState
@@ -90,8 +99,6 @@ type Model struct {
 	thoughts
 	hist *history.History
 	run  inflight
-
-	autoResume bool
 }
 
 type model = Model
@@ -109,12 +116,12 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	byName := bySkillName(skills)
 
 	m := &Model{
-		core:           core{agent: agent, banner: banner},
+		core:           core{agent: agent, banner: banner, autoResume: autoResume},
 		transcriptSize: transcriptSize{compactAt: compactAt},
 		prompt:         newPrompt(),
 		look: look{
 			theme: theme.Themed(true),
-			spin:  spinner.New(spinner.WithSpinner(spinner.MiniDot)),
+			spin:  status.NewSpinner(),
 		},
 		account: account{began: time.Now()},
 		screen:  screen{width: 80, liveRows: 1},
@@ -127,8 +134,7 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 			editState: editState{
 				edits: map[string]editChange{}},
 		},
-		hist:       history.New(),
-		autoResume: autoResume,
+		hist: history.New(),
 	}
 	m.pretty = theme.Prettier(m.theme.Markdown, m.width)
 	m.promptStyles = m.prompt.Styles()

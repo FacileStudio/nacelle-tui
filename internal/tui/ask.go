@@ -42,7 +42,7 @@ func (m *Model) ask() tea.Cmd {
 
 	held := m.requeue(question)
 	if !held && m.run.busy {
-		m.run.queued = append(m.run.queued, question)
+		m.Add(question)
 		held = true
 	}
 	m.remember(question)

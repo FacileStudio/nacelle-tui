@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"charm.land/bubbles/v2/spinner"
+
 	"github.com/FacileStudio/nacelle"
 )
 
@@ -151,5 +153,57 @@ func TestAStatusLineDrawnWithoutSendIsNotGivenAThousandHourTimer(t *testing.T) {
 
 	if got := m.ongoing(); got != "" {
 		t.Errorf("ongoing with no stamp = %q, want the empty string", got)
+	}
+}
+
+func TestStatusSeparatesInputFromOutputTokens(t *testing.T) {
+	m := sized()
+	m.spent = nacelle.Usage{
+		InputTokens:     2600,
+		OutputTokens:    1100,
+		CacheReadTokens: 9800,
+	}
+
+	got := visible(m.View().Content)
+	for _, want := range []string{"in 2.6k", "out 1.1k", "9.8k cached"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("status %q missing %q", got, want)
+		}
+	}
+	if strings.Contains(got, "3700 tokens") || strings.Contains(got, "13.5k tokens") {
+		t.Errorf("status still shows one merged total: %q", got)
+	}
+}
+
+func TestAskingShowsTheSpinnerBeforeAnythingArrives(t *testing.T) {
+	m := sized()
+	m.agent = answering(t)
+	m.prompt.SetValue("are you there?")
+	m.ask()
+	defer m.run.cancel()
+
+	if !strings.Contains(visible(m.status()), "waiting ") {
+		t.Errorf("status = %q, want it saying so while nothing has arrived yet", visible(m.status()))
+	}
+}
+
+func TestTheSpinnerSurvivesTheFirstEvent(t *testing.T) {
+	m := sized()
+	m.agent = answering(t)
+	m.prompt.SetValue("go on then")
+	m.ask()
+	defer m.run.cancel()
+
+	m.consume(result{event: nacelle.Event{Kind: nacelle.KindText, Text: "h"}})
+
+	if !m.run.busy {
+		t.Fatal("the run stopped being busy on its first event, so this proves nothing")
+	}
+	msg, ok := m.spin.Tick().(spinner.TickMsg)
+	if !ok {
+		t.Fatal("Tick did not produce a spinner.TickMsg")
+	}
+	if cmd := m.spun(msg); cmd == nil {
+		t.Error("the spinner stopped re-arming after the first event, while the run was still going")
 	}
 }

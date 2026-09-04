@@ -28,7 +28,6 @@ type runControl struct {
 	stop    nacelle.Stop
 	busy    bool
 	pending *approvalRequest
-	queued  []string
 }
 
 // failureCollapse tracks consecutive identical tool failures so they

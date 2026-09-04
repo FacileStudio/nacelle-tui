@@ -2,6 +2,8 @@ package tui
 
 import (
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle-tui/internal/tui/layout"
 )
 
 // screen is what this client knows about the terminal it is drawing into:
@@ -107,5 +109,29 @@ func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
 // the two is exactly where a print goes wrong.
 func (m *Model) layout(height int) {
 	taken := 3 + m.prompt.Height() + m.menu.Height() + m.queuedHeight() + m.tasks.Rows()
-	m.liveRows = max(height-taken-height/2, 1)
+	m.liveRows = layout.LiveRows(height, taken)
+}
+
+func (m *Model) budget() int {
+	return layout.Budget(m.windowHeight, m.frameRows)
+}
+
+func (m *Model) fits(lines []string) int {
+	return layout.Fits(lines, m.budget(), m.width)
+}
+
+func (m *Model) printed(text string) tea.Cmd {
+	batches := layout.Batches(text, m.budget(), m.width)
+	var cmds []tea.Cmd
+	for _, batch := range batches {
+		cmds = append(cmds, tea.Println(batch))
+	}
+	if len(cmds) == 1 {
+		return cmds[0]
+	}
+	return tea.Sequence(cmds...)
+}
+
+func (m *Model) queuedHeight() int {
+	return m.Height(m.editing())
 }

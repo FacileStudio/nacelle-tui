@@ -70,14 +70,3 @@ func (m *Model) recap() string {
 	}
 	return shape + "\n" + spend
 }
-
-// lasted is how long the session ran, at the resolution a closing line wants.
-//
-// Whole seconds, because Go's own rendering of a duration nobody rounded is
-// `14m3.0021847s`, and the digits after the decimal point are the only part of
-// a session length nobody has ever cared about. It floors at one second for
-// the same reason took does: `session · 0s` over a session that plainly did
-// something reads as a broken clock.
-func lasted(spent time.Duration) string {
-	return max(spent.Round(time.Second), time.Second).String()
-}

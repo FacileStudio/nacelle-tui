@@ -14,7 +14,7 @@ func TestAnApprovalRequestShowsInTheStatusLine(t *testing.T) {
 	m := sized()
 	decision := make(chan approvalDecision, 1)
 
-	m.Update(approvalRequest{name: "search_content", input: []byte(`{"pattern":"x"}`), decision: decision})
+	m.Update(approvalRequest{Name: "search_content", Input: []byte(`{"pattern":"x"}`), Decision: decision})
 
 	if m.run.pending == nil {
 		t.Fatal("the request did not set run.pending")
@@ -33,7 +33,7 @@ func TestAnApprovalRequestShowsInTheStatusLine(t *testing.T) {
 func TestPressingYApprovesOnce(t *testing.T) {
 	m := sized()
 	decision := make(chan approvalDecision, 1)
-	m.run.pending = &approvalRequest{name: "search", decision: decision}
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
 
 	handled, _ := m.key(tea.KeyPressMsg{Code: 'y'})
 
@@ -56,7 +56,7 @@ func TestPressingYApprovesOnce(t *testing.T) {
 func TestPressingAApprovesForTheSession(t *testing.T) {
 	m := sized()
 	decision := make(chan approvalDecision, 1)
-	m.run.pending = &approvalRequest{name: "search", decision: decision}
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
 
 	m.key(tea.KeyPressMsg{Code: 'a'})
 
@@ -68,7 +68,7 @@ func TestPressingAApprovesForTheSession(t *testing.T) {
 func TestPressingNDenies(t *testing.T) {
 	m := sized()
 	decision := make(chan approvalDecision, 1)
-	m.run.pending = &approvalRequest{name: "search", decision: decision}
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
 
 	m.key(tea.KeyPressMsg{Code: 'n'})
 
@@ -84,7 +84,7 @@ func TestPressingNDenies(t *testing.T) {
 func TestAnyOtherKeyIsSwallowedWhilePending(t *testing.T) {
 	m := sized()
 	decision := make(chan approvalDecision, 1)
-	m.run.pending = &approvalRequest{name: "search", decision: decision}
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
 
 	handled, _ := m.key(tea.KeyPressMsg{Code: 'x'})
 
@@ -111,7 +111,7 @@ func TestCtrlCClearsAPendingApprovalAndCancelsTheRun(t *testing.T) {
 	m.run.busy = true
 	m.run.cancel = func() { cancelled = true }
 	decision := make(chan approvalDecision, 1)
-	m.run.pending = &approvalRequest{name: "search", decision: decision}
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
 
 	handled, cmd := m.key(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 

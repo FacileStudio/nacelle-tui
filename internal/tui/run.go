@@ -2,18 +2,74 @@ package tui
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/sessions"
+	"github.com/FacileStudio/nacelle-tui/internal/skills"
+	"github.com/FacileStudio/nacelle-tui/internal/usage"
 )
 
-// send starts a run over text — a plain question as typed, or a
-// /skill:name's own SKILL.md content with whatever followed the name
-// appended. Everything from the last run is cleared here, nowhere else: a
-// leftover stop reason mislabels this answer truncated, a leftover usage
-// double-counts, and a leftover interruption quits a fresh run outright.
+// SessionConfig groups runtime configuration options for the UI session.
+type SessionConfig struct {
+	Root         string
+	Model        string
+	Backend      string
+	Diffs        bool
+	GroupTools   *bool
+	ShowThinking bool
+	CompactAt    int64
+	AutoResume   bool
+}
+
+// UISession is what the runner hands to the Bubble Tea program.
+type UISession struct {
+	Agent      *nacelle.Agent
+	Banner     string
+	Skills     []skills.Skill
+	HookNotice string
+	Gate       *Approvals
+	SessionConfig
+}
+
+// Launch opens the program, delivers whatever was queued for the transcript
+// before it opened, and prints the recap on exit.
+func Launch(c UISession) error {
+	opened := NewModel(c.Agent, c.Banner, c.Skills, c.CompactAt, c.AutoResume)
+	opened.groupTools = derefBool(c.GroupTools)
+	opened.expanded = c.ShowThinking
+	opened.run.root = c.Root
+	opened.run.diffs = c.Diffs
+	opened.sink = usage.NewSink(c.Root, c.Model)
+	opened.session = sessions.OpenSession(c.Backend, c.Model, c.Root)
+	if c.HookNotice != "" {
+		opened.say(fromClient, c.HookNotice)
+	}
+	for _, line := range opened.unprinted {
+		fmt.Println(line)
+	}
+	opened.unprinted = nil
+
+	program := tea.NewProgram(opened)
+	WireApprovals(c.Gate, program)
+	final, err := program.Run()
+
+	if done, ok := final.(*Model); ok {
+		if recap := done.recap(); recap != "" {
+			fmt.Println(recap)
+		}
+	}
+	return err
+}
+
+func derefBool(b *bool) bool {
+	return b != nil && *b
+}
+
+// send starts a run over text.
 func (m *Model) send(text string) tea.Cmd {
 	m.run.stop = ""
 	m.run.usage = nacelle.Usage{}
@@ -46,23 +102,28 @@ func (m *Model) halt() {
 	m.run.cancel()
 }
 
+func (m *Model) dropQueued() {
+	if m.Len() == 0 {
+		return
+	}
+	m.say(fromClient, fmt.Sprintf("%s dropped, not sent", countedNoun(m.Drop(), "queued message")))
+	m.layout(m.windowHeight)
+}
+
 // abandon stops the run in flight and drops everything it would have led to.
 func (m *Model) abandon() {
 	m.halt()
 	m.dropQueued()
 }
 
-// escaped is esc once the dropdown has had its turn: it stops the run in
-// flight and hands the session straight to whatever was queued behind it.
-// Idle it is not this client's key at all, which is why it reports the press
-// unhandled rather than swallowing it.
+// escaped is esc once the dropdown has had its turn.
 func (m *Model) escaped() (bool, tea.Cmd) {
 	if !m.run.busy {
 		return false, nil
 	}
 	if time.Since(m.run.interrupted) >= forceQuit {
 		m.halt()
-		if waiting := len(m.run.queued); waiting > 0 {
+		if waiting := m.Len(); waiting > 0 {
 			m.say(fromClient, "stopped · "+countedNoun(waiting, "queued message")+" still to send")
 		}
 	}

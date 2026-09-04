@@ -207,3 +207,7 @@ func cutShort(stop nacelle.Stop) string {
 	}
 	return "stopped early"
 }
+
+func (m *Model) viewQueued() []string {
+	return m.Queue.View(m.editing(), m.width, m.theme.Queued)
+}

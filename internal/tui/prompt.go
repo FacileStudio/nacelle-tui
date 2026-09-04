@@ -16,19 +16,6 @@ import (
 // worse one.
 const promptRows = 10
 
-// promptCap is how tall the prompt may actually grow in a window this size.
-//
-// promptRows alone is a ceiling, not a guarantee: ten rows of prompt in an
-// eight-row pane draws twelve rows into eight, and what falls off the bottom
-// is the prompt itself — the reader ends up typing into something they cannot
-// see. Half of what remains after the fixed chrome — the blank row above the
-// two-row status bar and the margin before the prompt — keeps the transcript
-// and the prompt both real at any size, and never returns less than the one
-// row a prompt has to have.
-func promptCap(height int) int {
-	return max(1, min(promptRows, (height-3)/2))
-}
-
 // newPrompt builds the question box.
 //
 // It is a textarea rather than a single-line input for one reason, and it is

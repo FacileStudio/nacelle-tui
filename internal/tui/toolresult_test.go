@@ -2,6 +2,7 @@ package tui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/FacileStudio/nacelle"
@@ -25,5 +26,53 @@ func TestDiscardedCallExcludedFromTally(t *testing.T) {
 	}
 	if m.failed != 1 {
 		t.Errorf("counted %d failures, want 1", m.failed)
+	}
+}
+
+func TestTheStatusLineNamesTheToolThatIsRunning(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{ID: "a", Name: "read_file"}})
+
+	if status := visible(m.status()); !strings.Contains(status, "running read_file") {
+		t.Errorf("status = %q, want it naming the tool between its call and its result", status)
+	}
+}
+
+func TestTheStatusLineCountsSeveralToolsAtOnce(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{ID: "a", Name: "read_file"}})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{ID: "b", Name: "search_content"}})
+
+	if status := visible(m.status()); !strings.Contains(status, "running 2 tools") {
+		t.Errorf("status = %q, want it counting both calls in flight", status)
+	}
+}
+
+func TestAToolStopsBeingNamedOnceItsResultArrives(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{ID: "a", Name: "read_file"}})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{ID: "a", Name: "read_file"}})
+
+	if status := visible(m.status()); strings.Contains(status, "running read_file") {
+		t.Errorf("status = %q, want the finished tool no longer named as running", status)
+	}
+}
+
+func TestSettleForgetsToolsThatNeverAnswered(t *testing.T) {
+	m := sized()
+	m.run.cancel = func() {}
+	m.run.busy = true
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{ID: "a", Name: "read_file"}})
+
+	m.settle()
+
+	if n := m.running(); n != 0 {
+		t.Errorf("running = %v, want nothing left named as running after the run ended", n)
 	}
 }

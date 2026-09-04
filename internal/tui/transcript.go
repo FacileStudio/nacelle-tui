@@ -1,11 +1,13 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle-tui/internal/sessions"
+	"github.com/FacileStudio/nacelle-tui/internal/tui/theme"
 	"github.com/FacileStudio/nacelle-tui/internal/tui/toolview"
 )
 
@@ -196,4 +198,19 @@ func (m *Model) inFlightGroups() []string {
 		groups = append(groups, toolview.ToolLinePainted(line))
 	}
 	return groups
+}
+
+func (m *Model) restyle() {
+	m.pretty = theme.Prettier(m.theme.Markdown, max(m.width, 1))
+}
+
+func (m *Model) markdown(text string) string {
+	return theme.RenderMarkdown(m.pretty, text)
+}
+
+func countedNoun(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
 }

@@ -1,11 +1,7 @@
 package tui
 
-func (m *Model) walkable() []string {
-	return m.hist.Walkable(m.run.queued)
-}
-
 func (m *Model) recall() bool {
-	text, ok := m.hist.Recall(m.prompt.Value(), m.run.queued)
+	text, ok := m.hist.Recall(m.prompt.Value(), m.Items())
 	if !ok {
 		return false
 	}
@@ -14,7 +10,7 @@ func (m *Model) recall() bool {
 }
 
 func (m *Model) advance() bool {
-	text, ok := m.hist.Advance(m.run.queued)
+	text, ok := m.hist.Advance(m.Items())
 	if !ok {
 		return false
 	}
@@ -23,11 +19,15 @@ func (m *Model) advance() bool {
 }
 
 func (m *Model) requeue(text string) bool {
-	return m.hist.Requeue(m.run.queued, text)
+	return m.hist.Requeue(m.Items(), text)
 }
 
 func (m *Model) remember(question string) {
-	m.hist.Remember(question, m.run.queued)
+	m.hist.Remember(question, m.Items())
+}
+
+func (m *Model) editing() int {
+	return m.hist.Editing(m.Len())
 }
 
 func (m *Model) setEntry(value string) {

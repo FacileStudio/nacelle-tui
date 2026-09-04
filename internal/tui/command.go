@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/tui/cost"
 )
 
 // command is one of the client's own actions, typed with a leading '/' and
@@ -199,4 +200,10 @@ func (m *Model) statusCmd() tea.Cmd {
 // busy — this is always a deliberate, idle exit.
 func (m *Model) quit() tea.Cmd {
 	return tea.Quit
+}
+
+func (m *Model) cost() tea.Cmd {
+	total := m.spent.Add(m.run.usage)
+	m.say(fromClient, cost.Summary(total, m.tools, m.failed, time.Since(m.began)))
+	return nil
 }

@@ -5,7 +5,10 @@ import (
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/tasks"
 )
 
 func (m *Model) turn(event nacelle.Event) {
@@ -75,4 +78,16 @@ func (m *Model) flushThinking() {
 			m.say(fromThinking, m.collapsed(spent))
 		}
 	}
+}
+
+func watchTasks() tea.Cmd {
+	return func() tea.Msg {
+		return <-tasks.Reports
+	}
+}
+
+func (m *Model) recordTasks(reported tasks.TaskUpdate) tea.Cmd {
+	m.tasks = tasks.TaskList(reported)
+	m.layout(m.windowHeight)
+	return watchTasks()
 }

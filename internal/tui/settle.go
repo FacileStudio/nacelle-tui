@@ -89,8 +89,7 @@ func (m *Model) deliver() tea.Cmd {
 		if at < 0 {
 			break
 		}
-		next := m.run.queued[at]
-		m.run.queued = append(m.run.queued[:at], m.run.queued[at+1:]...)
+		next := m.PopAt(at)
 		m.reanchor(editing, at)
 		m.layout(m.windowHeight)
 
@@ -115,13 +114,7 @@ func (m *Model) deliver() tea.Cmd {
 // Front-first otherwise, because the queue is the order the questions were
 // typed in and that is the order they were meant to be asked in.
 func (m *Model) nextToSend() int {
-	editing := m.editing()
-	for i := range m.run.queued {
-		if i != editing {
-			return i
-		}
-	}
-	return -1
+	return m.NextToSend(m.editing())
 }
 
 // sayNothingCame reports a run that ended without ever putting anything on
@@ -242,5 +235,5 @@ func (m *Model) reanchor(editing, sent int) {
 	if sent < editing {
 		editing--
 	}
-	m.hist.FromEnd = len(m.run.queued) - editing
+	m.hist.FromEnd = m.Len() - editing
 }
