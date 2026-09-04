@@ -1,9 +1,9 @@
 package agent
 
 import (
+	"github.com/FacileStudio/nacelle-tui/internal/approval"
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
 	"github.com/FacileStudio/nacelle-tui/internal/skills"
-	"github.com/FacileStudio/nacelle-tui/internal/tui"
 )
 
 // Config aliases settings.Config.
@@ -13,8 +13,8 @@ type Config = settings.Config
 type Skill = skills.Skill
 type skill = skills.Skill
 
-// Approvals aliases tui.Approvals.
-type Approvals = tui.Approvals
+// Approvals aliases approval.Approvals.
+type Approvals = approval.Approvals
 
 // Sources aliases settings.Sources.
 type Sources = settings.Sources

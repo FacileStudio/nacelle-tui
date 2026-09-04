@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Model) turn(event nacelle.Event) {
-	m.thought()
+	m.Thought()
 	m.commitTail()
 	m.flushThinking()
 	line := m.turnBoundary(event.Usage)
@@ -65,7 +65,7 @@ func (m *Model) flushThinking() {
 	m.run.reasoning.Reset()
 
 	if reasoning != "" || m.run.reasoningFull.Len() > 0 {
-		spent := m.elapsed()
+		spent := m.Elapsed()
 		m.Begun, m.Ended = time.Time{}, time.Time{}
 		m.Retained = m.run.reasoningFull.String() + reasoning
 		m.run.reasoningFull.Reset()
@@ -75,10 +75,41 @@ func (m *Model) flushThinking() {
 				m.say(fromThinking, reasoning)
 			}
 		} else {
-			m.say(fromThinking, m.collapsed(spent))
+			m.say(fromThinking, m.Collapsed(spent))
 		}
 	}
+}
 
+func (m *Model) flush() string {
+	m.flushThinking()
+
+	full := m.run.fullAnswer.String()
+	unprinted := ""
+	if m.run.committedLen < len(full) {
+		unprinted = full[m.run.committedLen:]
+	}
+	m.run.answer.Reset()
+	m.run.fullAnswer.Reset()
+	m.run.committedLen = 0
+	if unprinted != "" {
+		m.say(fromModel, unprinted)
+	}
+	return full
+}
+
+func (m *Model) reveal() (bool, tea.Cmd) {
+	m.Expanded = !m.Expanded
+	m.Hinted = true
+
+	switch {
+	case m.Expanded && m.Retained != "":
+		m.say(fromThinking, m.Retained)
+	case m.Expanded:
+		m.say(fromClient, "reasoning will be shown in full from here")
+	default:
+		m.say(fromClient, "reasoning will collapse to a single line from here")
+	}
+	return true, nil
 }
 
 func watchTasks() tea.Cmd {

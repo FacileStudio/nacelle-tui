@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -10,38 +11,25 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/cost"
+	"github.com/FacileStudio/nacelle-tui/internal/cost"
 )
 
-// command is one of the client's own actions, typed with a leading '/' and
-// resolved entirely without a run — nothing here reaches the model, unlike
-// everything else typed into the prompt.
 type command func(m *Model) tea.Cmd
 
 var commands = map[string]command{
-	"clear":    (*Model).clear,
-	"cost":     (*Model).cost,
+	"clear": (*Model).clear,
+	"cost": func(m *Model) tea.Cmd {
+		total := m.spent.Add(m.run.usage)
+		m.say(fromClient, cost.Summary(total, m.tools, m.failed, time.Since(m.began)))
+		return nil
+	},
 	"help":     (*Model).help,
-	"quit":     (*Model).quit,
+	"quit":     func(m *Model) tea.Cmd { return tea.Quit },
 	"resume":   (*Model).resumeCmd,
 	"sessions": (*Model).sessionsCmd,
 	"status":   (*Model).statusCmd,
 }
 
-// parseCommand reports the command a line names, and whether the line named
-// one at all. Only the first word is read, so "/clear" and "/clear now" both
-// match the same client command — "/skill:name and-this" is the one case
-// with an argument, forwarded to runSkill as everything after the name.
-//
-// A line starting with '/' that names no known command or skill still
-// counts as a command, reported back to the reader rather than sent to the
-// model: a typo like "/cler" is far more likely than a real question meant
-// to start with a slash, the same trade-off every peer client with slash
-// commands makes.
-//
-// This is a method, not the free function it was, because a skill's own
-// name is only known at this run's construction — m.skills — unlike
-// commands, fixed at compile time.
 func (m *Model) parseCommand(line string) (command, bool) {
 	if !strings.HasPrefix(line, "/") {
 		return nil, false
@@ -65,11 +53,6 @@ func (m *Model) parseCommand(line string) (command, bool) {
 	}, true
 }
 
-// commandNames lists every registered command, "/"-prefixed and sorted, for
-// the dropdown menu's own candidate list (menuItems, in menu.go) — the one
-// place this list is built, so a command added to commands starts showing
-// up there too instead of only working once someone remembers to wire it
-// in twice.
 func commandNames() []string {
 	names := make([]string, 0, len(commands))
 	for name := range commands {
@@ -79,76 +62,19 @@ func commandNames() []string {
 	return names
 }
 
-// clear starts a new session in the same client: the conversation sent to
-// the model and the running cost total are both reset. Nothing about the
-// process restarts, which is the whole point of it being a command rather
-// than a reason to quit and relaunch.
-//
-// It clears the screen rather than the history, and the difference is the
-// point. What was said is in the terminal's scrollback and is not this
-// client's to delete — the same reason no shell's own clear erases what came
-// before it. Scroll back and the old session is still there, which is what
-// somebody who cleared the wrong window will want.
-//
-// The screen is cleared by scrolling it away, not by tea.ClearScreen, which
-// did nothing here and is why this command appeared to reset the session
-// without resetting the window. bubbletea's inline renderer owns only the few
-// rows it draws, so its clearScreen erases that frame's own cell buffer and
-// never touches the transcript printed above it. Blank lines pushed through
-// the same insertAbove path every printed line already takes do reach the
-// terminal — and they scroll the old session up into the scrollback rather
-// than erasing it, which is the behaviour above, kept by accident of being
-// the only one available.
-//
-// This is the only command that prints from its own Cmd rather than by saying
-// something, which is why it drains the queue by hand at both ends. Update
-// prints what was said before it runs what the message started, which is right
-// everywhere else and exactly wrong here: the echoed "/clear" has to go up
-// before the blank run and the fresh banner has to go up after it. Left to the
-// one drain, a clear either leaves the old prompt standing on the new screen or
-// scrolls away the only line saying the session restarted.
-//
-// The banner is re-said rather than left gone: it is the only place the
-// backend and model are ever named, and it is what makes the fresh screen
-// legible as a fresh session rather than as a client that lost its place.
-//
-// The reported plan goes with the conversation it belonged to. Left standing,
-// it is a list of steps from a session the model no longer remembers, so
-// nothing it does afterwards will ever overwrite it — a plan that outlives its
-// own run is not stale state, it is a lie about what is happening now. The
-// field is assigned rather than passed through recordTasks, which re-arms the
-// watcher on the way out and would leave a second goroutine on the reports
-// channel every time somebody cleared. Re-laying out is not optional either:
-// resize.go:105 reserves one screen row per line the plan draws, so dropping
-// the plan without recomputing the layout leaves the live region short by
-// however many rows the plan held, for the rest of the session.
 func (m *Model) clear() tea.Cmd {
 	m.conversation = nil
 	m.spent = nacelle.Usage{}
 	m.size, m.trimmed = 0, 0
 	m.tasks = nil
 	m.layout(m.windowHeight)
-	m.forget()
+	m.Forget()
 	echoed := m.prints()
 	m.say(fromClient, m.banner+" · cleared")
-	return tea.Sequence(echoed, m.printed(scrolledAway(m.windowHeight)), m.prints())
+	scrolled := strings.Repeat("\n", max(m.windowHeight, 1))
+	return tea.Sequence(echoed, m.printed(scrolled), m.prints())
 }
 
-// scrolledAway is the run of blank lines that pushes a whole window of
-// finished session up out of sight. One line per row the terminal has, which
-// overshoots by however tall the live frame is — that overshoot is the gap in
-// the scrollback that reads as where one session ended and the next began.
-//
-// It goes out through printed for the same reason every other batch does. A
-// window's worth of blank lines is exactly the size that scrolls the frame off
-// the top, and /clear leaving a copy of the old prompt in the scrollback is
-// the one artefact it exists to avoid.
-func scrolledAway(height int) string {
-	return strings.Repeat("\n", max(height, 1))
-}
-
-// help lists the client's own commands and keybindings, distinct from
-// anything the model is ever asked — the one list of them that exists.
 func (m *Model) help() tea.Cmd {
 	m.say(fromClient, strings.Join([]string{
 		"/clear — start a new session, same client",
@@ -170,8 +96,6 @@ func (m *Model) help() tea.Cmd {
 	return nil
 }
 
-// statusCmd prints a summary of the session: question count, answer count,
-// tool call count, elapsed time, and current log file size.
 func (m *Model) statusCmd() tea.Cmd {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("session · %s", lasted(time.Since(m.began))))
@@ -195,15 +119,54 @@ func (m *Model) statusCmd() tea.Cmd {
 	return nil
 }
 
-// quit ends the program outright. Unlike Ctrl+C it carries no ambiguity
-// about a run in flight, because ask() never reaches a command while one is
-// busy — this is always a deliberate, idle exit.
-func (m *Model) quit() tea.Cmd {
-	return tea.Quit
+func (m *Model) resumeCmd() tea.Cmd {
+	projectRoot := m.run.root
+	if projectRoot == "" {
+		projectRoot = "."
+	}
+	sessionFiles := listSessionFiles(projectRoot)
+	if len(sessionFiles) == 0 {
+		m.say(fromClient, "no previous sessions found for this project")
+		return nil
+	}
+	mostRecent := sessionFiles[0]
+	conversation := loadSession(mostRecent)
+	if conversation == nil {
+		m.say(fromClient, "failed to load session: "+mostRecent)
+		return nil
+	}
+	m.conversation = conversation
+	m.say(fromClient, fmt.Sprintf("resumed session from %s (%d messages)",
+		filepath.Base(mostRecent), len(conversation)))
+	return nil
 }
 
-func (m *Model) cost() tea.Cmd {
-	total := m.spent.Add(m.run.usage)
-	m.say(fromClient, cost.Summary(total, m.tools, m.failed, time.Since(m.began)))
+func (m *Model) sessionsCmd() tea.Cmd {
+	projectRoot := m.run.root
+	if projectRoot == "" {
+		projectRoot = "."
+	}
+	sessionFiles := listSessionFiles(projectRoot)
+	if len(sessionFiles) == 0 {
+		m.say(fromClient, "no previous sessions found for this project")
+		return nil
+	}
+	var lines []string
+	lines = append(lines, fmt.Sprintf("sessions for project %s:", projectRoot))
+	for _, filePath := range sessionFiles {
+		lines = append(lines, formatSessionEntry(filePath))
+	}
+	m.say(fromClient, strings.Join(lines, "\n"))
 	return nil
+}
+
+func runSkill(s skill, args string) command {
+	return func(m *Model) tea.Cmd {
+		text, err := skillPrompt(s, args)
+		if err != nil {
+			m.say(fromClient, "reading "+s.Path+": "+err.Error())
+			return nil
+		}
+		return m.send(text)
+	}
 }

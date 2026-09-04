@@ -7,8 +7,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle-tui/internal/sessions"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/theme"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/toolview"
+	"github.com/FacileStudio/nacelle-tui/internal/theme"
+	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
 // speaker is who a line on screen belongs to, which is all the drawing needs
@@ -156,14 +156,16 @@ func (m *Model) paint(who speaker, text string) string {
 // the first thinking delta, which is under a millisecond on a figure printed
 // to a tenth of a second. See stamp.
 func (m *Model) streaming() []string {
-	m.stamp()
+	if m.Begun.IsZero() && m.run.reasoning.Len() > 0 {
+		m.Stamp()
+	}
 
 	var live []string
 	if reasoning := m.run.reasoning.String(); reasoning != "" {
 		if m.Expanded {
 			live = append(live, m.markdown(reasoning))
 		} else {
-			live = append(live, m.theme.Thinking.Render(m.collapsed(m.elapsed())))
+			live = append(live, m.theme.Thinking.Render(m.Collapsed(m.Elapsed())))
 		}
 	}
 

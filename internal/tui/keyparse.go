@@ -1,11 +1,13 @@
 package tui
 
 import (
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/FacileStudio/nacelle-tui/internal/tui/menu"
+	"github.com/FacileStudio/nacelle-tui/internal/approval"
+	"github.com/FacileStudio/nacelle-tui/internal/menu"
 )
 
 // key handles this client's bindings, reporting whether it consumed the
@@ -92,4 +94,105 @@ func (m *Model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		return true, m.ask()
 	}
 	return m.historyKey(press)
+}
+
+func (m *Model) decide(press tea.KeyPressMsg) tea.Cmd {
+	var decision approval.Decision
+	switch press.String() {
+	case "y":
+		decision = approval.AllowedOnce
+	case "a":
+		decision = approval.AllowedForSession
+	case "n":
+		decision = approval.Denied
+	default:
+		return nil
+	}
+
+	pending := m.run.pending
+	m.run.pending = nil
+	pending.Decision <- decision
+	return nil
+}
+
+func menuItems(skills map[string]skill) []menu.Item {
+	names := commandNames()
+	skillNames := skillCommandNames(skills)
+	items := make([]menu.Item, 0, len(names)+len(skillNames))
+	for _, name := range names {
+		items = append(items, menu.Item{Value: name})
+	}
+	for _, name := range skillNames {
+		items = append(items, menu.Item{
+			Value:       name,
+			Description: skills[strings.TrimPrefix(name, "/skill:")].Description,
+		})
+	}
+	return items
+}
+
+func (m *Model) refreshMenu() {
+	word := menu.CommandWord(m.prompt.Value())
+	m.prompt.SetStyles(m.promptStyles)
+	if word == "" {
+		m.menu.Reset()
+	} else {
+		m.menu.Filter(word)
+	}
+	m.layout(m.windowHeight)
+}
+
+func (m *Model) navigateMenu(press tea.KeyPressMsg) (bool, tea.Cmd) {
+	switch press.String() {
+	case "up":
+		m.menu.Up()
+	case "down":
+		m.menu.Down()
+	case "tab", "enter":
+		m.selectMenuItem()
+	case "esc":
+		m.menu.Dismiss()
+	default:
+		return false, nil
+	}
+	m.menu.ClampView()
+	m.layout(m.windowHeight)
+	return true, nil
+}
+
+func (m *Model) selectMenuItem() {
+	it, ok := m.menu.SelectedItem()
+	if !ok {
+		return
+	}
+	m.prompt.SetValue(menu.InsertPick(m.prompt.Value(), it.Value))
+	m.prompt.CursorEnd()
+	m.menu.Dismiss()
+}
+
+func (m *Model) historyKey(press tea.KeyPressMsg) (bool, tea.Cmd) {
+	switch press.String() {
+	case "up":
+		if pos := m.prompt.Cursor(); pos != nil && pos.Y > 0 {
+			return false, nil
+		}
+		if text, ok := m.hist.Recall(m.prompt.Value(), m.Items()); ok {
+			m.prompt.Reset()
+			m.prompt.SetValue(text)
+			m.prompt.MoveToEnd()
+			return true, nil
+		}
+	case "down":
+		if text, ok := m.hist.Advance(m.Items()); ok {
+			m.prompt.Reset()
+			m.prompt.SetValue(text)
+			m.prompt.MoveToEnd()
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *Model) viewMenu() string {
+	return menu.View(&m.menu, max(m.width, 1), m.theme.Plain, m.theme.Menu, m.theme.Command)
 }

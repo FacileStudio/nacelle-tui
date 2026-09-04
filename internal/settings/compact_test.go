@@ -1,4 +1,4 @@
-package tui
+package settings_test
 
 import (
 	"os"
@@ -8,13 +8,6 @@ import (
 	s "github.com/FacileStudio/nacelle-tui/internal/settings"
 )
 
-// TestCompactAtIsConfigurable checks the setting reaches the model through
-// every layer of the precedence chain, and that the default is the one
-// documented in configuration.md.
-// TestCompactAtIsConfigurable tests the precedence chain for the compact
-// threshold setting. It writes ~/.nacelle.yml via HOME pointing at a temp dir
-// rather than trying to stub the path out, and each sub-test isolates its env
-// so a preceding env doesn't leak into the file-only or default-only cases.
 func TestCompactAtIsConfigurable(t *testing.T) {
 	defaults := s.Defaults("")
 	if *defaults.CompactAt != s.DefaultCompactAt {
@@ -86,44 +79,6 @@ func TestCompactAtIsConfigurable(t *testing.T) {
 		c := read(t, s.Config{})
 		if *c.CompactAt != 0 {
 			t.Errorf("compact_at: 0 = %d, want 0 (a zero is a real value)", *c.CompactAt)
-		}
-	})
-}
-
-// TestCompactAtZeroDisablesCompaction confirms that a model built with a
-// zero threshold never compacts, even when the transcript is enormous.
-func TestCompactAtZeroDisablesCompaction(t *testing.T) {
-	m := newModel(nil, "test · model", nil, 0, false)
-	m.conversation = bigConversation()
-	m.size = 5_000_000
-
-	m.compact()
-
-	if m.trimmed != 0 {
-		t.Errorf("a zero threshold trimmed %d results; compaction should be off", m.trimmed)
-	}
-}
-
-// TestCompactAtCustomThresholdCompactsAtTheCustomPoint confirms the model
-// compacts at the value it was given rather than at the default.
-func TestCompactAtCustomThresholdCompactsAtTheCustomPoint(t *testing.T) {
-	t.Run("under threshold", func(t *testing.T) {
-		spacious := newModel(nil, "test · model", nil, 200_000, false)
-		spacious.conversation = bigConversation()
-		spacious.size = 150_000
-		spacious.compact()
-		if spacious.trimmed != 0 {
-			t.Errorf("at 150k under the 200k threshold trimmed %d, want 0", spacious.trimmed)
-		}
-	})
-
-	t.Run("over threshold", func(t *testing.T) {
-		lower := newModel(nil, "test · model", nil, 120_000, false)
-		lower.conversation = bigConversation()
-		lower.size = 150_000
-		lower.compact()
-		if lower.trimmed == 0 {
-			t.Errorf("at 150k with a 120k threshold trimmed nothing; want compaction")
 		}
 	})
 }

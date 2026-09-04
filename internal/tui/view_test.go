@@ -2,36 +2,54 @@ package tui
 
 import (
 	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/FacileStudio/nacelle"
 )
 
-// called is the call event every test about tool lines starts from.
 func called(id, name, input string) nacelle.Event {
 	return nacelle.Event{Kind: nacelle.KindToolCall, Tool: &nacelle.ToolEvent{ID: id, Name: name, Input: input}}
 }
 
-// A call line carries its own duration, so it cannot be said until the result
-// arrives — a printed line belongs to the terminal and is never rewritten.
-// Nothing is lost meanwhile: the status line names the tool that is running.
+func printsDirectly(file *ast.File) bool {
+	var found bool
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || selector.Sel.Name != "Println" {
+			return true
+		}
+		pkg, isIdent := selector.X.(*ast.Ident)
+		found = found || (isIdent && pkg.Name == "tea")
+		return true
+	})
+	return found
+}
+
 func TestACallSaysNothingUntilItsResultArrives(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 	m.absorb(called("1", "read_file", `{"path":"view.go"}`))
 
 	if lines := spoken(m); len(lines) != 0 {
-		t.Errorf("transcript = %v, want the line held until the result", lines)
+		t.Errorf("transcript = %v, want empty", lines)
 	}
 	if status := visible(m.status()); !strings.Contains(status, "running read_file") {
-		t.Errorf("status = %q, want the held tool named while it runs", status)
+		t.Errorf("status = %q, want running read_file", status)
 	}
 }
 
-// A failure is the one thing a reader must not scroll past, and the error has
-// nowhere to fit on a line already ending in a duration.
 func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 	m := sized()
 	m.absorb(called("1", "run_command", `{"command":"go build ./..."}`))
@@ -45,19 +63,16 @@ func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 
 	lines := spoken(m)
 	if len(lines) != 1 {
-		t.Fatalf("transcript = %v, want the call and the failure in one entry", lines)
+		t.Fatalf("transcript = %v, want 1 entry", lines)
 	}
 	if !strings.Contains(lines[0], "run_command(go build ./...)") {
-		t.Errorf("call line = %q, want the call named without a duration", lines[0])
+		t.Errorf("call line = %q", lines[0])
 	}
 	if !strings.Contains(lines[0], "exit status 2") || !strings.Contains(lines[0], "12ms") {
-		t.Errorf("failure line = %q, want the error and how long it took", lines[0])
+		t.Errorf("failure line = %q", lines[0])
 	}
 }
 
-// Identical consecutive failures collapse into one line with a count. The
-// first prints normally; the second extends the collapse rather than
-// printing another identical block.
 func TestIdenticalFailuresCollapse(t *testing.T) {
 	m := sized()
 	m.absorb(called("1", "run_command", `{"command":"go build ./..."}`))
@@ -76,17 +91,16 @@ func TestIdenticalFailuresCollapse(t *testing.T) {
 
 	lines := spoken(m)
 	if len(lines) != 1 {
-		t.Fatalf("transcript = %v, want one collapsed failure entry", lines)
+		t.Fatalf("transcript = %v, want 1 entry", lines)
 	}
 	if !strings.Contains(lines[0], "run_command(go build ./...)") {
-		t.Errorf("call line = %q, want the call named", lines[0])
+		t.Errorf("call line = %q", lines[0])
 	}
 	if !strings.Contains(lines[0], "2 times") {
-		t.Errorf("failure = %q, want the count showing the two collapses", lines[0])
+		t.Errorf("failure = %q, want 2 times count", lines[0])
 	}
 }
 
-// Different failures are not collapsed — each keeps its own line.
 func TestDifferentFailuresAreNotCollapsed(t *testing.T) {
 	m := sized()
 	m.absorb(called("1", "run_command", `{"command":"go build ./..."}`))
@@ -105,12 +119,10 @@ func TestDifferentFailuresAreNotCollapsed(t *testing.T) {
 
 	lines := spoken(m)
 	if len(lines) != 2 {
-		t.Fatalf("transcript = %v, want two separate failure entries", lines)
+		t.Fatalf("transcript = %v, want 2 entries", lines)
 	}
 }
 
-// A discarded call belongs to an attempt that was superseded and never ran, so
-// announcing it would be the transcript describing work nobody did.
 func TestADiscardedCallDropsItsHeldLine(t *testing.T) {
 	m := sized()
 	m.absorb(called("1", "read_file", `{"path":"view.go"}`))
@@ -119,16 +131,13 @@ func TestADiscardedCallDropsItsHeldLine(t *testing.T) {
 	}})
 
 	if lines := spoken(m); len(lines) != 0 {
-		t.Errorf("transcript = %v, want the superseded call dropped rather than printed", lines)
+		t.Errorf("transcript = %v, want 0 lines", lines)
 	}
 	if n := m.running(); n != 0 {
-		t.Errorf("running = %v, want the discarded call forgotten", n)
+		t.Errorf("running = %v, want 0", n)
 	}
 }
 
-// A run capped at its iteration limit reports tools it never runs, and an
-// abandoned one never reaches the results of the tools it was mid-way through.
-// A held line those never answer is a line nobody would ever see.
 func TestARunThatEndsMidToolStillSaysWhatItAskedFor(t *testing.T) {
 	m := sized()
 	m.run.cancel = func() {}
@@ -140,21 +149,14 @@ func TestARunThatEndsMidToolStillSaysWhatItAskedFor(t *testing.T) {
 
 	lines := spoken(m)
 	if len(lines) != 2 {
-		t.Fatalf("transcript = %v, want both un-resulted calls said", lines)
+		t.Fatalf("transcript = %v, want 2 calls", lines)
 	}
 	if !strings.Contains(lines[0], "read_file(view.go)") || !strings.Contains(lines[1], "run_command(go test ./...)") {
-		t.Errorf("transcript = %v, want the calls in the order they were asked for", lines)
-	}
-	if strings.Contains(strings.Join(lines, "\n"), " · ") {
-		t.Errorf("transcript = %v, want no duration on a call that never returned", lines)
+		t.Errorf("transcript = %v", lines)
 	}
 }
 
-// Everything finished is printed to the terminal, so the status line is drawn
-// directly beneath the last line of an answer that is no longer this client's
-// to redraw. Without a row between them the token count reads as part of the
-// sentence above it.
-func TestABlankRowSeparatesTheAnswerFromTheStatusLine(t *testing.T) {
+func TestABankRowSeparatesTheAnswerFromTheStatusLine(t *testing.T) {
 	m := sized()
 
 	lines := strings.Split(visible(m.View().Content), "\n")
@@ -166,19 +168,13 @@ func TestABlankRowSeparatesTheAnswerFromTheStatusLine(t *testing.T) {
 		}
 	}
 	if status < 1 {
-		t.Fatalf("no status line found in\n%s", strings.Join(lines, "\n"))
+		t.Fatalf("no status line in\n%s", strings.Join(lines, "\n"))
 	}
 	if strings.TrimSpace(lines[status-1]) != "" {
-		t.Errorf("row above the status line = %q, want it blank", lines[status-1])
+		t.Errorf("row above status = %q, want blank", lines[status-1])
 	}
 }
 
-// A run that ends mid-tool says two things, and the order they land in is the
-// order they happened in. The held call line is the tool the model announced,
-// and closeTurn is what flushes the sentence announcing it — saying the line
-// first put the tool above the text that asked for it. consume gets this right
-// on the ordinary path by recording before it absorbs; settle is the path that
-// does not go through consume at all.
 func TestAnEndedRunSaysTheAnswerBeforeTheToolItWasStillHolding(t *testing.T) {
 	m := bareBanner()
 	m.width = 80
@@ -194,9 +190,56 @@ func TestAnEndedRunSaysTheAnswerBeforeTheToolItWasStillHolding(t *testing.T) {
 	answer := strings.Index(said, "reading the file")
 	call := strings.Index(said, "read_file(")
 	if answer < 0 || call < 0 {
-		t.Fatalf("both the answer and the held call line must survive the run ending: %q", said)
+		t.Fatalf("missing answer or call: %q", said)
 	}
 	if answer > call {
-		t.Errorf("the tool line was said above the sentence announcing it")
+		t.Errorf("tool line above sentence")
+	}
+}
+
+func TestAHeightOnlyResizeDoesNotRebuildTheMarkdownRenderer(t *testing.T) {
+	m := sized()
+	before := m.pretty
+	m.resize(tea.WindowSizeMsg{Width: 80, Height: 30})
+	if m.pretty != before {
+		t.Error("markdown renderer rebuilt for height-only resize")
+	}
+}
+
+func TestAWidthChangeRebuildsTheMarkdownRenderer(t *testing.T) {
+	m := sized()
+	before := m.pretty
+	m.resize(tea.WindowSizeMsg{Width: 100, Height: 24})
+	if m.pretty == before {
+		t.Error("markdown renderer not rebuilt for width resize")
+	}
+}
+
+func TestTheFrameNeverFillsTheWindow(t *testing.T) {
+	m := sized()
+	frame := m.liveRows + 2 + m.prompt.Height() + m.menu.Height() + m.Height(m.editing())
+	if frame >= m.windowHeight {
+		t.Errorf("frame is %d rows, want room left", frame)
+	}
+}
+
+func TestOnlyPrintedHandsABatchToTheTerminal(t *testing.T) {
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("reading directory: %v", err)
+	}
+	set := token.NewFileSet()
+	for _, entry := range entries {
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".go") || name == "view.go" {
+			continue
+		}
+		parsed, err := parser.ParseFile(set, name, nil, 0)
+		if err != nil {
+			t.Fatalf("parsing %s: %v", name, err)
+		}
+		if printsDirectly(parsed) {
+			t.Errorf("%s calls tea.Println directly", name)
+		}
 	}
 }

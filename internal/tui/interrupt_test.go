@@ -9,19 +9,12 @@ import (
 	"github.com/FacileStudio/nacelle"
 )
 
-// stuck is a model in the state the escape hatch exists for: a run in flight
-// whose cancellation goes nowhere, which is what a tool wedged on a subprocess
-// leaves behind. busy is cleared by settle, settle waits for the results
-// channel, and that channel never closes.
 func stuck() *model {
 	m := sized()
 	m.run.cancel, m.run.busy = func() {}, true
 	return m
 }
 
-// The only way out of an alt-screen raw-mode terminal whose ctrl+c is spent
-// cancelling a run that cannot hear it is kill -9 from another terminal. A
-// second press has to quit outright.
 func TestASecondCtrlCQuitsARunThatWillNotStop(t *testing.T) {
 	press := tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}
 	m := stuck()
@@ -34,7 +27,6 @@ func TestASecondCtrlCQuitsARunThatWillNotStop(t *testing.T) {
 	}
 }
 
-// An escape hatch nobody knows about is not an escape hatch.
 func TestTheStatusLineOffersTheEscapeAfterTheFirstCtrlC(t *testing.T) {
 	m := stuck()
 
@@ -50,8 +42,6 @@ func TestTheStatusLineOffersTheEscapeAfterTheFirstCtrlC(t *testing.T) {
 	}
 }
 
-// The second press is on a timer, so a client left running all afternoon must
-// not have a stale ctrl+\ as its only remaining brake.
 func TestCtrlBackslashQuitsWhateverTheRunIsDoing(t *testing.T) {
 	press := tea.KeyPressMsg{Code: '\\', Mod: tea.ModCtrl}
 	if press.String() != "ctrl+\\" {
@@ -65,9 +55,6 @@ func TestCtrlBackslashQuitsWhateverTheRunIsDoing(t *testing.T) {
 	}
 }
 
-// Cancelling is the one abandonment the reader caused themselves, and it was
-// the one the status line did not report: the stop reason only ever arrives on
-// a KindDone that cancelling is what prevents.
 func TestAnAbandonedRunSaysSoRatherThanReadingAsReady(t *testing.T) {
 	m := stuck()
 	m.key(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
@@ -82,8 +69,6 @@ func TestAnAbandonedRunSaysSoRatherThanReadingAsReady(t *testing.T) {
 	}
 }
 
-// The warning belongs to the run that earned it, so the next question clears
-// it along with every other per-run reason.
 func TestANewQuestionClearsTheAbandonedMark(t *testing.T) {
 	m := stuck()
 	m.key(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
@@ -99,9 +84,6 @@ func TestANewQuestionClearsTheAbandonedMark(t *testing.T) {
 	}
 }
 
-// The offer to quit belongs to the run that was interrupted. Left standing it
-// would make the first ctrl+c of the next question throw the session away,
-// which is the opposite of what ctrl+c is for while an answer is streaming.
 func TestAFreshQuestionTakesTheForceQuitOfferBackDown(t *testing.T) {
 	m := stuck()
 	m.key(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
@@ -120,8 +102,6 @@ func TestAFreshQuestionTakesTheForceQuitOfferBackDown(t *testing.T) {
 	}
 }
 
-// The key that stops the answer must never be the key that might close the
-// client, or every press has to be thought about first.
 func TestEscapeStopsTheRunAndLeavesTheClientStanding(t *testing.T) {
 	m := stuck()
 
@@ -138,9 +118,6 @@ func TestEscapeStopsTheRunAndLeavesTheClientStanding(t *testing.T) {
 	}
 }
 
-// The offer to quit is on a three-second timer, so re-stamping it on every
-// press is how an esc held down — or tapped at a tool that is not listening —
-// leaves ctrl+c meaning "quit now" for as long as the tapping lasts.
 func TestASecondEscapeDoesNotKeepTheForceQuitOfferAlive(t *testing.T) {
 	m := stuck()
 	m.key(tea.KeyPressMsg{Code: tea.KeyEscape})
@@ -156,9 +133,6 @@ func TestASecondEscapeDoesNotKeepTheForceQuitOfferAlive(t *testing.T) {
 	}
 }
 
-// Idle, esc is not this client's key at all. Claiming it would make the one
-// press every terminal reader uses to back out of something a press that
-// silently does nothing here, and stop it reaching the prompt.
 func TestEscapeWithNothingRunningBelongsToThePrompt(t *testing.T) {
 	m := sized()
 
@@ -167,9 +141,6 @@ func TestEscapeWithNothingRunningBelongsToThePrompt(t *testing.T) {
 	}
 }
 
-// A dropdown standing open is the nearer thing to back out of, and it is what
-// esc already meant there. Stopping the run out from under an open menu would
-// take two visible things away on one press.
 func TestEscapeClosesTheDropdownBeforeItStopsAnything(t *testing.T) {
 	m := stuck()
 	m.prompt.SetValue("/")
@@ -185,5 +156,90 @@ func TestEscapeClosesTheDropdownBeforeItStopsAnything(t *testing.T) {
 	}
 	if m.run.stop == abandoned {
 		t.Error("esc stopped the run as well as closing the menu, want one thing per press")
+	}
+}
+
+func TestAnApprovalRequestShowsInTheStatusLine(t *testing.T) {
+	m := sized()
+	decision := make(chan approvalDecision, 1)
+
+	m.Update(approvalRequest{Name: "search_content", Input: []byte(`{"pattern":"x"}`), Decision: decision})
+
+	if m.run.pending == nil {
+		t.Fatal("the request did not set run.pending")
+	}
+	status := m.status()
+	if !strings.Contains(status, "search_content") {
+		t.Errorf("status = %q, want the tool's name", status)
+	}
+	if !strings.Contains(status, "y = once") {
+		t.Errorf("status = %q, want the key hint", status)
+	}
+}
+
+func TestPressingAnswersApproval(t *testing.T) {
+	cases := []struct {
+		key      rune
+		decision approvalDecision
+	}{
+		{'y', allowedOnce},
+		{'a', allowedForSession},
+		{'n', denied},
+	}
+	for _, tc := range cases {
+		m := sized()
+		decision := make(chan approvalDecision, 1)
+		m.run.pending = &approvalRequest{Name: "search", Decision: decision}
+		handled, _ := m.key(tea.KeyPressMsg{Code: tc.key})
+		if !handled {
+			t.Fatalf("key %c was not handled", tc.key)
+		}
+		if m.run.pending != nil {
+			t.Errorf("pending not cleared for key %c", tc.key)
+		}
+		if d := <-decision; d != tc.decision {
+			t.Errorf("key %c = %v, want %v", tc.key, d, tc.decision)
+		}
+	}
+}
+
+func TestAnyOtherKeyIsSwallowedWhilePending(t *testing.T) {
+	m := sized()
+	decision := make(chan approvalDecision, 1)
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
+
+	handled, _ := m.key(tea.KeyPressMsg{Code: 'x'})
+
+	if !handled {
+		t.Error("an unrelated key was passed through while an approval was pending")
+	}
+	if m.run.pending == nil {
+		t.Error("the pending approval was cleared by a key that was not a decision")
+	}
+	select {
+	case d := <-decision:
+		t.Errorf("a decision (%v) was sent for a key that answered nothing", d)
+	default:
+	}
+}
+
+func TestCtrlCClearsAPendingApprovalAndCancelsTheRun(t *testing.T) {
+	m := sized()
+	cancelled := false
+	m.run.busy = true
+	m.run.cancel = func() { cancelled = true }
+	decision := make(chan approvalDecision, 1)
+	m.run.pending = &approvalRequest{Name: "search", Decision: decision}
+
+	handled, cmd := m.key(tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
+
+	if !handled || cmd != nil {
+		t.Fatalf("ctrl+c = %v, %v; want the run cancelled and the session kept", handled, cmd)
+	}
+	if !cancelled {
+		t.Error("the run was not cancelled")
+	}
+	if m.run.pending != nil {
+		t.Error("run.pending survived a cancel — the status line would keep asking a dead question")
 	}
 }

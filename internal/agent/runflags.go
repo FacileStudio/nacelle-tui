@@ -9,6 +9,7 @@ import (
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle/tools"
 
+	"github.com/FacileStudio/nacelle-tui/internal/approval"
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
 	"github.com/FacileStudio/nacelle-tui/internal/skills"
 	"github.com/FacileStudio/nacelle-tui/internal/tui"
@@ -69,7 +70,7 @@ func setupAgentTools() (preparedTools, error) {
 
 func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 	found := augmentSystem(&p.config)
-	approvalGate, approve := tui.BuildApprovals(p.config)
+	approvalGate, approve := approval.Build(*p.config.ApproveTools)
 
 	hooks, hookNotice, err := settings.SessionHooks(p.config)
 	if err != nil {

@@ -37,25 +37,32 @@ func TestReasoningCommitsAsOneCollapsedLine(t *testing.T) {
 	}
 }
 
-// Tenths under ten seconds, whole seconds over: the tenth is the difference
-// between answering and stopping to think, right up until it is noise on a
-// figure nobody reads that closely.
-func TestAThinkingDurationReadsTheWayItIsRead(t *testing.T) {
-	cases := []struct {
-		spent time.Duration
-		want  string
-	}{
-		{450 * time.Millisecond, "0.5s"},
-		{4200 * time.Millisecond, "4.2s"},
-		{9949 * time.Millisecond, "9.9s"},
-		{10 * time.Second, "10s"},
-		{92500 * time.Millisecond, "93s"},
-	}
+func TestReasoningIsShownApartAndKeptOutOfTheConversation(t *testing.T) {
+	m := sized()
+	m.Expanded = true
+	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "let me think"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "the answer"})
+	m.settle()
 
-	for _, c := range cases {
-		if got := roughly(c.spent); got != c.want {
-			t.Errorf("roughly(%s) = %q, want %q", c.spent, got, c.want)
-		}
+	screen := onScreen(m)
+	if !strings.Contains(screen, "let me think") || !strings.Contains(screen, "the answer") {
+		t.Fatalf("screen = %q, want reasoning and answer both visible", screen)
+	}
+	if strings.Contains(screen, "thinkthe answer") {
+		t.Errorf("screen = %q, want reasoning not run into first word", screen)
+	}
+	if len(m.conversation) != 1 || said(m.conversation[0]) != "the answer" {
+		t.Errorf("conversation = %+v, want answer alone", m.conversation)
+	}
+}
+
+func TestReasoningIsOnScreenWhileItIsStillStreaming(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "weighing it up"})
+
+	if !strings.Contains(onScreen(m), "▶ thought") {
+		t.Errorf("screen = %q, want collapsed thought line visible", onScreen(m))
 	}
 }
 

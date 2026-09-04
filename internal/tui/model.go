@@ -12,11 +12,11 @@ import (
 	"charm.land/glamour/v2"
 
 	"github.com/FacileStudio/nacelle"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/history"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/menu"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/queue"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/status"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/theme"
+	"github.com/FacileStudio/nacelle-tui/internal/history"
+	"github.com/FacileStudio/nacelle-tui/internal/menu"
+	"github.com/FacileStudio/nacelle-tui/internal/queue"
+	"github.com/FacileStudio/nacelle-tui/internal/status"
+	"github.com/FacileStudio/nacelle-tui/internal/theme"
 )
 
 // forceQuit is how long the offer to quit outright stays open after a run is

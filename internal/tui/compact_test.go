@@ -187,3 +187,37 @@ func TestSizedCountsEveryBilledInputKind(t *testing.T) {
 		t.Errorf("size = %d, want cache reads and creations billed as input", m.size)
 	}
 }
+
+func TestCompactAtZeroDisablesCompaction(t *testing.T) {
+	m := newModel(nil, "test · model", nil, 0, false)
+	m.conversation = bigConversation()
+	m.size = 5_000_000
+
+	m.compact()
+
+	if m.trimmed != 0 {
+		t.Errorf("a zero threshold trimmed %d results; compaction should be off", m.trimmed)
+	}
+}
+
+func TestCompactAtCustomThresholdCompactsAtTheCustomPoint(t *testing.T) {
+	t.Run("under threshold", func(t *testing.T) {
+		spacious := newModel(nil, "test · model", nil, 200_000, false)
+		spacious.conversation = bigConversation()
+		spacious.size = 150_000
+		spacious.compact()
+		if spacious.trimmed != 0 {
+			t.Errorf("at 150k under the 200k threshold trimmed %d, want 0", spacious.trimmed)
+		}
+	})
+
+	t.Run("over threshold", func(t *testing.T) {
+		lower := newModel(nil, "test · model", nil, 120_000, false)
+		lower.conversation = bigConversation()
+		lower.size = 150_000
+		lower.compact()
+		if lower.trimmed == 0 {
+			t.Errorf("at 150k with a 120k threshold trimmed nothing; want compaction")
+		}
+	})
+}

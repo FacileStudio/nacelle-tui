@@ -13,7 +13,14 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/usage"
 )
 
-// SessionConfig groups runtime configuration options for the UI session.
+var Delegations = make(chan nacelle.Usage, 64)
+var delegations = Delegations
+
+type spentDelegation struct {
+	usage nacelle.Usage
+}
+
+// SessionConfig configures the runtime settings for an interactive session.
 type SessionConfig struct {
 	Root         string
 	Model        string
@@ -25,7 +32,7 @@ type SessionConfig struct {
 	AutoResume   bool
 }
 
-// UISession is what the runner hands to the Bubble Tea program.
+// UISession holds the complete state needed to run an interactive terminal session.
 type UISession struct {
 	Agent      *nacelle.Agent
 	Banner     string
@@ -35,8 +42,7 @@ type UISession struct {
 	SessionConfig
 }
 
-// Launch opens the program, delivers whatever was queued for the transcript
-// before it opened, and prints the recap on exit.
+// Launch starts the Bubble Tea UI session loop for the given configuration.
 func Launch(c UISession) error {
 	opened := NewModel(c.Agent, c.Banner, c.Skills, c.CompactAt, c.AutoResume)
 	opened.groupTools = c.GroupTools != nil && *c.GroupTools
@@ -54,7 +60,9 @@ func Launch(c UISession) error {
 	opened.unprinted = nil
 
 	program := tea.NewProgram(opened)
-	WireApprovals(c.Gate, program)
+	if c.Gate != nil {
+		c.Gate.Wire(program.Send)
+	}
 	final, err := program.Run()
 
 	if done, ok := final.(*Model); ok {
@@ -65,7 +73,6 @@ func Launch(c UISession) error {
 	return err
 }
 
-// send starts a run over text.
 func (m *Model) send(text string) tea.Cmd {
 	m.run.stop = ""
 	m.run.usage = nacelle.Usage{}
@@ -90,35 +97,26 @@ func (m *Model) send(text string) tea.Cmd {
 	return tea.Batch(waitFor(m.run.results), m.spin.Tick)
 }
 
-// halt stops the run in flight and leaves the queue standing.
-func (m *Model) halt() {
+func (m *Model) abandon() {
 	m.run.interrupted = time.Now()
 	m.run.stop = abandoned
 	m.run.pending = nil
 	m.run.cancel()
-}
-
-func (m *Model) dropQueued() {
-	if m.Len() == 0 {
-		return
+	if m.Len() > 0 {
+		m.say(fromClient, fmt.Sprintf("%s dropped, not sent", countedNoun(m.Drop(), "queued message")))
+		m.layout(m.windowHeight)
 	}
-	m.say(fromClient, fmt.Sprintf("%s dropped, not sent", countedNoun(m.Drop(), "queued message")))
-	m.layout(m.windowHeight)
 }
 
-// abandon stops the run in flight and drops everything it would have led to.
-func (m *Model) abandon() {
-	m.halt()
-	m.dropQueued()
-}
-
-// escaped is esc once the dropdown has had its turn.
 func (m *Model) escaped() (bool, tea.Cmd) {
 	if !m.run.busy {
 		return false, nil
 	}
 	if time.Since(m.run.interrupted) >= forceQuit {
-		m.halt()
+		m.run.interrupted = time.Now()
+		m.run.stop = abandoned
+		m.run.pending = nil
+		m.run.cancel()
 		if waiting := m.Len(); waiting > 0 {
 			m.say(fromClient, "stopped · "+countedNoun(waiting, "queued message")+" still to send")
 		}
@@ -126,7 +124,6 @@ func (m *Model) escaped() (bool, tea.Cmd) {
 	return true, nil
 }
 
-// consume folds one result into the transcript and waits for the next.
 func (m *Model) consume(next result) tea.Cmd {
 	if next.err != nil {
 		m.flush()
@@ -167,4 +164,15 @@ func (m *Model) recap() string {
 		spend += fmt.Sprintf(" · $%.4f", total.Cost)
 	}
 	return shape + "\n" + spend
+}
+
+func watchDelegations() tea.Cmd {
+	return func() tea.Msg {
+		return spentDelegation{usage: <-delegations}
+	}
+}
+
+func (m *Model) recordDelegation(spent spentDelegation) tea.Cmd {
+	m.run.usage = m.run.usage.Add(spent.usage)
+	return watchDelegations()
 }

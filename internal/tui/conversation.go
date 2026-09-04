@@ -4,24 +4,72 @@ import (
 	"encoding/json"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/approval"
+	"github.com/FacileStudio/nacelle-tui/internal/diff"
+	"github.com/FacileStudio/nacelle-tui/internal/layout"
+	"github.com/FacileStudio/nacelle-tui/internal/sessions"
+	"github.com/FacileStudio/nacelle-tui/internal/settings"
+	"github.com/FacileStudio/nacelle-tui/internal/skills"
+	"github.com/FacileStudio/nacelle-tui/internal/status"
+	"github.com/FacileStudio/nacelle-tui/internal/tasks"
+	"github.com/FacileStudio/nacelle-tui/internal/thinking"
+	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
-// record folds one event into the conversation the next question will be asked
-// with.
-//
-// This is a separate job from what reaches the screen, because the two want
-// different things: the transcript is a log and the conversation is a request.
-// A run is many turns — what the model said, the tools it asked for, their
-// results, then more of the same — and it has to be handed back in the shape it
-// was produced in, or the next question resumes from a transcript the model
-// never wrote.
-//
-// The turn boundary is taken from the tool results rather than from KindTurn,
-// which is the event that nominally ends a turn. The two backends agree on the
-// order of a call and the result answering it, and disagree on where KindTurn
-// falls between them: the Anthropic backend reports a call inside the turn that
-// asked for it, and OpenRouter reports it after that turn has already ended.
-// Keying on the results is what makes one state machine correct on both.
+type editChange = diff.EditChange
+type skill = skills.Skill
+type taskList = tasks.TaskList
+type taskUpdate = tasks.TaskUpdate
+type toolGroup = toolview.Group
+type toolError = toolview.ToolError
+type thoughts = thinking.Thoughts
+
+var bySkillName = skills.BySkillName
+var skillCommandNames = skills.SkillCommandNames
+var skillPrompt = skills.SkillPrompt
+
+type approvalDecision = approval.Decision
+type approvalRequest = approval.Request
+
+// Approvals aliases approval.Approvals.
+type Approvals = approval.Approvals
+
+// ApprovalRequest aliases approval.Request.
+type ApprovalRequest = approval.Request
+
+const (
+	denied            = approval.Denied
+	allowedOnce       = approval.AllowedOnce
+	allowedForSession = approval.AllowedForSession
+)
+
+// Config aliases settings.Config.
+type Config = settings.Config
+
+var listSessionFiles = sessions.ListSessionFiles
+var loadSession = sessions.LoadSession
+var formatSessionEntry = sessions.FormatSessionEntry
+
+var priorContents = diff.PriorContents
+var renderDiff = diff.RenderDiff
+var captureEdit = diff.CaptureEdit
+
+var truncate = layout.Truncate
+var unstyled = layout.Unstyled
+var promptCap = layout.PromptCap
+
+var shortTokens = status.ShortTokens
+var waitingVerb = status.WaitingVerb
+var lasted = status.Lasted
+var took = status.Took
+
+const statusDone = "completed"
+
+// BuildApprovals constructs the approval gate and returns the approval function.
+func BuildApprovals(config Config) (*Approvals, nacelle.Approve) {
+	return approval.Build(*config.ApproveTools)
+}
+
 func (m *Model) record(event nacelle.Event) {
 	switch event.Kind {
 	case nacelle.KindText:
@@ -49,14 +97,6 @@ func (m *Model) record(event nacelle.Event) {
 	}
 }
 
-// forgetAsked drops one call from the turn being built, as if the model had
-// never made it.
-//
-// This is what a Discarded result means: an attempt that produced the call
-// was superseded before it ran, and the backend that discarded it never
-// replays it either — see anthropic/unanswered.go's discard. Closing the
-// turn here the ordinary way would fabricate history the model never
-// actually has: a call it never made, answered by an error it never saw.
 func (m *Model) forgetAsked(id string) {
 	kept := m.run.asked[:0]
 	for _, call := range m.run.asked {
@@ -67,12 +107,6 @@ func (m *Model) forgetAsked(id string) {
 	m.run.asked = kept
 }
 
-// closeResults commits the tool results collected since the last turn.
-//
-// They go back as the user's side of the conversation whatever they look like,
-// because that is what Anthropic's shape is and this package follows it: a tool
-// result is a block inside the user turn there, and a message of its own in the
-// OpenAI schema, which the OpenRouter backend splits out at its own edge.
 func (m *Model) closeResults() {
 	if len(m.run.answered) == 0 {
 		return
@@ -81,12 +115,6 @@ func (m *Model) closeResults() {
 	m.run.answered = nil
 }
 
-// closeTurn ends the assistant turn on screen and in the conversation: what the
-// model said, the tools it asked for, and why it stopped when it did.
-//
-// A turn with nothing in it is not committed. A run abandoned before the model
-// said anything has no assistant message to send, and an empty one is refused
-// by both APIs rather than ignored.
 func (m *Model) closeTurn(stop nacelle.Stop) {
 	parts := m.run.asked
 	m.run.asked = nil
@@ -103,18 +131,8 @@ func (m *Model) closeTurn(stop nacelle.Stop) {
 	m.conversation = append(m.conversation, nacelle.Message{Role: nacelle.RoleAssistant, Parts: parts})
 }
 
-// dropUnanswered forgets the tool calls of a run that ended before their
-// results arrived.
-//
-// Every call whose result did arrive was committed by closeTurn at the moment
-// it did, so whatever is left here was never answered — and that is neither
-// hypothetical nor an error. A run capped at its iteration limit reports the
-// tools it stopped short of and runs none of them, and a run the reader
-// abandoned mid-tool never reaches the result at all; the OpenRouter backend
-// says as much outright, that a consumer pairing calls to results by id must
-// tolerate a call with no answer.
-//
-// Replaying one is the thing that is not allowed. Every provider rejects a
-// conversation holding a tool call nothing answered, so the honest turn to send
-// is the one without it.
 func (m *Model) dropUnanswered() { m.run.asked = nil }
+
+func (m *Model) editing() int {
+	return m.hist.Editing(m.Len())
+}

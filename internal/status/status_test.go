@@ -37,9 +37,17 @@ func TestWaitingVerb(t *testing.T) {
 	if next == first {
 		t.Errorf("WaitingVerb(%v) = %q, want different from %q", Rephrase, next, first)
 	}
-	cycle := WaitingVerb(time.Duration(len(WaitingPhrases())) * Rephrase)
+	cycle := WaitingVerb(time.Duration(len(WaitingPhrases)) * Rephrase)
 	if cycle != first {
 		t.Errorf("WaitingVerb after full cycle = %q, want %q", cycle, first)
+	}
+}
+
+func TestEveryWaitingPhraseIsTrueTheMomentAskingStarts(t *testing.T) {
+	for _, phrase := range WaitingPhrases {
+		if !strings.HasPrefix(phrase, "waiting ") {
+			t.Errorf("waiting phrase %q does not start with 'waiting '", phrase)
+		}
 	}
 }
 
@@ -52,6 +60,15 @@ func TestLasted(t *testing.T) {
 	}
 	if got := Lasted(90 * time.Second); got != "1m30s" {
 		t.Errorf("Lasted(90s) = %q, want 1m30s", got)
+	}
+}
+
+func TestTook(t *testing.T) {
+	if got := Took(0); got != "1ms" {
+		t.Errorf("Took(0) = %q, want 1ms", got)
+	}
+	if got := Took(12 * time.Millisecond); got != "12ms" {
+		t.Errorf("Took(12ms) = %q, want 12ms", got)
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 
 	"github.com/FacileStudio/nacelle"
 
+	"github.com/FacileStudio/nacelle-tui/internal/approval"
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
-	"github.com/FacileStudio/nacelle-tui/internal/tui"
 )
 
 // runHeadless runs a single prompt and streams text to stdout.
@@ -61,7 +61,7 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 	}
 
 	augmentSystem(&config)
-	_, approve := tui.BuildApprovals(config)
+	_, approve := approval.Build(*config.ApproveTools)
 
 	hooks, _, err := settings.SessionHooks(config)
 	if err != nil {

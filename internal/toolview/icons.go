@@ -6,7 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/FacileStudio/nacelle-tui/internal/tui/theme"
+	"github.com/FacileStudio/nacelle-tui/internal/theme"
 )
 
 var toolIcons = map[string]string{

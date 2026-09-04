@@ -61,7 +61,7 @@ func (m *Model) absorb(event nacelle.Event) {
 	}
 	switch event.Kind {
 	case nacelle.KindText:
-		m.thought()
+		m.Thought()
 		m.run.reported = m.run.reported || event.Text != ""
 		m.run.answer.WriteString(event.Text)
 		m.run.fullAnswer.WriteString(event.Text)
@@ -89,7 +89,7 @@ func (m *Model) absorb(event nacelle.Event) {
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 	m.commitParagraphs()
-	m.thought()
+	m.Thought()
 	m.run.reported = true
 	m.run.beginTool(tool, m.groupTools)
 	if m.run.diffs {

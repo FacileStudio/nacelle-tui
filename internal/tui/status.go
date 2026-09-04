@@ -9,7 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/toolview"
+	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
 const abandoned nacelle.Stop = "abandoned"
@@ -123,6 +123,21 @@ func (m *Model) spun(message spinner.TickMsg) tea.Cmd {
 	return m.spin.Spun(message, m.run.busy)
 }
 
-func took(spent time.Duration) string {
-	return max(spent.Round(time.Millisecond), time.Millisecond).String()
+func cutShort(stop nacelle.Stop) string {
+	if stop == "" || stop.Complete() {
+		return ""
+	}
+	switch stop {
+	case nacelle.StopMaxTokens:
+		return "cut off at the token limit"
+	case nacelle.StopContext:
+		return "cut off: out of context"
+	case nacelle.StopRefusal:
+		return "refused by the model"
+	case nacelle.StopIterations:
+		return "stopped at the iteration limit"
+	case abandoned:
+		return "abandoned"
+	}
+	return "stopped early"
 }

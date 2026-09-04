@@ -3,49 +3,77 @@ package tui
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/layout"
+	"github.com/FacileStudio/nacelle-tui/internal/menu"
 )
 
-// View draws only what is still changing: whatever a run is streaming right
-// now, one status line, any queued messages, the dropdown menu when it has
-// something to show, and the prompt. Everything finished has already been
-// printed and belongs to the terminal.
-//
-// There is no alternate screen and no mouse mode, and dropping both is the
-// point rather than an omission. An alt-screen program is handed a blank page
-// with no scrollback of its own, so it has to own scrolling, which means
-// capturing the wheel, which means taking click-drag selection too, which
-// means tmux's copy-mode reaches nothing and quitting un-draws the whole
-// session. Every one of those was reported here as its own separate
-// complaint, and every one of them is the same decision. Giving the page back
-// answers all of them at once: the terminal scrolls, selects, searches and
-// keeps the session, because the session is ordinary terminal output again.
-//
-// What it costs is reflow. A printed line is the terminal's, so a resize
-// rewraps it the way the terminal rewraps everything else rather than the way
-// this client would have. That is the trade every other tool in the terminal
-// already makes, including the shell this was launched from.
-//
-// The blank row above the status line is deliberate. Everything finished has
-// been printed already, so without it the status sits hard against the last
-// line of the answer and reads as part of it — a token count apparently
-// belonging to the sentence above. One empty row is what separates the client
-// talking about the run from the run's own output.
-//
-// The one thing recorded on the way out is how tall the frame came to be.
-// Nothing else knows: layout works out what the frame is allowed to be, which
-// is a different number the moment the live region is not full, and it runs
-// before its own frame reaches the screen. Printing needs the frame that is
-// actually up there, so this is where it is taken — see screen and printed.
-//
-// The cursor is positioned by hand because the prompt renders inside a larger
-// frame: the component reports where its cursor sits within itself, and only
-// the caller knows how many rows are above it. above is exactly those rows —
-// computed once and reused for both the body and the cursor offset, so the
-// two can never disagree about how tall the menu drew this frame.
+const promptRows = 10
+
+type screen struct {
+	width        int
+	windowHeight int
+	liveRows     int
+	frameRows    int
+}
+
+func newPrompt() textarea.Model {
+	prompt := textarea.New()
+	prompt.Placeholder = "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
+	prompt.SetPromptFunc(2, continuation)
+	prompt.ShowLineNumbers = false
+	prompt.DynamicHeight = true
+	prompt.MinHeight = 1
+	prompt.MaxHeight = promptRows
+	prompt.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("alt+enter", "shift+enter", "ctrl+j"))
+	prompt.SetVirtualCursor(false)
+	prompt.Focus()
+	return prompt
+}
+
+func continuation(info textarea.PromptInfo) string {
+	if info.LineNumber == 0 {
+		return "> "
+	}
+	return "  "
+}
+
+func (m *Model) ask() tea.Cmd {
+	question := strings.TrimSpace(m.prompt.Value())
+	if question == "" {
+		return nil
+	}
+	m.prompt.Reset()
+
+	held := m.hist.Requeue(m.Items(), question)
+	if !held && m.run.busy {
+		m.Add(question)
+		held = true
+	}
+	m.hist.Remember(question, m.Items())
+	m.layout(m.windowHeight)
+	if held {
+		return nil
+	}
+	return m.dispatch(question)
+}
+
+func (m *Model) dispatch(line string) tea.Cmd {
+	m.say(fromReader, line)
+
+	started := tea.Cmd(nil)
+	if cmd, ok := m.parseCommand(line); ok {
+		started = cmd(m)
+	} else {
+		started = m.send(line)
+	}
+	return tea.Sequence(m.prints(), started)
+}
+
 func (m *Model) View() tea.View {
 	above := append(m.streaming(), "")
 	above = append(above, m.tasks.View(max(m.width, 1), m.theme.Muted)...)
@@ -53,11 +81,11 @@ func (m *Model) View() tea.View {
 		above = append(above, "")
 	}
 	above = append(above, m.status())
-	above = append(above, m.viewQueued()...)
-	menu := m.viewMenu()
+	above = append(above, m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Queued)...)
+	menuView := menu.View(&m.menu, max(m.width, 1), m.theme.Plain, m.theme.Menu, m.theme.Command)
 	rows := append(above, m.prompt.View())
-	if menu != "" {
-		rows = append(rows, "", menu)
+	if menuView != "" {
+		rows = append(rows, "", menuView)
 	}
 	body := strings.Join(rows, "\n")
 	m.frameRows = lipgloss.Height(body)
@@ -71,35 +99,35 @@ func (m *Model) View() tea.View {
 	return view
 }
 
-// absorb folds one event into what is on screen.
-//
-// Text accumulates into the answer being streamed rather than becoming a line
-// of its own: the deltas arrive a few characters at a time, and a transcript
-// of those is unreadable.
-//
-// Reasoning accumulates separately. It is not part of the answer: the two
-// written into one buffer come out concatenated with no separator, and that
-// concatenation is what would go back as the assistant's message on every
-// later turn, putting a chain of thought in the one field no provider wants it
-func cutShort(stop nacelle.Stop) string {
-	if stop == "" || stop.Complete() {
-		return ""
+func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
+	widthChanged := size.Width != m.width
+	m.width, m.windowHeight = size.Width, size.Height
+
+	m.prompt.SetWidth(size.Width)
+	m.prompt.MaxHeight = promptCap(size.Height)
+	m.prompt.SetHeight(m.prompt.Height())
+	m.layout(size.Height)
+
+	if widthChanged {
+		m.restyle()
 	}
-	switch stop {
-	case nacelle.StopMaxTokens:
-		return "cut off at the token limit"
-	case nacelle.StopContext:
-		return "cut off: out of context"
-	case nacelle.StopRefusal:
-		return "refused by the model"
-	case nacelle.StopIterations:
-		return "stopped at the iteration limit"
-	case abandoned:
-		return "abandoned"
-	}
-	return "stopped early"
+	return nil
 }
 
-func (m *Model) viewQueued() []string {
-	return m.Queue.View(m.editing(), m.width, m.theme.Queued)
+func (m *Model) layout(height int) {
+	taken := 3 + m.prompt.Height() + m.menu.Height() + m.Height(m.hist.Editing(m.Len())) + m.tasks.Rows()
+	m.liveRows = layout.LiveRows(height, taken)
+}
+
+func (m *Model) printed(text string) tea.Cmd {
+	budget := layout.Budget(m.windowHeight, m.frameRows)
+	batches := layout.Batches(text, budget, m.width)
+	var cmds []tea.Cmd
+	for _, batch := range batches {
+		cmds = append(cmds, tea.Println(batch))
+	}
+	if len(cmds) == 1 {
+		return cmds[0]
+	}
+	return tea.Sequence(cmds...)
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/FacileStudio/nacelle"
-	"github.com/FacileStudio/nacelle-tui/internal/tui/toolview"
+	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
 // answerStream holds the text buffers produced during a run. Embedded in
