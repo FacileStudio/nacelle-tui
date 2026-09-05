@@ -12,6 +12,7 @@ import (
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/cost"
+	"github.com/FacileStudio/nacelle-tui/internal/tasks"
 )
 
 type command func(m *Model) tea.Cmd
@@ -67,6 +68,7 @@ func (m *Model) clear() tea.Cmd {
 	m.spent = nacelle.Usage{}
 	m.size, m.trimmed = 0, 0
 	m.tasks = nil
+	tasks.SetCurrentPlan(nil)
 	m.layout(m.windowHeight)
 	m.Forget()
 	echoed := m.prints()

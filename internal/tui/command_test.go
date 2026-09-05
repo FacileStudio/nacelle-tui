@@ -96,14 +96,14 @@ func TestNavigateMenuSelectionTabAndEsc(t *testing.T) {
 
 	m.prompt.SetValue("/cl")
 	m.refreshMenu()
-	handled, _ := m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyTab})
+	handled := m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyTab})
 	if !handled || m.prompt.Value() != "/clear " || m.run.busy || m.menu.Open() {
 		t.Errorf("tab failed: handled=%v prompt=%q busy=%v open=%v", handled, m.prompt.Value(), m.run.busy, m.menu.Open())
 	}
 
 	m.prompt.SetValue("/cl")
 	m.refreshMenu()
-	handled, _ = m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyEscape})
+	handled = m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyEscape})
 	if !handled || m.prompt.Value() != "/cl" || m.menu.Open() {
 		t.Errorf("esc failed: handled=%v prompt=%q open=%v", handled, m.prompt.Value(), m.menu.Open())
 	}
@@ -201,7 +201,7 @@ func TestSlashSkillStartsARunWithTheSkillsBodyAsTheQuestion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("nacelle.New: %v", err)
 	}
-	m := newModel(agent, "test · model", []skill{s}, int64(100_000), false)
+	m := NewModel(agent, "test · model", []skill{s}, int64(100_000), false)
 	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
 	t.Cleanup(m.run.cancel)
 

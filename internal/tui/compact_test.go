@@ -207,7 +207,7 @@ func TestSizedCountsEveryBilledInputKind(t *testing.T) {
 }
 
 func TestCompactAtZeroDisablesCompaction(t *testing.T) {
-	m := newModel(nil, "test · model", nil, 0, false)
+	m := NewModel(nil, "test · model", nil, 0, false)
 	m.conversation = bigConversation()
 	m.size = 5_000_000
 
@@ -220,7 +220,7 @@ func TestCompactAtZeroDisablesCompaction(t *testing.T) {
 
 func TestCompactAtCustomThresholdCompactsAtTheCustomPoint(t *testing.T) {
 	t.Run("under threshold", func(t *testing.T) {
-		spacious := newModel(nil, "test · model", nil, 200_000, false)
+		spacious := NewModel(nil, "test · model", nil, 200_000, false)
 		spacious.conversation = bigConversation()
 		spacious.size = 150_000
 		spacious.compact()
@@ -230,7 +230,7 @@ func TestCompactAtCustomThresholdCompactsAtTheCustomPoint(t *testing.T) {
 	})
 
 	t.Run("over threshold", func(t *testing.T) {
-		lower := newModel(nil, "test · model", nil, 120_000, false)
+		lower := NewModel(nil, "test · model", nil, 120_000, false)
 		lower.conversation = bigConversation()
 		lower.size = 150_000
 		lower.compact()

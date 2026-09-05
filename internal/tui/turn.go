@@ -120,6 +120,7 @@ func watchTasks() tea.Cmd {
 
 func (m *Model) recordTasks(reported tasks.TaskUpdate) tea.Cmd {
 	m.tasks = tasks.TaskList(reported)
+	tasks.SetCurrentPlan(m.tasks)
 	m.layout(m.windowHeight)
 	return watchTasks()
 }

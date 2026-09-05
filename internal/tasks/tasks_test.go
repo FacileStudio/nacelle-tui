@@ -147,3 +147,25 @@ func TestEmptyInputIsRefused(t *testing.T) {
 		t.Fatal("empty input was accepted")
 	}
 }
+
+func TestTasksRunPopulatesPlanForStepUpdate(t *testing.T) {
+	currentPlan.Store(taskList{})
+	_, err := tasksTool{}.Run(t.Context(), json.RawMessage(`{"tasks":[{"title":"task 1","status":"in_progress"},{"title":"task 2","status":"pending"}]}`))
+	if err != nil {
+		t.Fatalf("tasks run failed: %v", err)
+	}
+
+	result, err := tasksTool{}.Run(t.Context(), json.RawMessage(`{"step_update":{"index":0,"status":"completed"}}`))
+	if err != nil {
+		t.Fatalf("step_update failed after tasks run: %v", err)
+	}
+	if !strings.Contains(result, "1 done") {
+		t.Errorf("result = %q, want '1 done'", result)
+	}
+
+	updated := currentPlan.Load().(taskList)
+	if updated[0].Status != statusDone {
+		t.Errorf("status = %q, want %q", updated[0].Status, statusDone)
+	}
+	currentPlan.Store(taskList{})
+}

@@ -35,7 +35,7 @@ func checkPrintFlag() (bool, error) {
 	printArg := stripPrintFlag()
 	if printArg == "" {
 		piped, err := stdinPrompt()
-		if err != nil {
+		if err != nil || piped == "" {
 			return true, fmt.Errorf("no prompt: neither -print nor stdin provided")
 		}
 		printArg = piped
@@ -153,14 +153,15 @@ func stripPrintFlag() string {
 	filtered = append(filtered, os.Args[0])
 	for i := 1; i < len(os.Args); i++ {
 		arg := os.Args[i]
-		if arg == "-print" {
+		switch {
+		case arg == "-print":
 			if i+1 < len(os.Args) && !strings.HasPrefix(os.Args[i+1], "-") {
 				value = os.Args[i+1]
 				i++
 			}
-		} else if strings.HasPrefix(arg, "-print=") {
+		case strings.HasPrefix(arg, "-print="):
 			value = strings.TrimPrefix(arg, "-print=")
-		} else {
+		default:
 			filtered = append(filtered, arg)
 		}
 	}

@@ -51,7 +51,11 @@ func projectSessionsDir(projectRoot string) string {
 	case "..":
 		return filepath.Join(dir, filepath.Base(clean))
 	default:
-		return filepath.Join(dir, clean)
+		candidate := filepath.Join(dir, clean)
+		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+			return candidate
+		}
+		return dir
 	}
 }
 
@@ -132,11 +136,15 @@ func FormatSessionEntry(filePath string) string {
 
 	var header sessionHeader
 	if err := json.Unmarshal([]byte(linesData[0]), &header); err == nil && header.Version == 1 {
+		started := header.Started
+		if len(started) > 19 {
+			started = started[:19]
+		}
 		return fmt.Sprintf("  %s · %s · %s · %s",
 			filepath.Base(filePath),
 			header.Backend,
 			header.Model,
-			header.Started[:19])
+			started)
 	}
 
 	return fmt.Sprintf("  %s · %s",

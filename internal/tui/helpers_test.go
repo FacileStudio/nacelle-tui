@@ -9,7 +9,11 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle-tui/internal/sessions"
 )
+
+type model = Model
 
 // printMessage is what bubbletea turns a Println into. The type is the
 // library's own and unexported, so the only handle on it out here is its name.
@@ -96,14 +100,14 @@ func sequenced(message tea.Msg) ([]tea.Cmd, bool) {
 // it has said and not yet handed over, plus whatever a run is still
 // streaming, with styling stripped. It is what "the viewport" used to mean,
 // now that the finished half belongs to the terminal instead.
-func onScreen(m *model) string {
+func onScreen(m *Model) string {
 	both := append(append([]string{}, m.unprinted...), m.streaming()...)
 	return visible(strings.Join(both, "\n"))
 }
 
 // spoken is the transcript without the opening banner, which every model has
 // and no test about what was said cares about.
-func spoken(m *model) []string {
+func spoken(m *Model) []string {
 	if len(m.unprinted) == 0 {
 		return nil
 	}
@@ -122,5 +126,40 @@ func writeSkill(t *testing.T, dir, frontmatterBody string) {
 	content := "---\n" + frontmatterBody + "\n---\n\n# Instructions\n\nDo the thing.\n"
 	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(content), 0o644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
+	}
+}
+
+func TestAutoResumeLoadsSession(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	log := sessions.OpenSession("anthropic", "claude-opus-5", ".")
+	if log == nil {
+		t.Fatal("expected non-nil log")
+	}
+	log.Line(sessions.FromReader, "hello")
+	log.Line(sessions.FromModel, "world")
+
+	m := NewModel(nil, "banner", nil, 100_000, true)
+	if cmd := m.Init(); cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+
+	if len(m.conversation) != 2 {
+		t.Fatalf("conversation length = %d, want 2", len(m.conversation))
+	}
+}
+
+func TestAutoResumeNoSessionLeavesConversationEmpty(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	m := NewModel(nil, "banner", nil, 100_000, true)
+	if cmd := m.Init(); cmd == nil {
+		t.Fatal("expected non-nil cmd")
+	}
+
+	if len(m.conversation) != 0 {
+		t.Fatalf("conversation length = %d, want 0", len(m.conversation))
 	}
 }

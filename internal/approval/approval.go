@@ -79,6 +79,9 @@ func (a *Approvals) Ask(ctx context.Context, name string, input json.RawMessage)
 	if a.IsAllowed(name) {
 		return true
 	}
+	if a.send == nil {
+		return false
+	}
 	decision := make(chan Decision, 1)
 	a.send(Request{Name: name, Input: input, Decision: decision})
 	select {

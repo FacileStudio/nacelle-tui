@@ -60,8 +60,16 @@ func ReportChan() <-chan TaskUpdate {
 // An atomic.Value is the right shape here because both sides are goroutines
 // that never yield to each other's scheduler — the tool runs on the agent's
 // goroutine while the model runs on bubbletea's. The value is nil until the
-// first plan arrives, and callers check that.
 var currentPlan atomic.Value
+
+// SetCurrentPlan updates the plan held in currentPlan for incremental step updates.
+func SetCurrentPlan(plan TaskList) {
+	if len(plan) == 0 {
+		currentPlan.Store(TaskList{})
+	} else {
+		currentPlan.Store(plan)
+	}
+}
 
 // Rows is how many lines view draws for this list. Layout reserves exactly
 // this many, so the two must never be able to disagree — which is why it is
@@ -69,10 +77,6 @@ var currentPlan atomic.Value
 // carries the same warning about the same bug.
 func (t TaskList) Rows() int {
 	return len(t)
-}
-
-func (t TaskList) rows() int {
-	return t.Rows()
 }
 
 // View is the plan as it stands, drawn between the blank row and the status line.
@@ -88,10 +92,6 @@ func (t TaskList) View(width int, muted lipgloss.Style) []string {
 		}
 	}
 	return lines
-}
-
-func (t TaskList) view(width int, muted lipgloss.Style) []string {
-	return t.View(width, muted)
 }
 
 // taskGlyph marks a step's state with a character that is text in every

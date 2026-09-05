@@ -61,11 +61,12 @@ func (m *Model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		return true, nil
 	}
 	if m.run.pending != nil {
-		return true, m.decide(press)
+		m.decide(press)
+		return true, nil
 	}
 	if m.menu.Open() {
-		if handled, cmd := m.navigateMenu(press); handled {
-			return true, cmd
+		if m.navigateMenu(press) {
+			return true, nil
 		}
 	}
 	switch press.String() {
@@ -101,7 +102,7 @@ func (m *Model) tabKey() bool {
 	return false
 }
 
-func (m *Model) decide(press tea.KeyPressMsg) tea.Cmd {
+func (m *Model) decide(press tea.KeyPressMsg) {
 	var decision approval.Decision
 	switch press.String() {
 	case "y":
@@ -111,13 +112,12 @@ func (m *Model) decide(press tea.KeyPressMsg) tea.Cmd {
 	case "n":
 		decision = approval.Denied
 	default:
-		return nil
+		return
 	}
 
 	pending := m.run.pending
 	m.run.pending = nil
 	pending.Decision <- decision
-	return nil
 }
 
 func (m *Model) refreshMenu() {
@@ -131,7 +131,7 @@ func (m *Model) refreshMenu() {
 	m.layout(m.windowHeight)
 }
 
-func (m *Model) navigateMenu(press tea.KeyPressMsg) (bool, tea.Cmd) {
+func (m *Model) navigateMenu(press tea.KeyPressMsg) bool {
 	switch press.String() {
 	case "up":
 		m.menu.Up()
@@ -142,11 +142,11 @@ func (m *Model) navigateMenu(press tea.KeyPressMsg) (bool, tea.Cmd) {
 	case "esc":
 		m.menu.Dismiss()
 	default:
-		return false, nil
+		return false
 	}
 	m.menu.ClampView()
 	m.layout(m.windowHeight)
-	return true, nil
+	return true
 }
 
 func (m *Model) selectMenuItem() {

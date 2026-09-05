@@ -31,7 +31,7 @@ func plan(n, active int) taskList {
 func TestEveryPlanDrawsExactlyTheRowsItReserved(t *testing.T) {
 	for _, size := range []int{0, 1, 4, 5, 6, 40} {
 		list := plan(size, size/2)
-		if got, want := len(list.view(80, lipgloss.NewStyle())), list.rows(); got != want {
+		if got, want := len(list.View(80, lipgloss.NewStyle())), list.Rows(); got != want {
 			t.Errorf("%d steps drew %d lines, reserved %d", size, got, want)
 		}
 	}
@@ -42,7 +42,7 @@ func TestALongPlanShowsAllSteps(t *testing.T) {
 	list := plan(20, 15)
 	list[15].Title = "the running one"
 
-	drawn := strings.Join(list.view(80, lipgloss.NewStyle()), "\n")
+	drawn := strings.Join(list.View(80, lipgloss.NewStyle()), "\n")
 	if !strings.Contains(drawn, "the running one") {
 		t.Errorf("the running step is off screen:\n%s", drawn)
 	}
@@ -57,7 +57,7 @@ func TestALongPlanShowsAllSteps(t *testing.T) {
 func TestALongTitleIsCutToTheWidth(t *testing.T) {
 	list := taskList{{Title: strings.Repeat("long ", 40), Status: statusActive}}
 
-	line := ansi.Strip(list.view(30, lipgloss.NewStyle())[0])
+	line := ansi.Strip(list.View(30, lipgloss.NewStyle())[0])
 	if got := lipgloss.Width(line); got > 30 {
 		t.Errorf("line is %d cells wide, want at most 30: %q", got, line)
 	}

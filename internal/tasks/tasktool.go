@@ -141,6 +141,7 @@ func (t tasksTool) Run(ctx context.Context, input json.RawMessage) (string, erro
 	}
 	select {
 	case reports <- taskUpdate(merged):
+		SetCurrentPlan(merged)
 		return summarise(merged), nil
 	case <-ctx.Done():
 		return "", ctx.Err()
@@ -197,24 +198,23 @@ func applyStepUpdate(step *stepUpdate) (taskList, error) {
 		return nil, fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
 	}
 	merged, ok := cur.(taskList)
-	if !ok {
-		return nil, fmt.Errorf("tasks: internal error — plan is not a taskList")
-	}
-	if len(merged) == 0 {
+	if !ok || len(merged) == 0 {
 		return nil, fmt.Errorf("tasks: step_update needs an existing plan but none has been set")
 	}
 	idx := step.Index
 	if idx < 0 || idx >= len(merged) {
 		return nil, fmt.Errorf("tasks: step_update index %d is out of range (plan has %d steps)", idx, len(merged))
 	}
+	clone := make(taskList, len(merged))
+	copy(clone, merged)
 	if step.Status != nil {
-		merged[idx].Status = *step.Status
+		clone[idx].Status = *step.Status
 	}
 	if step.Title != nil {
-		merged[idx].Title = *step.Title
+		clone[idx].Title = *step.Title
 	}
 	if step.Reason != nil {
-		merged[idx].Reason = *step.Reason
+		clone[idx].Reason = *step.Reason
 	}
-	return merged, nil
+	return clone, nil
 }

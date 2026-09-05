@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -103,24 +106,10 @@ func stdinPrompt() (string, error) {
 
 // readStdinFirstLine reads up to the first newline from stdin.
 func readStdinFirstLine() (string, error) {
-	var buf strings.Builder
-	tmp := make([]byte, 4096)
-	for {
-		n, err := os.Stdin.Read(tmp)
-		if n > 0 {
-			idx := strings.IndexByte(string(tmp[:n]), '\n')
-			if idx >= 0 {
-				buf.Write(tmp[:idx])
-				return buf.String(), nil
-			}
-			buf.Write(tmp[:n])
-		}
-		if err != nil {
-			break
-		}
+	reader := bufio.NewReader(os.Stdin)
+	line, err := reader.ReadString('\n')
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", err
 	}
-	if buf.Len() > 0 {
-		return buf.String(), nil
-	}
-	return "", nil
+	return strings.TrimRight(line, "\r\n"), nil
 }

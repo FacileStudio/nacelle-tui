@@ -83,17 +83,18 @@ func (m *Model) View() tea.View {
 	above = append(above, m.status())
 	above = append(above, m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Queued)...)
 	menuView := menu.View(&m.menu, max(m.width, 1), m.theme.Plain, m.theme.Menu, m.theme.Command)
-	rows := append(above, m.prompt.View())
+	aboveHeight := lipgloss.Height(strings.Join(above, "\n"))
+	above = append(above, m.prompt.View())
 	if menuView != "" {
-		rows = append(rows, "", menuView)
+		above = append(above, "", menuView)
 	}
-	body := strings.Join(rows, "\n")
+	body := strings.Join(above, "\n")
 	m.frameRows = lipgloss.Height(body)
 
 	view := tea.NewView(body)
 	view.KeyboardEnhancements.ReportEventTypes = true
 	if position := m.prompt.Cursor(); position != nil {
-		position.Y += lipgloss.Height(strings.Join(above, "\n"))
+		position.Y += aboveHeight
 		view.Cursor = position
 	}
 	return view

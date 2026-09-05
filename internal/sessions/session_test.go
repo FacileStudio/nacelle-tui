@@ -1,6 +1,7 @@
 package sessions
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -51,5 +52,33 @@ func TestFormatSessionEntryNonexistent(t *testing.T) {
 	formatted := FormatSessionEntry("/nonexistent/test.jsonl")
 	if !strings.Contains(formatted, "error reading file") {
 		t.Errorf("formatted = %q, want error indicator", formatted)
+	}
+}
+
+func TestFormatSessionEntryShortStarted(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/short.jsonl"
+	content := `{"v":1,"started":"short","backend":"google","model":"gemini","root":"."}` + "\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	formatted := FormatSessionEntry(path)
+	if !strings.Contains(formatted, "google") || !strings.Contains(formatted, "short") {
+		t.Errorf("formatted = %q, want backend and short started", formatted)
+	}
+}
+
+func TestListSessionFilesFallback(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
+	if log == nil {
+		t.Fatal("expected non-nil log")
+	}
+
+	files := ListSessionFiles("/nonexistent/project/dir")
+	if len(files) == 0 {
+		t.Fatal("expected fallback to base sessions directory")
 	}
 }

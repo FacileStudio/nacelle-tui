@@ -101,12 +101,6 @@ type Model struct {
 	run  inflight
 }
 
-type model = Model
-
-func newModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64, autoResume bool) *Model {
-	return NewModel(agent, banner, skills, compactAt, autoResume)
-}
-
 // NewModel builds the client. The banner names the backend and model, so
 // which provider is billed is visible before typing, not after it fails.
 // skills is every skill loaded this run — kept keyed by name so
