@@ -114,7 +114,7 @@ func (m *Model) reveal() (bool, tea.Cmd) {
 
 func watchTasks() tea.Cmd {
 	return func() tea.Msg {
-		return <-tasks.Reports
+		return <-tasks.ReportChan()
 	}
 }
 

@@ -2,11 +2,13 @@ package tui
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/approval"
 	"github.com/FacileStudio/nacelle-tui/internal/diff"
 	"github.com/FacileStudio/nacelle-tui/internal/layout"
+	"github.com/FacileStudio/nacelle-tui/internal/menu"
 	"github.com/FacileStudio/nacelle-tui/internal/sessions"
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
 	"github.com/FacileStudio/nacelle-tui/internal/skills"
@@ -135,4 +137,20 @@ func (m *Model) dropUnanswered() { m.run.asked = nil }
 
 func (m *Model) editing() int {
 	return m.hist.Editing(m.Len())
+}
+
+func menuItems(skills map[string]skill) []menu.Item {
+	names := commandNames()
+	skillNames := skillCommandNames(skills)
+	items := make([]menu.Item, 0, len(names)+len(skillNames))
+	for _, name := range names {
+		items = append(items, menu.Item{Value: name})
+	}
+	for _, name := range skillNames {
+		items = append(items, menu.Item{
+			Value:       name,
+			Description: skills[strings.TrimPrefix(name, "/skill:")].Description,
+		})
+	}
+	return items
 }

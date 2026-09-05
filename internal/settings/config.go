@@ -38,8 +38,6 @@ type Config struct {
 	Root    string `yaml:"root"`
 	System  string `yaml:"system"`
 
-	Continue *bool `yaml:"continue"`
-
 	Limits `yaml:",inline"`
 
 	Toggles `yaml:",inline"`
@@ -58,9 +56,9 @@ type Config struct {
 }
 
 // Toggles is the on/off settings: whether the model may run commands, whether
-// a human is asked before tools run, whether file edits are drawn as
-// diffs, and whether the task planning tool is available. One field per key,
-// all pointers, for the reason Config's own doc comment gives.
+// the client will prompt for approval before a tool call runs, whether to show
+// a diff when a file is changed, and whether the model gets a subagent tool.
+// Every toggle is a pointer so "not in this file" can be told from "false".
 type Toggles struct {
 	Bash         *bool `yaml:"bash"`
 	Subagents    *bool `yaml:"subagents"`
@@ -69,9 +67,13 @@ type Toggles struct {
 	Tasks        *bool `yaml:"tasks"`
 }
 
-// UI holds the look-and-feel choices that are not about what the agent is
-// allowed to do. GroupTools is on by default because a model that calls the
-// same read ten times in a row is the common case, and ten lines of identical
+// UI holds display settings for the interactive client.
+//
+// GroupTools controls whether consecutive read-only tool calls of the same
+// name collapse into a single line while they run. When true (the default),
+// ten search_content calls show as "running 10 tools" rather than taking ten
+// lines of screen; the completed calls still each print their own line. It is
+// on by default because twenty lines of the same tool name with the same cyan
 // icon are noise; turning it off is for the session where you want to watch
 // every call land.
 //
@@ -80,6 +82,7 @@ type Toggles struct {
 // than collapsed to "thought for 2.9s". The ctrl+t key still toggles per-session
 // either way, and show_thinking only sets the starting position.
 type UI struct {
+	Continue     *bool `yaml:"continue"`
 	GroupTools   *bool `yaml:"group_tools"`
 	ShowThinking *bool `yaml:"show_thinking"`
 }
@@ -154,7 +157,6 @@ func Defaults(system string) Config {
 		Backend:   "anthropic",
 		Root:      ".",
 		System:    system,
-		Continue:  &cont,
 		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
@@ -164,7 +166,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{GroupTools: &groupTools, ShowThinking: &showThinking},
+		UI: UI{Continue: &cont, GroupTools: &groupTools, ShowThinking: &showThinking},
 	}
 }
 

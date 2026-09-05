@@ -68,21 +68,25 @@ func declareFlags(fallback Config) declared {
 			search: flag.String("search", *fallback.Search, "base URL of a SearXNG instance to search the web through; empty means no web search"),
 			fetch:  flag.Bool("fetch", *fallback.Fetch, "let the model read a web page by URL; on by default"),
 		},
-		togglesFlags: togglesFlags{
-			bash:         flag.Bool("bash", *fallback.Bash, "let the model run commands"),
-			subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
-			approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
-			diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
-			tasks:        flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),
-		},
-		iterations: flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
-		compactAt:  flag.Int64("compact-at", *fallback.CompactAt, "transcript size in tokens at which the session compacts; 0 turns compaction off"),
+		togglesFlags: declareToggles(fallback),
+		iterations:   flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
+		compactAt:    flag.Int64("compact-at", *fallback.CompactAt, "transcript size in tokens at which the session compacts; 0 turns compaction off"),
 		discoveryFlags: discoveryFlags{
 			projectContext: flag.Bool("project-context", *fallback.ProjectContext, "read CLAUDE.md and AGENTS.md from root upward into the system prompt"),
 			skills:         flag.Bool("skills", *fallback.Skills, "tell the model about skills found in ~/.agents/skills and trusted .agents/skills directories"),
 			trustSkills:    flag.Bool("trust-skills", *fallback.TrustSkills, "trust every .agents/skills directory found under root this run, and remember the decision"),
 			trustHooks:     flag.Bool("trust-hooks", *fallback.TrustHooks, "trust this project's .nacelle/hooks.yml as it reads right now, and remember that version"),
 		},
+	}
+}
+
+func declareToggles(fallback Config) togglesFlags {
+	return togglesFlags{
+		bash:         flag.Bool("bash", *fallback.Bash, "let the model run commands"),
+		subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
+		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
+		diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
+		tasks:        flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),
 	}
 }
 

@@ -26,7 +26,7 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 		MaxIterations: *config.MaxIterations,
 	}, nacelle.SubAgentOptions{
 		Approve: delegateApprovals(approve),
-		Usage:   func(u nacelle.Usage) { tui.Delegations <- u },
+		Usage:   tui.DelegateUsage,
 	})
 	if err != nil {
 		return nil, err

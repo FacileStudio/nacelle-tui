@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"strconv"
 	"time"
-
-	"charm.land/bubbles/v2/spinner"
-	tea "charm.land/bubbletea/v2"
 )
 
-// WaitingPhrases is the sequence of waiting phrases.
-var WaitingPhrases = []string{
+var waitingPhrases = []string{
 	"waiting for a response",
 	"waiting on the model",
 	"waiting on the backend",
+}
+
+// WaitingPhrases returns a copy of the sequence of waiting phrases.
+func WaitingPhrases() []string {
+	return append([]string(nil), waitingPhrases...)
 }
 
 // Rephrase is the interval at which the waiting phrase rotates.
@@ -22,7 +23,7 @@ const Rephrase = 4 * time.Second
 
 // WaitingVerb returns the waiting phrase for an elapsed duration.
 func WaitingVerb(elapsed time.Duration) string {
-	return WaitingPhrases[int(elapsed/Rephrase)%len(WaitingPhrases)]
+	return waitingPhrases[int(elapsed/Rephrase)%len(waitingPhrases)]
 }
 
 // ShortTokens renders a token count formatted for display.
@@ -49,34 +50,4 @@ func Lasted(spent time.Duration) string {
 // Took formats duration rounded to whole milliseconds, floored at one millisecond.
 func Took(spent time.Duration) string {
 	return max(spent.Round(time.Millisecond), time.Millisecond).String()
-}
-
-// Spinner wraps a bubbletea spinner with run-aware ticking.
-type Spinner struct {
-	model spinner.Model
-}
-
-// NewSpinner returns an initialized spinner with MiniDot pattern.
-func NewSpinner() Spinner {
-	return Spinner{model: spinner.New(spinner.WithSpinner(spinner.MiniDot))}
-}
-
-// Tick returns the spinner tick message.
-func (s Spinner) Tick() tea.Msg {
-	return s.model.Tick()
-}
-
-// View renders the current spinner frame.
-func (s *Spinner) View() string {
-	return s.model.View()
-}
-
-// Spun advances the spinner one frame and returns the next tick if busy.
-func (s *Spinner) Spun(msg spinner.TickMsg, busy bool) tea.Cmd {
-	var cmd tea.Cmd
-	s.model, cmd = s.model.Update(msg)
-	if !busy {
-		return nil
-	}
-	return cmd
 }

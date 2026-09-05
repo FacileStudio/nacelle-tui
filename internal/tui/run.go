@@ -13,11 +13,11 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/usage"
 )
 
-var Delegations = make(chan nacelle.Usage, 64)
-var delegations = Delegations
+var delegations = make(chan nacelle.Usage, 64)
 
-type spentDelegation struct {
-	usage nacelle.Usage
+// DelegateUsage delivers a delegated subagent run's spend to the update loop.
+func DelegateUsage(u nacelle.Usage) {
+	delegations <- u
 }
 
 // SessionConfig configures the runtime settings for an interactive session.
@@ -164,15 +164,4 @@ func (m *Model) recap() string {
 		spend += fmt.Sprintf(" · $%.4f", total.Cost)
 	}
 	return shape + "\n" + spend
-}
-
-func watchDelegations() tea.Cmd {
-	return func() tea.Msg {
-		return spentDelegation{usage: <-delegations}
-	}
-}
-
-func (m *Model) recordDelegation(spent spentDelegation) tea.Cmd {
-	m.run.usage = m.run.usage.Add(spent.usage)
-	return watchDelegations()
 }

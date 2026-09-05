@@ -46,10 +46,12 @@ type TaskUpdate TaskList
 
 type taskUpdate = TaskUpdate
 
-// Reports carries a reported plan from the tool's goroutine to the update loop.
-var Reports = make(chan TaskUpdate, 16)
+var reports = make(chan TaskUpdate, 16)
 
-var reports = Reports
+// ReportChan returns the channel carrying reported plans from the tool to the update loop.
+func ReportChan() <-chan TaskUpdate {
+	return reports
+}
 
 // currentPlan shares the latest plan across goroutines so the task tool
 // can read it for incremental updates. Written by the update loop on every

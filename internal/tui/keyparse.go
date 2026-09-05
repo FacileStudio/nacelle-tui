@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -75,25 +74,31 @@ func (m *Model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 	case "esc":
 		return m.escaped()
 	case "tab":
-		if cmd := menu.AnyCommand(m.prompt.Value()); cmd != "" {
-			matches := menu.FilterMenu(m.menu.Items, cmd)
-			if len(matches) == 1 {
-				m.prompt.SetValue(menu.ReplaceCommand(m.prompt.Value(), matches[0].Value))
-				m.prompt.CursorEnd()
-				return true, nil
-			}
-			if len(matches) > 1 {
-				m.menu.Filtered = matches
-				m.menu.Selected, m.menu.Scroll = 0, 0
-				m.layout(m.windowHeight)
-				return true, nil
-			}
-		}
-		return false, nil
+		return m.tabKey(), nil
 	case "enter":
 		return true, m.ask()
 	}
 	return m.historyKey(press)
+}
+
+func (m *Model) tabKey() bool {
+	cmd := menu.AnyCommand(m.prompt.Value())
+	if cmd == "" {
+		return false
+	}
+	matches := menu.FilterMenu(m.menu.Items, cmd)
+	if len(matches) == 1 {
+		m.prompt.SetValue(menu.ReplaceCommand(m.prompt.Value(), matches[0].Value))
+		m.prompt.CursorEnd()
+		return true
+	}
+	if len(matches) > 1 {
+		m.menu.Filtered = matches
+		m.menu.Selected, m.menu.Scroll = 0, 0
+		m.layout(m.windowHeight)
+		return true
+	}
+	return false
 }
 
 func (m *Model) decide(press tea.KeyPressMsg) tea.Cmd {
@@ -113,22 +118,6 @@ func (m *Model) decide(press tea.KeyPressMsg) tea.Cmd {
 	m.run.pending = nil
 	pending.Decision <- decision
 	return nil
-}
-
-func menuItems(skills map[string]skill) []menu.Item {
-	names := commandNames()
-	skillNames := skillCommandNames(skills)
-	items := make([]menu.Item, 0, len(names)+len(skillNames))
-	for _, name := range names {
-		items = append(items, menu.Item{Value: name})
-	}
-	for _, name := range skillNames {
-		items = append(items, menu.Item{
-			Value:       name,
-			Description: skills[strings.TrimPrefix(name, "/skill:")].Description,
-		})
-	}
-	return items
 }
 
 func (m *Model) refreshMenu() {

@@ -37,14 +37,14 @@ func TestWaitingVerb(t *testing.T) {
 	if next == first {
 		t.Errorf("WaitingVerb(%v) = %q, want different from %q", Rephrase, next, first)
 	}
-	cycle := WaitingVerb(time.Duration(len(WaitingPhrases)) * Rephrase)
+	cycle := WaitingVerb(time.Duration(len(WaitingPhrases())) * Rephrase)
 	if cycle != first {
 		t.Errorf("WaitingVerb after full cycle = %q, want %q", cycle, first)
 	}
 }
 
 func TestEveryWaitingPhraseIsTrueTheMomentAskingStarts(t *testing.T) {
-	for _, phrase := range WaitingPhrases {
+	for _, phrase := range WaitingPhrases() {
 		if !strings.HasPrefix(phrase, "waiting ") {
 			t.Errorf("waiting phrase %q does not start with 'waiting '", phrase)
 		}
