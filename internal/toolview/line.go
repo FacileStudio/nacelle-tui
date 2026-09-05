@@ -16,11 +16,11 @@ var primaryKeys = []string{"path", "file_path", "file", "command", "pattern", "q
 // DurationRoom is the number of cells reserved for the elapsed call duration.
 const DurationRoom = 10
 
-func truncate(s string, max int) string {
-	if max <= 0 {
+func truncate(s string, limit int) string {
+	if limit <= 0 {
 		return ""
 	}
-	return ansi.Truncate(s, max, "…")
+	return ansi.Truncate(s, limit, "…")
 }
 
 // ToolLine formats a tool call as a single line with name and primary argument.

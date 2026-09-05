@@ -96,7 +96,7 @@ func (a *Approvals) Ask(ctx context.Context, name string, input json.RawMessage)
 }
 
 // Accept passes legible input without prompting, refusing only ambiguous input.
-func (a *Approvals) Accept(ctx context.Context, name string, input json.RawMessage) bool {
+func (a *Approvals) Accept(_ context.Context, name string, input json.RawMessage) bool {
 	if _, err := toolview.StrictObject(input); errors.Is(err, toolview.ErrDuplicateKey) {
 		return false
 	}

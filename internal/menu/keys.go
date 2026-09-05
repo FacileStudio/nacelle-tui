@@ -28,7 +28,7 @@ func AnyCommand(value string) string {
 }
 
 // InsertPick returns the picked command with a trailing space.
-func InsertPick(value, pick string) string {
+func InsertPick(_, pick string) string {
 	return pick + " "
 }
 

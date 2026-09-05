@@ -39,7 +39,7 @@ func (s *answeringStub) Stream(_ context.Context, request nacelle.Request) iter.
 		yield(nacelle.Event{Kind: nacelle.KindText, Text: "done"}, nil)
 	}
 }
-func (s *answeringStub) CountTokens(_ context.Context, request nacelle.Request) (int64, error) {
+func (s *answeringStub) CountTokens(_ context.Context, _ nacelle.Request) (int64, error) {
 	return 10, nil
 }
 

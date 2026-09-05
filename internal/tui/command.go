@@ -25,7 +25,7 @@ var commands = map[string]command{
 		return nil
 	},
 	"help":     (*Model).help,
-	"quit":     func(m *Model) tea.Cmd { return tea.Quit },
+	"quit":     func(_ *Model) tea.Cmd { return tea.Quit },
 	"resume":   (*Model).resumeCmd,
 	"sessions": (*Model).sessionsCmd,
 	"status":   (*Model).statusCmd,

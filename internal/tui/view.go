@@ -123,7 +123,7 @@ func (m *Model) layout(height int) {
 func (m *Model) printed(text string) tea.Cmd {
 	budget := layout.Budget(m.windowHeight, m.frameRows)
 	batches := layout.Batches(text, budget, m.width)
-	var cmds []tea.Cmd
+	cmds := make([]tea.Cmd, 0, len(batches))
 	for _, batch := range batches {
 		cmds = append(cmds, tea.Println(batch))
 	}

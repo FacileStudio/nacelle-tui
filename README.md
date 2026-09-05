@@ -77,6 +77,8 @@ environment variables, then flags. The useful ones:
 | `-model` | `NACELLE_MODEL` | model id; the backend's own default otherwise |
 | `-root` | `NACELLE_ROOT` | directory the file tools may reach |
 | `-bash` | `NACELLE_BASH` | let the model run commands (off by default) |
+| `-continue` | — | auto-resume the newest session for the current project |
+| `-tasks` | `NACELLE_TASKS` | task planning tool (on by default) |
 | `-approve-tools` | `NACELLE_APPROVE_TOOLS` | ask before every tool call runs |
 | `-subagents` | `NACELLE_SUBAGENTS` | give the model a delegate with its own context window (off by default) |
 | `-max-iterations` | `NACELLE_MAX_ITERATIONS` | how many times the model may be asked |
@@ -93,19 +95,30 @@ Full settings reference: [docs/configuration.md](docs/configuration.md).
 
 Settings live in `~/.nacelle.yml`, created with defaults the first time a
 setting needs writing. Hook trust decisions live in `~/.nacelle/trust.json`,
-keyed by project path and file hash — trusting a hook file is remembered
-across runs, per project, never globally.
+keyed by project path and file hash, remembering trust decisions per project.
 
 ## Structure
 
 ```
-main.go        Entrypoint: build config, tools, hooks and the agent, then launch
-flags.go       Command line layer, one flag per Config field
-config.go      Defaults and the ~/.nacelle.yml layer
-env.go         The NACELLE_* environment layer
-conversation.go, command.go, compact.go   Transcript, slash commands, compaction
-hooks*.go      Project hook files: parsing, trust decisions, process wiring
-skills.go      Skill discovery and rendering into the system prompt
+main.go             Entrypoint: calls agent.Run
+internal/agent/     Agent lifecycle, tools wiring, headless mode, banner, flags
+internal/approval/  Interactive and batch tool call approvals
+internal/cost/      Token usage and cost calculation
+internal/diff/      Syntax-highlighted unified diff generator
+internal/history/   Command history and navigation
+internal/layout/    Terminal dimensions and line truncation
+internal/menu/      Autocompletion menu for commands and skills
+internal/queue/     Input queueing during active turns
+internal/sessions/  Session persistence, listing, rotation, resume
+internal/settings/  CLI flags, ~/.nacelle.yml, and environment configuration
+internal/skills/    Agent skills discovery and execution
+internal/status/    Spinner and progress status indicator
+internal/tasks/     Task planning tool, validation, step updates
+internal/theme/     Terminal color palettes and syntax themes
+internal/thinking/  Collapsible reasoning viewport
+internal/toolview/  Compact and grouped tool rendering
+internal/tui/       Bubble Tea v2 model, key handling, rendering, slash commands
+internal/usage/     Token accounting and context window headroom
 ```
 
 ---

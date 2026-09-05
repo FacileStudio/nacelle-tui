@@ -12,11 +12,11 @@ var (
 	diffRemoved = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(1))
 )
 
-func truncate(s string, max int) string {
-	if max <= 0 {
+func truncate(s string, limit int) string {
+	if limit <= 0 {
 		return ""
 	}
-	return ansi.Truncate(s, max, "…")
+	return ansi.Truncate(s, limit, "…")
 }
 
 // renderBlock writes one hunk's lines, stopping at the display cap with a

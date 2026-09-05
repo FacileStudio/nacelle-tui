@@ -9,11 +9,11 @@ import (
 
 const truncationSuffix = "…"
 
-func truncate(s string, max int) string {
-	if max <= 0 {
+func truncate(s string, limit int) string {
+	if limit <= 0 {
 		return ""
 	}
-	return ansi.Truncate(s, max, truncationSuffix)
+	return ansi.Truncate(s, limit, truncationSuffix)
 }
 
 // MenuRow renders a single menu item formatted to width.

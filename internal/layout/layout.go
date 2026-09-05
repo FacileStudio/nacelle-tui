@@ -5,12 +5,12 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// Truncate fits s into max terminal cells, ending with an ellipsis.
-func Truncate(s string, max int) string {
-	if max <= 0 {
+// Truncate fits s into limit terminal cells, ending with an ellipsis.
+func Truncate(s string, limit int) string {
+	if limit <= 0 {
 		return ""
 	}
-	return ansi.Truncate(s, max, "…")
+	return ansi.Truncate(s, limit, "…")
 }
 
 // Unstyled strips ANSI escape sequences from text.

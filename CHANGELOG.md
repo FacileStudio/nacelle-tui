@@ -4,6 +4,19 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Refactored
+- **Modular package architecture**: decomposed the monolithic root package into 18 internal packages under `internal/` (`agent`, `approval`, `cost`, `diff`, `history`, `layout`, `menu`, `queue`, `sessions`, `settings`, `skills`, `status`, `tasks`, `theme`, `thinking`, `toolview`, `tui`, `usage`), leaving `main.go` as a clean entrypoint.
+- **Code health and complexity limits**: refactored routines and split subpackages to satisfy `filet` function count and file length rules across all 134 files.
+
+### Fixed
+- **Task plan synchronization**: restored `currentPlan` synchronization on task execution and model resets, preventing lost plan state during subsequent `step_update` calls.
+- **Concurrent slice mutation**: eliminated data race in `step_update` by cloning task lists before in-place mutation.
+- **Session listing resilience**: guarded session file listing against non-existent project directories with fallback to base sessions directory, and bounds-checked session timestamp formatting.
+- **Headless mode input handling**: hardened standard input ingestion against non-EOF errors and empty piped input.
+- **Approval gate nil check**: protected against nil dereference when calling `Ask` on unwired approval gates.
+
 ## [0.22.0] - 2026-09-04
 ### Added
 - Added `--continue` flag to auto-resume the newest session for the current project on startup
