@@ -156,28 +156,24 @@ func (m *Model) paint(who speaker, text string) string {
 // the first thinking delta, which is under a millisecond on a figure printed
 // to a tenth of a second. See stamp.
 func (m *Model) streaming() []string {
-	if m.Begun.IsZero() && m.run.reasoning.Len() > 0 {
-		m.Stamp()
-	}
-
 	var live []string
 	if reasoning := m.run.reasoning.String(); reasoning != "" {
+		m.Stamp()
+		block := m.theme.Thinking.Render(m.Collapsed(m.Elapsed()))
 		if m.Expanded {
-			live = append(live, m.markdown(reasoning))
-		} else {
-			live = append(live, m.theme.Thinking.Render(m.Collapsed(m.Elapsed())))
+			block = m.markdown(reasoning)
 		}
+		live = append(live, block)
 	}
 
 	if answer := m.run.answer.String(); answer != "" {
 		live = append(live, m.markdown(answer))
 	}
-	if groups := m.inFlightGroups(); len(groups) > 0 {
-		if len(live) > 0 {
-			live = append(live, "")
-		}
-		live = append(live, groups...)
+	groups := m.inFlightGroups()
+	if len(groups) > 0 && len(live) > 0 {
+		live = append(live, "")
 	}
+	live = append(live, groups...)
 	if len(live) == 0 {
 		return nil
 	}

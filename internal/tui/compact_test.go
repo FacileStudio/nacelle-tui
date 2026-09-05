@@ -144,40 +144,58 @@ func TestCompactDropsOldThinkingBlocks(t *testing.T) {
 
 	m.compact()
 
-	replaced, untouched := 0, 0
-	for _, message := range m.conversation {
-		for _, part := range message.Parts {
-			r, ok := part.(nacelle.Reasoning)
-			if !ok {
-				continue
-			}
-			if strings.HasPrefix(r.Text, droppedThinkingNotice) {
-				replaced++
-			} else {
-				untouched++
-			}
-		}
-	}
+	replaced, untouched := countThinkingBlocks(m.conversation)
 	if replaced != 1 {
-		t.Errorf("%d thinking blocks replaced, want 1 (the one outside the keep window)", replaced)
+		t.Errorf("%d thinking blocks replaced, want 1", replaced)
 	}
 	if untouched != 2 {
-		t.Errorf("%d thinking blocks untouched, want 2 (the two inside the keep window)", untouched)
+		t.Errorf("%d thinking blocks untouched, want 2", untouched)
 	}
-	for i := 1; i < len(m.conversation); i += 2 {
-		hasText := false
-		for _, part := range m.conversation[i].Parts {
+	verifyAssistantTextPreserved(t, m.conversation)
+	if m.trimmed < 2 {
+		t.Errorf("trimmed count = %d, want at least 2", m.trimmed)
+	}
+}
+
+func countThinkingBlocks(messages []nacelle.Message) (int, int) {
+	replaced, untouched := 0, 0
+	for _, msg := range messages {
+		r, u := countMessageThinking(msg)
+		replaced += r
+		untouched += u
+	}
+	return replaced, untouched
+}
+
+func countMessageThinking(msg nacelle.Message) (int, int) {
+	replaced, untouched := 0, 0
+	for _, part := range msg.Parts {
+		r, ok := part.(nacelle.Reasoning)
+		if !ok {
+			continue
+		}
+		if strings.HasPrefix(r.Text, droppedThinkingNotice) {
+			replaced++
+		} else {
+			untouched++
+		}
+	}
+	return replaced, untouched
+}
+
+func verifyAssistantTextPreserved(t *testing.T, messages []nacelle.Message) {
+	t.Helper()
+	for i := 1; i < len(messages); i += 2 {
+		found := false
+		for _, part := range messages[i].Parts {
 			if _, ok := part.(nacelle.Text); ok {
-				hasText = true
+				found = true
 				break
 			}
 		}
-		if !hasText {
+		if !found {
 			t.Errorf("assistant message %d lost its Text part after compact", i)
 		}
-	}
-	if m.trimmed < 2 {
-		t.Errorf("trimmed count = %d, want at least 2 (1 tool result + 1 thinking block)", m.trimmed)
 	}
 }
 func TestSizedCountsEveryBilledInputKind(t *testing.T) {

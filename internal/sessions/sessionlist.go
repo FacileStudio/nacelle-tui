@@ -15,23 +15,9 @@ import (
 // for the given project root. If projectRoot is empty, it lists all sessions.
 // If the sessions directory doesn't exist, it returns an empty slice.
 func ListSessionFiles(projectRoot string) []string {
-	home, err := os.UserHomeDir()
-	if err != nil {
+	sessionsDir := projectSessionsDir(projectRoot)
+	if sessionsDir == "" {
 		return nil
-	}
-	sessionsDir := filepath.Join(home, ".nacelle", "sessions")
-
-	if projectRoot != "" {
-		cleanRoot := filepath.Clean(projectRoot)
-		switch cleanRoot {
-		case ".":
-			cleanRoot = ""
-		case "..":
-			cleanRoot = filepath.Base(cleanRoot)
-		}
-		if cleanRoot != "" {
-			sessionsDir = filepath.Join(sessionsDir, cleanRoot)
-		}
 	}
 
 	files, err := os.ReadDir(sessionsDir)
@@ -45,17 +31,39 @@ func ListSessionFiles(projectRoot string) []string {
 			sessionFiles = append(sessionFiles, filepath.Join(sessionsDir, f.Name()))
 		}
 	}
+	sortSessionsByMtime(sessionFiles)
+	return sessionFiles
+}
 
-	sort.Slice(sessionFiles, func(i, j int) bool {
-		infoI, errI := os.Stat(sessionFiles[i])
-		infoJ, errJ := os.Stat(sessionFiles[j])
+func projectSessionsDir(projectRoot string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Join(home, ".nacelle", "sessions")
+	if projectRoot == "" {
+		return dir
+	}
+	clean := filepath.Clean(projectRoot)
+	switch clean {
+	case ".":
+		return dir
+	case "..":
+		return filepath.Join(dir, filepath.Base(clean))
+	default:
+		return filepath.Join(dir, clean)
+	}
+}
+
+func sortSessionsByMtime(files []string) {
+	sort.Slice(files, func(i, j int) bool {
+		infoI, errI := os.Stat(files[i])
+		infoJ, errJ := os.Stat(files[j])
 		if errI != nil || errJ != nil {
 			return false
 		}
 		return infoI.ModTime().After(infoJ.ModTime())
 	})
-
-	return sessionFiles
 }
 
 // LoadSession loads and parses a session file, returning the conversation.
@@ -66,35 +74,41 @@ func LoadSession(path string) []nacelle.Message {
 		return nil
 	}
 
-	var conversation []nacelle.Message
 	lines := strings.Split(strings.TrimSuffix(string(data), "\n"), "\n")
-
-	startIndex := 0
-	if len(lines) > 0 {
-		var header sessionHeader
-		if err := json.Unmarshal([]byte(lines[0]), &header); err == nil && header.Version == 1 {
-			startIndex = 1
-		}
+	if len(lines) > 0 && hasSessionHeader(lines[0]) {
+		lines = lines[1:]
 	}
 
-	for _, line := range lines[startIndex:] {
-		if line == "" {
-			continue
-		}
-		var entry sessionEntry
-		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			continue
-		}
-
-		switch entry.Who {
-		case "question":
-			conversation = append(conversation, nacelle.UserText(entry.Text))
-		case "answer":
-			conversation = append(conversation, nacelle.AssistantText(entry.Text))
+	var conversation []nacelle.Message
+	for _, line := range lines {
+		if msg, ok := parseSessionEntry(line); ok {
+			conversation = append(conversation, msg)
 		}
 	}
-
 	return conversation
+}
+
+func hasSessionHeader(firstLine string) bool {
+	var header sessionHeader
+	return json.Unmarshal([]byte(firstLine), &header) == nil && header.Version == 1
+}
+
+func parseSessionEntry(line string) (nacelle.Message, bool) {
+	if line == "" {
+		return nacelle.Message{}, false
+	}
+	var entry sessionEntry
+	if err := json.Unmarshal([]byte(line), &entry); err != nil {
+		return nacelle.Message{}, false
+	}
+	switch entry.Who {
+	case "question":
+		return nacelle.UserText(entry.Text), true
+	case "answer":
+		return nacelle.AssistantText(entry.Text), true
+	default:
+		return nacelle.Message{}, false
+	}
 }
 
 // FormatSessionEntry formats a session file entry for display.

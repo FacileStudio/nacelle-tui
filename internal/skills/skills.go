@@ -64,10 +64,7 @@ func LoadSkills(root string, trustNew bool, extraDirs []string) SkillsResult {
 }
 
 func loadSkills(root string, trustNew bool, extraDirs []string) skillsResult {
-	var found []Skill
-	found = append(found, globalSkills()...)
-	found = append(found, extraSkills(extraDirs)...)
-
+	found := append(globalSkills(), extraSkills(extraDirs)...)
 	containers := projectSkillContainers(root)
 	store, err := loadTrust()
 	if err != nil {
@@ -93,8 +90,7 @@ func loadSkills(root string, trustNew bool, extraDirs []string) skillsResult {
 		}
 	}
 
-	sys := renderSkills(found)
-	not := skillNotice(skipped, saveErr)
+	sys, not := renderSkills(found), skillNotice(skipped, saveErr)
 	return skillsResult{
 		System: sys, Notice: not, Skills: found,
 		system: sys, notice: not, skills: found,

@@ -7,6 +7,11 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+var (
+	diffAdded   = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(2))
+	diffRemoved = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(1))
+)
+
 func truncate(s string, max int) string {
 	if max <= 0 {
 		return ""
@@ -49,4 +54,38 @@ func splitLines(text string) []string {
 		return nil
 	}
 	return strings.Split(strings.TrimSuffix(text, "\n"), "\n")
+}
+
+// RenderDiff draws one change the way git would: removals in the terminal's
+// red, additions in its green, and a few unchanged lines around each block so
+// the eye can find where in the file it is looking.
+//
+// The colours are ANSI indices rather than fixed values, so they follow
+// whatever scheme the terminal itself uses. Nothing worth showing — a call
+// whose input could not be parsed, a change that touches no line — renders as
+// empty, and the caller simply says the ordinary one-line report it always
+// has.
+func RenderDiff(change EditChange, width int, muted lipgloss.Style) string {
+	if change.Path == "" || change.Before == change.After {
+		return ""
+	}
+	blocks := hunks(diffOps(splitLines(change.Before), splitLines(change.After)), contextLines)
+	if len(blocks) == 0 {
+		return ""
+	}
+
+	var out strings.Builder
+	shown := 0
+	for i, block := range blocks {
+		if i > 0 {
+			out.WriteString(muted.Render("  …") + "\n")
+			shown++
+		}
+		var cut bool
+		shown, cut = renderBlock(&out, block, width, shown, muted)
+		if cut {
+			break
+		}
+	}
+	return out.String()
 }

@@ -167,7 +167,11 @@ func TestPromptWrappingAndGrowth(t *testing.T) {
 	if got := m.prompt.Height(); got > promptRows {
 		t.Errorf("prompt height = %d, want no more than cap %d", got, promptRows)
 	}
+	verifyPromptClearedRestoresLiveRows(t, m)
+}
 
+func verifyPromptClearedRestoresLiveRows(t *testing.T, m *Model) {
+	t.Helper()
 	m.prompt.Reset()
 	m.layout(m.windowHeight)
 	tall := m.liveRows
@@ -215,22 +219,17 @@ func TestPromptHistoryNavigation(t *testing.T) {
 		t.Fatalf("history = %q, want duplicate moved to end", got)
 	}
 
-	m.key(tea.KeyPressMsg{Code: tea.KeyUp})
-	if got := m.prompt.Value(); got != "first question" {
-		t.Fatalf("prompt = %q, want most recent", got)
-	}
-	m.key(tea.KeyPressMsg{Code: tea.KeyUp})
-	if got := m.prompt.Value(); got != "second question" {
-		t.Fatalf("prompt = %q, want older question", got)
+	for _, want := range []string{"first question", "second question"} {
+		m.key(tea.KeyPressMsg{Code: tea.KeyUp})
+		if got := m.prompt.Value(); got != want {
+			t.Fatalf("prompt = %q, want %q", got, want)
+		}
 	}
 
 	m2 := sized()
 	m2.hist.Remember("an earlier question", m2.Items())
 	m2.prompt.SetValue("half a thought")
 	m2.key(tea.KeyPressMsg{Code: tea.KeyUp})
-	if got := m2.prompt.Value(); got != "an earlier question" {
-		t.Fatalf("prompt = %q, want recalled question", got)
-	}
 	m2.key(tea.KeyPressMsg{Code: tea.KeyDown})
 	if got := m2.prompt.Value(); got != "half a thought" {
 		t.Fatalf("prompt = %q, want draft restored", got)

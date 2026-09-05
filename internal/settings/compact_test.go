@@ -8,79 +8,74 @@ import (
 	s "github.com/FacileStudio/nacelle-tui/internal/settings"
 )
 
-func TestCompactAtIsConfigurable(t *testing.T) {
+type testConfigEnv struct {
+	file string
+}
+
+func setupConfigEnv(t *testing.T) testConfigEnv {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	return testConfigEnv{file: filepath.Join(home, s.ConfigFile)}
+}
+
+func (e testConfigEnv) write(t *testing.T, body string) {
+	t.Helper()
+	if err := os.WriteFile(e.file, []byte(body), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+}
+
+func (e testConfigEnv) read(t *testing.T, over s.Config) s.Config {
+	t.Helper()
+	c, err := s.Settings("", over)
+	if err != nil {
+		t.Fatalf("Settings: %v", err)
+	}
+	return c
+}
+
+func TestCompactAtDefaults(t *testing.T) {
 	defaults := s.Defaults("")
 	if *defaults.CompactAt != s.DefaultCompactAt {
 		t.Fatalf("default compact_at = %d, want %d", *defaults.CompactAt, s.DefaultCompactAt)
 	}
-
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	file := filepath.Join(home, s.ConfigFile)
-
-	writeFile := func(t *testing.T, body string) {
-		t.Helper()
-		if err := os.WriteFile(file, []byte(body), 0o644); err != nil {
-			t.Fatalf("write config: %v", err)
-		}
+	env := setupConfigEnv(t)
+	c := env.read(t, s.Config{})
+	if *c.CompactAt != s.DefaultCompactAt {
+		t.Errorf("default compact_at = %d, want %d", *c.CompactAt, s.DefaultCompactAt)
 	}
-	read := func(t *testing.T, over s.Config) s.Config {
-		t.Helper()
-		c, err := s.Settings("", over)
-		if err != nil {
-			t.Fatalf("Settings: %v", err)
-		}
-		return c
+}
+
+func TestCompactAtPrecedence(t *testing.T) {
+	env := setupConfigEnv(t)
+	env.write(t, "compact_at: 204800\n")
+	if c := env.read(t, s.Config{}); *c.CompactAt != 204800 {
+		t.Errorf("file compact_at = %d, want 204800", *c.CompactAt)
 	}
 
-	t.Run("default", func(t *testing.T) {
-		c := read(t, s.Config{})
-		if *c.CompactAt != s.DefaultCompactAt {
-			t.Errorf("default compact_at = %d, want %d", *c.CompactAt, s.DefaultCompactAt)
-		}
-	})
+	t.Setenv("NACELLE_COMPACT_AT", "300000")
+	if c := env.read(t, s.Config{}); *c.CompactAt != 300000 {
+		t.Errorf("env compact_at = %d, want 300000", *c.CompactAt)
+	}
 
-	t.Run("file beats default", func(t *testing.T) {
-		writeFile(t, "compact_at: 204800\n")
-		c := read(t, s.Config{})
-		if *c.CompactAt != 204800 {
-			t.Errorf("file compact_at = %d, want 204800", *c.CompactAt)
-		}
-	})
+	c := env.read(t, s.Config{Limits: s.Limits{CompactAt: int64Ptr(400000)}})
+	if *c.CompactAt != 400000 {
+		t.Errorf("flag compact_at = %d, want 400000", *c.CompactAt)
+	}
+}
 
-	t.Run("env beats file", func(t *testing.T) {
-		writeFile(t, "compact_at: 204800\n")
-		t.Setenv("NACELLE_COMPACT_AT", "300000")
-		c := read(t, s.Config{})
-		if *c.CompactAt != 300000 {
-			t.Errorf("env compact_at = %d, want 300000", *c.CompactAt)
-		}
-	})
+func TestCompactAtFileVariants(t *testing.T) {
+	env := setupConfigEnv(t)
+	env.write(t, "backend: anthropic\n")
+	if c := env.read(t, s.Config{}); *c.CompactAt != s.DefaultCompactAt {
+		t.Errorf("unmentioned compact_at = %d, want default %d", *c.CompactAt, s.DefaultCompactAt)
+	}
 
-	t.Run("flag beats env and file", func(t *testing.T) {
-		writeFile(t, "compact_at: 204800\n")
-		t.Setenv("NACELLE_COMPACT_AT", "300000")
-		c := read(t, s.Config{Limits: s.Limits{CompactAt: int64Ptr(400000)}})
-		if *c.CompactAt != 400000 {
-			t.Errorf("flag compact_at = %d, want 400000 (flag beats env and file)", *c.CompactAt)
-		}
-	})
-
-	t.Run("unmentioned key keeps default", func(t *testing.T) {
-		writeFile(t, "backend: anthropic\n")
-		c := read(t, s.Config{})
-		if *c.CompactAt != s.DefaultCompactAt {
-			t.Errorf("unmentioned compact_at = %d, want default %d", *c.CompactAt, s.DefaultCompactAt)
-		}
-	})
-
-	t.Run("zero in file is honoured", func(t *testing.T) {
-		writeFile(t, "compact_at: 0\n")
-		c := read(t, s.Config{})
-		if *c.CompactAt != 0 {
-			t.Errorf("compact_at: 0 = %d, want 0 (a zero is a real value)", *c.CompactAt)
-		}
-	})
+	env.write(t, "compact_at: 0\n")
+	if c := env.read(t, s.Config{}); *c.CompactAt != 0 {
+		t.Errorf("compact_at: 0 = %d, want 0", *c.CompactAt)
+	}
 }
 
 func int64Ptr(i int64) *int64 {

@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"charm.land/lipgloss/v2"
 )
 
 // editTools are the local tools whose result changes a file's contents, and
@@ -29,25 +26,6 @@ const contextLines = 3
 // scrollback that can never be redrawn.
 const shownDiffLines = 400
 
-// The added and removed sides are the terminal's own green and red, because a
-// diff's two colours are the two every scheme already has an opinion about. An
-// ANSI index needs no help following a light terminal: the scheme is what
-// resolves it, and it resolves it again the moment the scheme changes.
-//
-// There is no third var for the unchanged lines between them. Those are muted
-// text, the same as the queued rows and the counts under the status line, and
-// the whole point of routing every grey through palette.muted is that the grey
-// is decided once — by the background the terminal reported, not by whoever
-// last typed a colour into a package var. It lived here as a fixed ANSI 8 and
-// was the one style in this program that could not follow the background,
-// which is exactly the case a constant grey gets wrong: 8 is a near-black on
-// the dark schemes that move it, and a fixed mid-grey is thin on white. The
-// style arrives as an argument now — see RenderDiff.
-var (
-	diffAdded   = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(2))
-	diffRemoved = lipgloss.NewStyle().Foreground(lipgloss.ANSIColor(1))
-)
-
 // EditChange is what one editing call did to one file: its path relative to
 // root, and the contents either side of it.
 //
@@ -63,13 +41,9 @@ type EditChange struct {
 
 // CaptureEdit turns one tool call into the change it will make, and says
 // whether it is one worth drawing a diff for.
-//
-// Anything that is not a known editing tool, or whose input cannot be read
-// cleanly, is answered with false rather than guessed at: a diff of the wrong
-// two texts is worse than no diff. A duplicate key is refused for the reason
-// toolline refuses one — the value shown and the value run must be the same
-// value — and here the gate may be off, so refusal means silence rather than
-// a denied call, which is still the honest rendering of an unreadable one.
+// CaptureEdit turns a tool call's raw input into the before-and-after text of
+// the file it touches, ready for diffing. Calls that cannot be parsed, or tools
+// that do not edit files, return false and produce no diff.
 func CaptureEdit(root, name, input string) (EditChange, bool) {
 	if !editTools[name] {
 		return EditChange{}, false
@@ -85,43 +59,45 @@ func CaptureEdit(root, name, input string) (EditChange, bool) {
 func changeFrom(root, name string, fields map[string]json.RawMessage) (EditChange, bool) {
 	switch name {
 	case "edit_file":
-		path, ok := fieldString(fields, "path")
-		if !ok {
-			return EditChange{}, false
-		}
-		before, ok := fieldString(fields, "old")
-		if !ok {
-			return EditChange{}, false
-		}
-		after, ok := fieldString(fields, "new")
-		if !ok {
-			return EditChange{}, false
-		}
-		return EditChange{Path: path, Before: before, After: after}, true
-
+		return editFileChange(fields)
 	case "write_file":
-		path, ok := fieldString(fields, "path")
-		if !ok {
-			return EditChange{}, false
-		}
-		after, ok := fieldString(fields, "content")
-		if !ok {
-			return EditChange{}, false
-		}
-		return EditChange{Path: path, Before: PriorContents(root, path), After: after}, true
-
+		return writeFileChange(root, fields)
 	case "run_command":
-		cmd, ok := fieldString(fields, "command")
-		if !ok {
-			return EditChange{}, false
-		}
-		path, ok := extractEditPath(cmd)
-		if !ok {
-			return EditChange{}, false
-		}
-		return EditChange{Path: path, Before: PriorContents(root, path)}, true
+		return runCommandChange(root, fields)
+	default:
+		return EditChange{}, false
 	}
-	return EditChange{}, false
+}
+
+func editFileChange(fields map[string]json.RawMessage) (EditChange, bool) {
+	path, ok1 := fieldString(fields, "path")
+	before, ok2 := fieldString(fields, "old")
+	after, ok3 := fieldString(fields, "new")
+	if !ok1 || !ok2 || !ok3 {
+		return EditChange{}, false
+	}
+	return EditChange{Path: path, Before: before, After: after}, true
+}
+
+func writeFileChange(root string, fields map[string]json.RawMessage) (EditChange, bool) {
+	path, ok1 := fieldString(fields, "path")
+	after, ok2 := fieldString(fields, "content")
+	if !ok1 || !ok2 {
+		return EditChange{}, false
+	}
+	return EditChange{Path: path, Before: PriorContents(root, path), After: after}, true
+}
+
+func runCommandChange(root string, fields map[string]json.RawMessage) (EditChange, bool) {
+	cmd, ok := fieldString(fields, "command")
+	if !ok {
+		return EditChange{}, false
+	}
+	path, ok := extractEditPath(cmd)
+	if !ok {
+		return EditChange{}, false
+	}
+	return EditChange{Path: path, Before: PriorContents(root, path)}, true
 }
 
 // fieldString reads one string argument out of already-parsed input.
@@ -147,102 +123,4 @@ func PriorContents(root, path string) string {
 		return ""
 	}
 	return string(raw)
-}
-
-// extractEditPath looks for a known in-place editing command (sed -i, awk -i,
-// perl -i) and extracts the file path from its arguments. It is deliberately
-// heuristic: only the most common patterns are caught, and a command that does
-// not match simply produces no diff, which is always safe.
-//
-// The markers list checks early, before the parsing loop, so a command with no
-// in-place flag returns fast and avoids the allocation.
-//
-// The function handles the flag-order variations these commands accept:
-//
-//	sed -i.bak 'expression' path
-//	sed -i '' 'expression' path
-//	sed -i -e 'expression' path
-//	awk -i inplace 'expression' path
-//	perl -i 'expression' path
-func extractEditPath(cmd string) (string, bool) {
-	after, matched := matchInplaceMarker(cmd)
-	if !matched {
-		return "", false
-	}
-	return firstPathArg(after)
-}
-
-// matchInplaceMarker finds the first in-place editing marker in cmd and
-// returns the text after it.
-func matchInplaceMarker(cmd string) (string, bool) {
-	for _, m := range []string{"sed -i", "awk -i", "perl -i"} {
-		if idx := strings.Index(cmd, m); idx >= 0 {
-			return cmd[idx+len(m):], true
-		}
-	}
-	return "", false
-}
-
-// firstPathArg walks the fields after an in-place marker and returns the first
-// that is a path rather than a flag, expression, or backup suffix.
-func firstPathArg(after string) (string, bool) {
-	fields := strings.Fields(after)
-	for i, f := range fields {
-		if i == 0 {
-			if f == `''` || f == `""` {
-				continue
-			}
-			if !strings.HasPrefix(f, "-") && !strings.HasPrefix(f, "'") && !strings.HasPrefix(f, `"`) {
-				continue
-			}
-		}
-		if strings.HasPrefix(f, "-") {
-			if f == "-e" || f == "--expression" {
-				continue
-			}
-			continue
-		}
-		if (strings.HasPrefix(f, "'") || strings.HasPrefix(f, `"`)) && len(f) > 2 {
-			continue
-		}
-		if f == "inplace" {
-			continue
-		}
-		return strings.Trim(f, `"'`), true
-	}
-	return "", false
-}
-
-// RenderDiff draws one change the way git would: removals in the terminal's
-// red, additions in its green, and a few unchanged lines around each block so
-// the eye can find where in the file it is looking.
-//
-// The colours are ANSI indices rather than fixed values, so they follow
-// whatever scheme the terminal itself uses. Nothing worth showing — a call
-// whose input could not be parsed, a change that touches no line — renders as
-// empty, and the caller simply says the ordinary one-line report it always
-// has.
-func RenderDiff(change EditChange, width int, muted lipgloss.Style) string {
-	if change.Path == "" || change.Before == change.After {
-		return ""
-	}
-	blocks := hunks(diffOps(splitLines(change.Before), splitLines(change.After)), contextLines)
-	if len(blocks) == 0 {
-		return ""
-	}
-
-	var out strings.Builder
-	shown := 0
-	for i, block := range blocks {
-		if i > 0 {
-			out.WriteString(muted.Render("  …") + "\n")
-			shown++
-		}
-		var cut bool
-		shown, cut = renderBlock(&out, block, width, shown, muted)
-		if cut {
-			break
-		}
-	}
-	return out.String()
 }
