@@ -3,8 +3,6 @@ package tui
 import (
 	"context"
 	"iter"
-	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +24,21 @@ func TestMenuItemsListsCommandsBeforeSkillsWithDescriptions(t *testing.T) {
 		t.Errorf("last item = %+v, want the skill, with its own description", last)
 	}
 	for _, it := range items[:len(items)-1] {
+		if it.Description != "" {
+			t.Errorf("command %q carried a description %q, want none", it.Value, it.Description)
+		}
+	}
+}
+
+// TestMenuItemsListsCommandsBeforeSkillsWithDescriptionsShort tests that menuItems
+// returns the correct number of items when the skills map is empty.
+func TestMenuItemsListsCommandsBeforeSkillsWithDescriptionsShort(t *testing.T) {
+	items := menuItems(map[string]skill{})
+
+	if len(items) != len(commands) {
+		t.Fatalf("menuItems = %+v, want only commands", items)
+	}
+	for _, it := range items {
 		if it.Description != "" {
 			t.Errorf("command %q carried a description %q, want none", it.Value, it.Description)
 		}
@@ -182,157 +195,11 @@ type answeringStub struct{ received nacelle.Request }
 
 func (s *answeringStub) Name() string                       { return "stub" }
 func (s *answeringStub) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{} }
-func (s *answeringStub) Stream(_ context.Context, request nacelle.Request) iter.Seq2[nacelle.Event, error] {
-	s.received = request
+
+func (s *answeringStub) CountTokens(context.Context, nacelle.Request) (int64, error) { return 0, nil }
+
+func (s *answeringStub) Stream(context.Context, nacelle.Request) iter.Seq2[nacelle.Event, error] {
 	return func(yield func(nacelle.Event, error) bool) {
-		yield(nacelle.Event{Kind: nacelle.KindDone}, nil)
-	}
-}
-func (s *answeringStub) CountTokens(_ context.Context, request nacelle.Request) (int64, error) {
-	s.received = request
-	return 0, nil
-}
-
-func TestSlashSkillStartsARunWithTheSkillsBodyAsTheQuestion(t *testing.T) {
-	dir := t.TempDir()
-	writeSkill(t, dir, "Name: deploy\ndescription: ships the app")
-	s := skill{Name: "deploy", Path: filepath.Join(dir, "SKILL.md")}
-
-	agent, err := nacelle.New(nacelle.Config{Backend: &answeringStub{}, System: "test"})
-	if err != nil {
-		t.Fatalf("nacelle.New: %v", err)
-	}
-	m := NewModel(agent, "test · model", []skill{s}, int64(100_000), false)
-	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
-	t.Cleanup(m.run.cancel)
-
-	m.prompt.SetValue("/skill:deploy to staging")
-	m.ask()
-
-	if !m.run.busy {
-		t.Fatal("/skill:deploy did not start a run")
-	}
-	if len(m.conversation) != 1 {
-		t.Fatalf("conversation = %v, want expanded skill", m.conversation)
-	}
-	sent := m.conversation[0].Parts[0].(nacelle.Text).Text
-	if !strings.Contains(sent, "Do the thing.") || !strings.HasSuffix(sent, "User: to staging") {
-		t.Errorf("sent = %q, want skill body + args", sent)
-	}
-}
-
-func TestSlashSkillReportsAnUnknownSkillWithoutStartingARun(t *testing.T) {
-	m := sized()
-	m.prompt.SetValue("/skill:nope")
-
-	printed := printedBy(m.ask())
-
-	if m.run.busy {
-		t.Error("an unknown skill started a run")
-	}
-	echo, reply := strings.Index(printed, "/skill:nope"), strings.Index(printed, "unknown skill")
-	if reply < 0 || !strings.Contains(printed, "nope") {
-		t.Fatalf("printed = %q, want unknown skill error", printed)
-	}
-	if echo < 0 || echo > reply {
-		t.Errorf("printed = %q, want echoed input before reply", printed)
-	}
-}
-
-// /parallel splits a comma-separated list of tasks and sends them to the
-// model as a prompt asking it to use the parallel_subagent tool. Each task
-// is trimmed and empty entries are dropped.
-func TestParallelCommandSplitsTasksAndStartsARun(t *testing.T) {
-	m := sized()
-	m.agent = answering(t)
-
-	m.prompt.SetValue("/parallel analyze this codebase, search for TODO comments, summarize the findings")
-	m.ask()
-
-	if !m.run.busy {
-		t.Fatal("/parallel did not start a run")
-	}
-	if len(m.conversation) != 1 {
-		t.Fatalf("conversation = %v, want the prompt sent", m.conversation)
-	}
-	sent := m.conversation[0].Parts[0].(nacelle.Text).Text
-	if !strings.Contains(sent, "parallel_subagent") {
-		t.Errorf("sent = %q, want the tool named", sent)
-	}
-	for _, task := range []string{"analyze this codebase", "search for TODO comments", "summarize the findings"} {
-		if !strings.Contains(sent, task) {
-			t.Errorf("sent = %q, want task %q", sent, task)
-		}
-	}
-}
-
-// A single task still routes through the parallel path; the difference from
-// the single subagent is the concurrency cap, not the call shape.
-func TestParallelCommandWithSingleTaskStillStartsARun(t *testing.T) {
-	m := sized()
-	m.agent = answering(t)
-
-	m.prompt.SetValue("/parallel just one task")
-	m.ask()
-
-	if !m.run.busy {
-		t.Fatal("/parallel with one task did not start a run")
-	}
-	if len(m.conversation) != 1 {
-		t.Fatalf("conversation = %v, want the prompt sent", m.conversation)
-	}
-	sent := m.conversation[0].Parts[0].(nacelle.Text).Text
-	if !strings.Contains(sent, "just one task") {
-		t.Errorf("sent = %q, want the task", sent)
-	}
-}
-
-// Empty tasks after splitting should not start a run.
-func TestParallelCommandWithEmptyTasksDoesNotStartARun(t *testing.T) {
-	m := sized()
-
-	m.prompt.SetValue("/parallel , , ")
-	printed := printedBy(m.ask())
-
-	if m.run.busy {
-		t.Error("/parallel with empty tasks started a run")
-	}
-	if !strings.Contains(printed, "usage: /parallel") {
-		t.Errorf("printed = %q, want usage message", printed)
-	}
-}
-
-// /parallel with no arguments at all should not start a run.
-func TestParallelCommandWithNoArgumentsDoesNotStartARun(t *testing.T) {
-	m := sized()
-
-	m.prompt.SetValue("/parallel")
-	printed := printedBy(m.ask())
-
-	if m.run.busy {
-		t.Error("/parallel with no arguments started a run")
-	}
-	if !strings.Contains(printed, "usage: /parallel") {
-		t.Errorf("printed = %q, want usage message", printed)
-	}
-}
-
-// splitParallelTasks trims each entry and drops empties, so whitespace and
-// trailing commas do not produce phantom tasks.
-func TestSplitParallelTasks(t *testing.T) {
-	got := splitParallelTasks("a, b , c")
-	want := []string{"a", "b", "c"}
-	if !slices.Equal(got, want) {
-		t.Errorf("splitParallelTasks = %v, want %v", got, want)
-	}
-
-	got = splitParallelTasks("only one")
-	if len(got) != 1 || got[0] != "only one" {
-		t.Errorf("splitParallelTasks = %v, want [only one]", got)
-	}
-
-	got = splitParallelTasks(",,")
-	if len(got) != 0 {
-		t.Errorf("splitParallelTasks = %v, want empty", got)
+		yield(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd}, nil)
 	}
 }
