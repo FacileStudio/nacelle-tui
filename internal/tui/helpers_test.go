@@ -2,8 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -116,17 +114,6 @@ func spoken(m *Model) []string {
 		said = append(said, visible(line))
 	}
 	return said
-}
-
-func writeSkill(t *testing.T, dir, frontmatterBody string) {
-	t.Helper()
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("MkdirAll: %v", err)
-	}
-	content := "---\n" + frontmatterBody + "\n---\n\n# Instructions\n\nDo the thing.\n"
-	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(content), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
 }
 
 func TestAutoResumeLoadsSession(t *testing.T) {

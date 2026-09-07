@@ -203,3 +203,4 @@ func (s *answeringStub) Stream(context.Context, nacelle.Request) iter.Seq2[nacel
 		yield(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd}, nil)
 	}
 }
+
