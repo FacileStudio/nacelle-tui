@@ -57,14 +57,8 @@ func (m *Model) footer() []string {
 	spent = append(spent,
 		"in "+shortTokens(total.InputTokens+total.CacheCreationTokens),
 		"out "+shortTokens(total.OutputTokens))
-	if total.CacheReadTokens > 0 {
-		spent = append(spent, shortTokens(total.CacheReadTokens)+" cached")
-	}
 	if m.size > 0 {
-		spent = append(spent, "ctx "+shortTokens(m.size))
-	}
-	if m.trimmed > 0 {
-		spent = append(spent, fmt.Sprintf("%d trimmed", m.trimmed))
+		spent = append(spent, "↕ "+shortTokens(m.size))
 	}
 	return spent
 }

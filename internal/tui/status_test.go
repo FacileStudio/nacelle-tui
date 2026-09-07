@@ -105,13 +105,16 @@ func TestStatusSeparatesInputFromOutputTokens(t *testing.T) {
 	}
 
 	got := visible(m.View().Content)
-	for _, want := range []string{"in 2.6k", "out 1.1k", "9.8k cached"} {
+	for _, want := range []string{"in 2.6k", "out 1.1k"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("status %q missing %q", got, want)
 		}
 	}
 	if strings.Contains(got, "3700 tokens") || strings.Contains(got, "13.5k tokens") {
 		t.Errorf("status still shows one merged total: %q", got)
+	}
+	if strings.Contains(got, "cached") {
+		t.Errorf("status still shows cached tokens: %q", got)
 	}
 }
 

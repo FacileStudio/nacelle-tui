@@ -36,6 +36,9 @@ func (m *Model) parseCommand(line string) (command, bool) {
 		return nil, false
 	}
 	name, rest, _ := strings.Cut(line[1:], " ")
+	if name == "parallel" {
+		return func(m *Model) tea.Cmd { return m.handleParallelCommand(rest) }, true
+	}
 	if cmd, ok := commands[name]; ok {
 		return cmd, true
 	}
@@ -85,8 +88,9 @@ func (m *Model) help() tea.Cmd {
 		"/quit — quit",
 		"/resume — resume the most recent session for this project",
 		"/sessions — list all available sessions for this project",
-		"/status — session summary: questions, answers, tools, elapsed time, log size",
+		"/status — session summary: questions, answers, tools, cached tokens, context size, elapsed time, log size",
 		"/skill:name [what to do] — run a loaded skill directly, instead of waiting for the model to decide to",
+		"/parallel — delegate multiple independent tasks to run concurrently",
 		"",
 		"Esc stops a run and nothing else. Ctrl+C stops one too, or quits when idle; ctrl+\\ force-quits.",
 		"Ctrl+T expands the reasoning collapsed to a single line, and keeps showing it in full until pressed again.",
@@ -116,6 +120,15 @@ func (m *Model) statusCmd() tea.Cmd {
 		if m.session.HasWriteError() {
 			lines = append(lines, "log · [!] write errors detected")
 		}
+	}
+	if total.CacheReadTokens > 0 {
+		lines = append(lines, fmt.Sprintf("cached · %s", shortTokens(total.CacheReadTokens)))
+	}
+	if m.size > 0 {
+		lines = append(lines, fmt.Sprintf("↕ · %s", shortTokens(m.size)))
+	}
+	if m.trimmed > 0 {
+		lines = append(lines, fmt.Sprintf("⎇ · %d", m.trimmed))
 	}
 	m.say(fromClient, strings.Join(lines, "\n"))
 	return nil
