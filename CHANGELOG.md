@@ -6,6 +6,10 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.22.2] - 2026-09-07
+### Added
+- **Version flag**: `nacelle --version` / `nacelle -v` / `nacelle -version` now prints the version and exits, enabling installer verification.
+
 ## [0.22.1] - 2026-09-07
 ### Refactored
 - **Modular package architecture**: decomposed the monolithic root package into 18 internal packages under `internal/` (`agent`, `approval`, `cost`, `diff`, `history`, `layout`, `menu`, `queue`, `sessions`, `settings`, `skills`, `status`, `tasks`, `theme`, `thinking`, `toolview`, `tui`, `usage`), leaving `main.go` as a clean entrypoint.
