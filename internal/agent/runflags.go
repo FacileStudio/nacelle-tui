@@ -17,6 +17,9 @@ import (
 
 // Run is the main entry point for the agent.
 func Run(v string) error {
+	if handled, err := checkVersionFlag(v); handled {
+		return err
+	}
 	if handled, err := checkPrintFlag(); handled {
 		return err
 	}
@@ -26,6 +29,16 @@ func Run(v string) error {
 	}
 	defer cleanup()
 	return tui.Launch(*sess)
+}
+
+func checkVersionFlag(v string) (bool, error) {
+	for _, arg := range os.Args[1:] {
+		if arg == "-version" || arg == "--version" || arg == "-v" {
+			fmt.Println("nacelle " + v)
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func checkPrintFlag() (bool, error) {
