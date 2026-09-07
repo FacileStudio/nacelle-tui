@@ -6,6 +6,7 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-09-07
 ### Refactored
 - **Modular package architecture**: decomposed the monolithic root package into 18 internal packages under `internal/` (`agent`, `approval`, `cost`, `diff`, `history`, `layout`, `menu`, `queue`, `sessions`, `settings`, `skills`, `status`, `tasks`, `theme`, `thinking`, `toolview`, `tui`, `usage`), leaving `main.go` as a clean entrypoint.
 - **Code health and complexity limits**: refactored routines and split subpackages to satisfy `filet` function count and file length rules across all 134 files.
