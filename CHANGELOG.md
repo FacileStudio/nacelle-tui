@@ -6,6 +6,13 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.22.3] - 2026-09-08
+### Fixed
+- **Print flag handling**: combined detection and stripping of `-print` into a single pass, fixing a bug where the flag was detected but not always removed from `os.Args`.
+- **Dependency bump**: upgraded `github.com/FacileStudio/nacelle` to `v0.9.5`.
+### Changed
+- **Removed dead test code**: deleted unused `answeringStub` and imports (`context`, `iter`) from `command_test.go`.
+
 ## [0.22.2] - 2026-09-07
 ### Added
 - **Version flag**: `nacelle --version` / `nacelle -v` / `nacelle -version` now prints the version and exits, enabling installer verification.

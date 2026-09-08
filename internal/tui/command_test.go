@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"context"
-	"iter"
 	"strings"
 	"testing"
 	"time"
@@ -190,17 +188,3 @@ func TestSlashCostOnAnEmptySession(t *testing.T) {
 		t.Errorf("said = %q, want session line", said)
 	}
 }
-
-type answeringStub struct{ received nacelle.Request }
-
-func (s *answeringStub) Name() string                       { return "stub" }
-func (s *answeringStub) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{} }
-
-func (s *answeringStub) CountTokens(context.Context, nacelle.Request) (int64, error) { return 0, nil }
-
-func (s *answeringStub) Stream(context.Context, nacelle.Request) iter.Seq2[nacelle.Event, error] {
-	return func(yield func(nacelle.Event, error) bool) {
-		yield(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd}, nil)
-	}
-}
-
