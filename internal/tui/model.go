@@ -140,10 +140,8 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 // carry work in from goroutines this loop does not own — a delegated run's
 // spend, and the plan the task tool reports.
 //
-// Both have to be armed here rather than only re-armed where they are handled.
-// A watcher that is only re-armed by its own message never sees a first one, so
-// the feature looks like it silently does nothing: the tool runs, returns
-// happily to the model, and the screen never changes.
+// Both have to be armed here; a watcher only re-armed by its own message
+// never sees a first run, so the feature silently does nothing.
 //
 // There is no cursor-blink command because the prompt draws no cursor of its
 // own — see newPrompt's SetVirtualCursor(false); the caret on screen is the
@@ -197,8 +195,7 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Sequence(m.prints(), started)
 }
 
-// route is Update's own body, split out so that draining the print queue is
-// one seam rather than a line repeated down every branch.
+// route is Update's own body, split out so draining the print queue is one seam.
 func (m *Model) route(message tea.Msg) tea.Cmd {
 	switch message := message.(type) {
 	case tea.WindowSizeMsg:
@@ -228,6 +225,11 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.handlePaste(message)
 	}
 
+	return m.promptRoute(message)
+}
+
+// promptRoute forwards unhandled messages to the prompt and refreshes the dropdown.
+func (m *Model) promptRoute(message tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(message)
 	m.refreshMenu()
@@ -235,8 +237,6 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 }
 
 // handlePaste sanitizes pasted content before inserting it into the prompt.
-// This keeps terminal control sequences and raw line endings out of the
-// stored input while preserving the normal pasted text.
 func (m *Model) handlePaste(msg tea.PasteMsg) tea.Cmd {
 	clean := sanitizePaste(msg.Content)
 	if clean == "" {
