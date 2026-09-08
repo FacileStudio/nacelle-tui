@@ -57,5 +57,3 @@ require (
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )
-
-replace github.com/FacileStudio/nacelle => /home/yann/Code/Facile/nacelle
