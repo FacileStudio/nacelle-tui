@@ -12,7 +12,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 )
 
-replace github.com/FacileStudio/nacelle => /home/yann/Code/Facile/nacelle
+replace github.com/FacileStudio/nacelle => github.com/FacileStudio/nacelle v0.11.0
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
