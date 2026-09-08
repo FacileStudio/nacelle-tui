@@ -6,6 +6,12 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.23.2] - 2026-09-08
+### Changed
+- **Dependency bump**: upgraded `github.com/FacileStudio/nacelle` to `v0.10.1`.
+- **Version flag logic moved**: `-version`/`-v`/`--version` handling now lives in `internal/agent/runflags_check.go`, keeping runflags focused on launch configuration.
+- **Removed parallel experiment artifacts**: deleted `README_PARALLEL.md` and `parallel-plan.md`, which documented the now-retired parallel agents feature.
+
 ## [0.22.3] - 2026-09-08
 ### Fixed
 - **Print flag handling**: combined detection and stripping of `-print` into a single pass, fixing a bug where the flag was detected but not always removed from `os.Args`.
