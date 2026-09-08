@@ -19,6 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: FacileStudio/filet@v0.5.0
+        with:
           fail-on: info
           antenne-url: ${{ secrets.ANTENNE_FILET_SECRET != '' && 'https://antenne.facile.studio/webhook/filet' || '' }}
           antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}
