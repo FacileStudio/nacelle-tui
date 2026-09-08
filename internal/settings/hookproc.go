@@ -49,7 +49,7 @@ func runCommand(ctx context.Context, command string, payload hookPayload) (out [
 	encoded, err := json.Marshal(payload)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "nacelle hooks: encoding event for %q: %v\n", command, err)
-		return nil, nil, nil
+		return nil, nil, err
 	}
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", command)

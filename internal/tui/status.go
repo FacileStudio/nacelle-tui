@@ -39,7 +39,7 @@ func (m *Model) status() string {
 	}
 
 	width := max(m.width, 1)
-	counts := strings.Join(m.footer(), " · ")
+	counts := strings.Join(m.footer(), " ")
 	stateLine := truncate(state, width)
 	if isReady {
 		stateLine = m.theme.Ready.Render(stateLine)
@@ -55,10 +55,10 @@ func (m *Model) footer() []string {
 		spent = append(spent, fmt.Sprintf("$%.4f", total.Cost))
 	}
 	spent = append(spent,
-		"in "+shortTokens(total.InputTokens+total.CacheCreationTokens),
-		"out "+shortTokens(total.OutputTokens))
+		"↑"+shortTokens(total.InputTokens+total.CacheCreationTokens),
+		"↓"+shortTokens(total.OutputTokens))
 	if m.size > 0 {
-		spent = append(spent, "↕ "+shortTokens(m.size))
+		spent = append(spent, "↕"+shortTokens(m.size))
 	}
 	return spent
 }

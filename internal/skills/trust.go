@@ -39,10 +39,8 @@ type trustRecord struct {
 // see configPath's own doc comment for why this package treats it that way
 // everywhere else too.
 func loadTrust() (map[string]trustRecord, error) {
-	dir, err := trustDir()
-	if err != nil {
-		return map[string]trustRecord{}, nil //nolint:nilerr
-	}
+	dir, _ := trustDir()
+	_ = dir
 	raw, err := os.ReadFile(filepath.Join(dir, TrustFile))
 	if os.IsNotExist(err) {
 		return map[string]trustRecord{}, nil

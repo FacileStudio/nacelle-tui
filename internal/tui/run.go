@@ -154,7 +154,7 @@ func (m *Model) recap() string {
 		shape += fmt.Sprintf(" · %d failed", m.failed)
 	}
 
-	spend := fmt.Sprintf("in %s · out %s",
+	spend := fmt.Sprintf("↑%s ↓%s",
 		shortTokens(total.InputTokens+total.CacheCreationTokens),
 		shortTokens(total.OutputTokens))
 	if total.CacheReadTokens > 0 {

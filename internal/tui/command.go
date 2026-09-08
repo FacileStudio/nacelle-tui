@@ -107,7 +107,7 @@ func (m *Model) statusCmd() tea.Cmd {
 	lines = append(lines, fmt.Sprintf("session · %s", lasted(time.Since(m.began))))
 	lines = append(lines, fmt.Sprintf("tools · %d total · %d failed", m.tools, m.failed))
 	total := m.spent.Add(m.run.usage)
-	lines = append(lines, fmt.Sprintf("tokens · in %s · out %s",
+	lines = append(lines, fmt.Sprintf("tokens · ↑%s ↓%s",
 		shortTokens(total.InputTokens+total.CacheCreationTokens),
 		shortTokens(total.OutputTokens)))
 	if total.Cost > 0 {

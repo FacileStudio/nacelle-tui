@@ -129,7 +129,7 @@ func TestTheTokenCountIsASessionTotalThatOnlyEverGrows(t *testing.T) {
 	m.absorb(nacelle.Event{Kind: nacelle.KindTurn, Usage: nacelle.Usage{OutputTokens: 60}})
 	m.absorb(nacelle.Event{Kind: nacelle.KindDone, Usage: nacelle.Usage{OutputTokens: 100}})
 	m.settle()
-	if status := m.status(); !strings.Contains(status, "out 100") {
+	if status := m.status(); !strings.Contains(status, "↓100") {
 		t.Fatalf("status = %q, want 100", status)
 	}
 
@@ -138,13 +138,13 @@ func TestTheTokenCountIsASessionTotalThatOnlyEverGrows(t *testing.T) {
 	defer m.run.cancel()
 
 	m.absorb(nacelle.Event{Kind: nacelle.KindTurn, Usage: nacelle.Usage{OutputTokens: 5}})
-	if status := m.status(); !strings.Contains(status, "out 105") {
+	if status := m.status(); !strings.Contains(status, "↓105") {
 		t.Errorf("status = %q, want 105", status)
 	}
 
 	m.absorb(nacelle.Event{Kind: nacelle.KindDone, Usage: nacelle.Usage{OutputTokens: 7}})
 	m.settle()
-	if status := m.status(); !strings.Contains(status, "out 107") {
+	if status := m.status(); !strings.Contains(status, "↓107") {
 		t.Errorf("status = %q, want 107", status)
 	}
 }
@@ -183,7 +183,7 @@ func TestARecapSaysHowLongTheSessionRanAndWhatItSpent(t *testing.T) {
 	if want := "session · 14m3s · 12 tools · 2 failed"; lines[0] != want {
 		t.Errorf("recap line 1 = %q, want %q", lines[0], want)
 	}
-	if want := "in 120k · out 4.2k · 9.8k cached"; lines[1] != want {
+	if want := "↑120k ↓4.2k · 9.8k cached"; lines[1] != want {
 		t.Errorf("recap line 2 = %q, want %q", lines[1], want)
 	}
 }
@@ -192,7 +192,7 @@ func TestARecapLeavesOutTheCountsThatAreZero(t *testing.T) {
 	m := ranFor(time.Minute)
 	m.spent = nacelle.Usage{InputTokens: 900, OutputTokens: 100}
 
-	line := strings.Split(m.recap(), "\n")[0]
+	line, _, _ := strings.Cut(m.recap(), "\n")
 	if strings.Contains(line, "tool") || strings.Contains(line, "failed") {
 		t.Errorf("chat with no tool reports tools: %q", line)
 	}
@@ -205,7 +205,7 @@ func TestARecapCountsASingleCallAsOneTool(t *testing.T) {
 	m := ranFor(time.Minute)
 	m.tools = 1
 
-	if line := strings.Split(m.recap(), "\n")[0]; !strings.Contains(line, "· 1 tool") || strings.Contains(line, "1 tools") {
+	if line, _, _ := strings.Cut(m.recap(), "\n"); !strings.Contains(line, "· 1 tool") || strings.Contains(line, "1 tools") {
 		t.Errorf("recap line 1 = %q, want 1 tool", line)
 	}
 }
@@ -229,7 +229,7 @@ func TestARecapCountsTheRunAbandonedOnTheWayOut(t *testing.T) {
 	m.spent = nacelle.Usage{InputTokens: 1000}
 	m.run.usage = nacelle.Usage{InputTokens: 1000, OutputTokens: 3000}
 
-	if got := m.recap(); !strings.Contains(got, "in 2.0k") || !strings.Contains(got, "out 3.0k") {
+	if got := m.recap(); !strings.Contains(got, "↑2.0k") || !strings.Contains(got, "↓3.0k") {
 		t.Errorf("recap %q forgot run in flight", got)
 	}
 }

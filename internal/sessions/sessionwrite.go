@@ -14,7 +14,11 @@ func appendLine(path string, line []byte) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = file.Close() }()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	if _, err := file.Write(append(line, '\n')); err != nil {
 		return err

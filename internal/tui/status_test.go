@@ -64,7 +64,7 @@ func TestCostInStatusLine(t *testing.T) {
 	if !strings.Contains(status, "$0.0123") {
 		t.Fatalf("status = %q, want the reported cost in it", status)
 	}
-	if strings.Index(status, "$0.0123") > strings.Index(status, "in 2.6k") {
+	if strings.Index(status, "$0.0123") > strings.Index(status, "↑2.6k") {
 		t.Errorf("status = %q, want the cost ahead of the counts it summarises", status)
 	}
 
@@ -105,7 +105,7 @@ func TestStatusSeparatesInputFromOutputTokens(t *testing.T) {
 	}
 
 	got := visible(m.View().Content)
-	for _, want := range []string{"in 2.6k", "out 1.1k"} {
+	for _, want := range []string{"↑2.6k", "↓1.1k"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("status %q missing %q", got, want)
 		}
