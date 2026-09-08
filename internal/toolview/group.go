@@ -37,9 +37,7 @@ type Group struct {
 // GroupLine renders the summary line for a single call or batch.
 func (g Group) GroupLine(width int) string {
 	if g.Count <= 1 {
-		room := width - lipgloss.Width(g.Name) - DurationRoom - len("• ()")
-		inner := truncate(ansi.Strip(PrimaryArg(g.Input)), room)
-		return g.GroupGlyph() + " " + g.Name + "(" + inner + ")"
+		return ToolLineSource(g.Name, g.Input, width, g.Tool.Source)
 	}
 
 	kind := ToolKind(g.Name)
@@ -70,7 +68,7 @@ func (g Group) GroupGlyph() string {
 	if g.Count > 1 {
 		return ToolKindGlyph(ToolKind(g.Name))
 	}
-	return ToolGlyph(g.Name)
+	return ToolSourceGlyph(g.Name, g.Tool.Source)
 }
 
 // InFlightLine renders a running group with its elapsed duration.

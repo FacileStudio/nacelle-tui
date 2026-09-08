@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/FacileStudio/nacelle"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -25,8 +26,18 @@ func truncate(s string, limit int) string {
 
 // ToolLine formats a tool call as a single line with name and primary argument.
 func ToolLine(name, input string, width int) string {
+	return toolLine(name, input, width, "")
+}
+
+// ToolLineSource formats a tool call as a single line with name and primary argument,
+// choosing the glyph from the tool's nacelle source.
+func ToolLineSource(name, input string, width int, source nacelle.Source) string {
+	return toolLine(name, input, width, source)
+}
+
+func toolLine(name, input string, width int, source nacelle.Source) string {
 	room := width - lipgloss.Width(name) - DurationRoom - len("• ()")
-	glyph := ToolGlyph(name)
+	glyph := ToolSourceGlyph(name, source)
 	return glyph + " " + name + "(" + truncate(ansi.Strip(PrimaryArg(input)), room) + ")"
 }
 

@@ -6,6 +6,13 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.23.3] - 2026-09-08
+### Added
+- **Paste sanitization**: added sanitizePaste function to strip terminal control sequences, normalize line endings, and remove bracketed-paste wrappers from pasted text, preventing `[106;5u` and similar artifacts.
+- **Paste handling**: route `tea.PasteMsg` through a dedicated handler that inserts only sanitized content into the prompt.
+- **Tests**: comprehensive test suite for paste sanitization covering bracketed-paste removal, Windows line ending normalization, embedded control sequence stripping, and unicode preservation.
+- **Documentation**: added internal/tui/paste-sanitize-guide.md explaining the problem, solution, and best practices.
+
 ## [0.23.2] - 2026-09-08
 ### Changed
 - **Dependency bump**: upgraded `github.com/FacileStudio/nacelle` to `v0.10.1`.

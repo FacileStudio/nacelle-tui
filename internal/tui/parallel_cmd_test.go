@@ -25,8 +25,8 @@ func TestParallelCommandSplitsTasksAndStartsARun(t *testing.T) {
 		t.Fatalf("conversation = %v, want the prompt sent", m.conversation)
 	}
 	sent := m.conversation[0].Parts[0].(nacelle.Text).Text
-	if !strings.Contains(sent, "parallel_subagent") {
-		t.Errorf("sent = %q, want the tool named", sent)
+	if !strings.Contains(sent, nacelle.ParallelSubAgentToolName) {
+		t.Errorf("sent = %q, want the tool named %q", sent, nacelle.ParallelSubAgentToolName)
 	}
 	for _, task := range []string{"analyze this codebase", "search for TODO comments", "summarize the findings"} {
 		if !strings.Contains(sent, task) {

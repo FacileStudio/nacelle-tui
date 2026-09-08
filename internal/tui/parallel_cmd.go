@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 // handleParallelCommand parses a `/parallel task1, task2, task3` line and
@@ -44,8 +46,9 @@ func splitParallelTasks(args string) []string {
 // schema wants them.
 func buildParallelPrompt(tasks []string) string {
 	var b strings.Builder
-	b.WriteString("Run these independent tasks in parallel using the parallel_subagent tool, ")
-	b.WriteString("and report each result as it returns:\n")
+	b.WriteString("Run these independent tasks in parallel using the ")
+	b.WriteString(nacelle.ParallelSubAgentToolName)
+	b.WriteString(" tool, and report each result as it returns:\n")
 	for i, t := range tasks {
 		fmt.Fprintf(&b, "\n%d. %s", i+1, t)
 	}

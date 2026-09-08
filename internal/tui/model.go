@@ -224,10 +224,26 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.recordDelegation(message)
 	case taskUpdate:
 		return m.recordTasks(message)
+	case tea.PasteMsg:
+		return m.handlePaste(message)
 	}
 
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(message)
 	m.refreshMenu()
 	return cmd
+}
+
+// handlePaste sanitizes pasted content before inserting it into the prompt.
+// This keeps terminal control sequences and raw line endings out of the
+// stored input while preserving the normal pasted text.
+func (m *Model) handlePaste(msg tea.PasteMsg) tea.Cmd {
+	clean := sanitizePaste(msg.Content)
+	if clean == "" {
+		return nil
+	}
+
+	m.prompt.InsertString(clean)
+	m.refreshMenu()
+	return nil
 }
