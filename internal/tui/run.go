@@ -86,13 +86,25 @@ func (m *Model) send(text string) tea.Cmd {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	m.run.cancel = cancel
+	m.run.bgCtx = ctx
 	m.run.busy = true
 
 	if count, err := m.agent.CountTokens(ctx, m.conversation); err == nil && m.compactAt > 0 && count > m.compactAt+compactSlack {
 		m.size = count
-		m.compact()
+		if waiting := m.beginCompaction(ctx); waiting != nil {
+			return tea.Batch(waiting, m.spin.Tick)
+		}
 	}
 
+	return m.startRun(ctx)
+}
+
+// startRun fires the model at the current conversation and returns the
+// spinner-ticked wait a run is driven by. It is the one seam both send and
+// settleCompaction reach: send starts a run directly, and a send that had to
+// compact first hands control to the compaction's outcome, which calls this
+// once the context is freed.
+func (m *Model) startRun(ctx context.Context) tea.Cmd {
 	m.run.results = start(ctx, m.agent, m.conversation)
 	return tea.Batch(waitFor(m.run.results), m.spin.Tick)
 }

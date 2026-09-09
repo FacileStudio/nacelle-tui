@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -44,6 +45,9 @@ const (
 
 	// fromTurn is the boundary line closing an assistant turn.
 	fromTurn
+
+	// fromCompact is the client reporting that it compacted the context.
+	fromCompact
 )
 
 // say commits one finished thing to the terminal's own scrollback.
@@ -129,6 +133,8 @@ func (m *Model) paint(who speaker, text string) string {
 		return m.theme.Failure.Width(width).Render(text)
 	case fromTurn:
 		return m.theme.Muted.Render(text)
+	case fromCompact:
+		return m.theme.Compacting.Width(width).Render(text)
 	default:
 		return m.theme.Client.Render(text)
 	}
@@ -184,9 +190,18 @@ func (m *Model) streaming() []string {
 
 // inFlightGroups renders every tool group still running as a row the live
 // region redraws each frame. A finished group is printed once and belongs to
-// the terminal — only the still-open ones can grow.
+// the terminal — only the still-open ones can grow. A compaction pass is drawn
+// as a row of its own, in the same purple working() uses, so the summarizer
+// shows up live in the conversation rather than only in the status line.
 func (m *Model) inFlightGroups() []string {
 	var groups []string
+	if m.compacting {
+		elapsed := m.spin.View() + " ✂ compacting session"
+		if !m.compactBegan.IsZero() {
+			elapsed += " · " + max(time.Since(m.compactBegan).Round(time.Millisecond), time.Millisecond).String()
+		}
+		groups = append(groups, m.theme.Compacting.Render(elapsed))
+	}
 	for _, g := range m.run.groups {
 		if !g.End.IsZero() {
 			continue

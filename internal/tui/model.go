@@ -142,6 +142,15 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.recordDelegation(message)
 	case taskUpdate:
 		return m.recordTasks(message)
+	case compactOutcome:
+		return m.settleCompaction(message)
+	case compactFinished:
+		m.compacting = false
+		m.run.compactChan = nil
+		if m.run.busy && m.agent != nil {
+			return m.startRun(m.run.bgCtx)
+		}
+		return nil
 	case tea.PasteMsg:
 		return m.handlePaste(message)
 	case tea.KeyboardEnhancementsMsg:

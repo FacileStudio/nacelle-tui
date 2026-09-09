@@ -28,6 +28,14 @@ type runControl struct {
 	stop    nacelle.Stop
 	busy    bool
 	pending *approvalRequest
+
+	// compactChan is the open compaction pass's outcome channel, nil when no
+	// pass is in flight. compactOutcome lives in compact.go, same package.
+	compactChan <-chan compactOutcome
+
+	// bgCtx is the run's background context, kept on the run so a compaction
+	// that finishes before the model starts can pass it back to startRun.
+	bgCtx context.Context
 }
 
 // failureCollapse tracks consecutive identical tool failures so they

@@ -83,7 +83,6 @@ func (m *Model) absorb(event nacelle.Event) {
 		m.run.usage = event.Usage
 		m.run.stop = event.Stop
 		m.sized(event.Usage)
-		m.compact()
 	}
 }
 

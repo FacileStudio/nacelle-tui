@@ -65,7 +65,7 @@ func (m *Model) footer() []string {
 
 func (m *Model) working() string {
 	if m.compacting {
-		return m.theme.Compacting.Render(m.spin.View() + " compacting context")
+		return m.theme.Compacting.Render(m.spin.View() + " compacting session")
 	}
 	doing := waitingVerb(time.Since(m.run.began))
 	tone := m.theme.Waiting

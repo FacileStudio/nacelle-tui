@@ -20,7 +20,6 @@ func (m *Model) turn(event nacelle.Event) {
 	m.run.usage = m.run.usage.Add(event.Usage)
 	m.sink.Record(event.Usage, time.Now())
 	m.sized(event.Usage)
-	m.compact()
 	m.run.turnBegan = time.Time{}
 }
 
