@@ -73,3 +73,25 @@ func TestRequeueAndEditing(t *testing.T) {
 		t.Fatalf("queued[1] = %q, want edited-q2", queued[1])
 	}
 }
+
+// Requeue claims a queued line only while the submitted text is still a draft
+// of it (one carries the other's text). A fresh, unrelated message must not be
+// hijacked into a phantom edit left by browsing history — swallowing it into
+// the queue is the "I typed and it did not send" report.
+func TestRequeueOnlyClaimsARelatedDraft(t *testing.T) {
+	h := New()
+
+	queued := []string{"q1"}
+	h.FromEnd = 1
+	if !h.Requeue(queued, "fix q1 now") {
+		t.Fatal("Requeue(a rewrite still carrying the line) failed")
+	}
+	if queued[0] != "fix q1 now" {
+		t.Errorf("queued[0] = %q, want the rewrite kept in place", queued[0])
+	}
+
+	h.FromEnd = 1
+	if h.Requeue(queued, "a completely different question") {
+		t.Error("Requeue swallowed a fresh, unrelated message as a phantom edit")
+	}
+}

@@ -134,8 +134,21 @@ func (m *Model) closeTurn(stop nacelle.Stop) {
 
 func (m *Model) dropUnanswered() { m.run.asked = nil }
 
+// editing is the queued line being actively rewritten, or -1 when none is.
+//
+// The marker (hist.FromEnd) is only meaningful while the prompt actually holds
+// a draft: deliver skips the edited line so a settle does not send half a
+// rewrite, but that skip must be released the moment the user leaves the
+// prompt. Walking through the queue with up/down leaves FromEnd pointing at a
+// line long after the user stopped editing it — with no prompt it is stale,
+// so it is cleared here and the line is free to go out with its turn.
 func (m *Model) editing() int {
-	return m.hist.Editing(m.Len())
+	i := m.hist.Editing(m.Len())
+	if i < 0 || m.prompt.Value() != "" {
+		return i
+	}
+	m.hist.FromEnd = 0
+	return -1
 }
 
 func menuItems(skills map[string]skill) []menu.Item {
