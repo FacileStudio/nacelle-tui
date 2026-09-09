@@ -89,6 +89,22 @@ func TestKeyEnterSendsAFullyTypedCommandInsteadOfRepickingIt(t *testing.T) {
 	}
 }
 
+func TestNavigateMenuPickPreservesTextBeforeTheCommand(t *testing.T) {
+	m := sized()
+	m.prompt.SetValue("please run /cl now")
+	m.refreshMenu()
+
+	if !m.menu.Open() {
+		t.Fatal("mid-sentence slash command did not open the menu")
+	}
+
+	m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyTab})
+
+	if got, want := m.prompt.Value(), "please run /clear  now"; got != want {
+		t.Errorf("pick preserved the surrounding text: prompt = %q, want %q", got, want)
+	}
+}
+
 func TestNavigateMenuSelectionTabAndEsc(t *testing.T) {
 	m := sized()
 	m.prompt.SetValue("/")

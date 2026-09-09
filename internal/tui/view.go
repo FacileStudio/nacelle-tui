@@ -7,7 +7,6 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/FacileStudio/nacelle-tui/internal/layout"
-	"github.com/FacileStudio/nacelle-tui/internal/menu"
 )
 
 type screen struct {
@@ -26,7 +25,11 @@ func (m *Model) View() tea.View {
 func (m *Model) assembleView() tea.View {
 	above := m.aboveContent()
 	aboveHeight := lipgloss.Height(strings.Join(above, "\n"))
-	body := strings.Join(append(above, m.prompt.View()), "\n")
+	parts := append(above, m.prompt.View())
+	if below := m.viewMenu(); below != "" {
+		parts = append(parts, "", below)
+	}
+	body := strings.Join(parts, "\n")
 	m.frameRows = lipgloss.Height(body)
 
 	view := tea.NewView(body)
@@ -51,10 +54,6 @@ func (m *Model) aboveContent() []string {
 		above = append(above, "")
 	}
 	above = append(above, strings.Join(m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Question), "\n"))
-	menuView := menu.View(&m.menu, max(m.width, 1), m.theme.Plain, m.theme.Menu, m.theme.Command)
-	if menuView != "" {
-		above = append(above, "", menuView)
-	}
 	return above
 }
 

@@ -130,7 +130,7 @@ func (m *Model) decide(press tea.KeyPressMsg) {
 }
 
 func (m *Model) refreshMenu() {
-	word := menu.CommandWord(m.prompt.Value())
+	word := menu.AnyCommand(m.prompt.Value())
 	m.prompt.SetStyles(m.promptStyles)
 	if word == "" {
 		m.menu.Reset()
@@ -148,7 +148,7 @@ func (m *Model) navigateMenu(press tea.KeyPressMsg) bool {
 		m.menu.Down()
 	case "tab", "enter":
 		if it, ok := m.menu.SelectedItem(); ok {
-			m.prompt.SetValue(menu.InsertPick(m.prompt.Value(), it.Value))
+			m.prompt.SetValue(menu.ReplaceCommand(m.prompt.Value(), it.Value))
 			m.prompt.CursorEnd()
 			m.menu.Dismiss()
 		}
