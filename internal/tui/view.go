@@ -19,7 +19,7 @@ type screen struct {
 
 func (m *Model) View() tea.View {
 	view := m.assembleView()
-	view.KeyboardEnhancements.ReportEventTypes = true
+	view.DisableBracketedPasteMode = true
 	return view
 }
 

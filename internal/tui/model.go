@@ -144,6 +144,8 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.recordTasks(message)
 	case tea.PasteMsg:
 		return m.handlePaste(message)
+	case tea.KeyboardEnhancementsMsg:
+		return nil
 	}
 
 	return m.promptRoute(message)
@@ -157,16 +159,11 @@ func (m *Model) promptRoute(message tea.Msg) tea.Cmd {
 	return cmd
 }
 
-// handlePaste sanitizes pasted content before inserting it into the prompt.
+// handlePaste normalizes line endings and forwards pasted content to the prompt handler.
 func (m *Model) handlePaste(msg tea.PasteMsg) tea.Cmd {
-	clean := sanitizePaste(msg.Content)
-	if clean == "" {
-		return nil
-	}
-
-	m.prompt.InsertString(clean)
-	m.refreshMenu()
-	return nil
+	msg.Content = strings.ReplaceAll(msg.Content, "\r\n", "\n")
+	msg.Content = strings.ReplaceAll(msg.Content, "\r", "\n")
+	return m.promptRoute(msg)
 }
 
 // parallelTasksView returns a view of the parallel subagent tasks.
