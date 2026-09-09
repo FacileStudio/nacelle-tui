@@ -54,6 +54,27 @@ func TestOnlyTheReaderSQuestionCarriesABackground(t *testing.T) {
 	}
 }
 
+// Answers stream into the terminal one finished line at a time, each rendered
+// on its own and joined back together with a single newline. Glamour frames
+// every render with a leading newline and trailing fill, so without stripping
+// that framing each joined line would be separated by a blank line.
+func TestFragmentsJoinWithoutABlankLineBetweenThem(t *testing.T) {
+	r := Prettier("dark", 80)
+	a := RenderMarkdown(r, "first line of the answer")
+	b := RenderMarkdown(r, "second line of the answer")
+	joined := strings.Join([]string{a, b}, "\n")
+
+	if count := strings.Count(joined, "\n\n"); count != 0 {
+		t.Errorf("joined = %q, want no blank line between fragments, found %d", joined, count)
+	}
+	if strings.HasPrefix(joined, "\n") {
+		t.Errorf("joined = %q, want no leading newline from glamour's top margin", joined)
+	}
+	if !strings.Contains(ansi.Strip(joined), "first line") || !strings.Contains(ansi.Strip(joined), "second line") {
+		t.Errorf("joined = %q, want both lines preserved", joined)
+	}
+}
+
 func TestTheTerminalSBackgroundPicksThePalette(t *testing.T) {
 	dark := Themed(true)
 	if dark.Markdown != "dark" {

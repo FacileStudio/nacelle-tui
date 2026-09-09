@@ -101,6 +101,12 @@ func Prettier(style string, width int) *glamour.TermRenderer {
 }
 
 // RenderMarkdown formats markdown text for terminal display.
+//
+// Glamour frames every render with a top-margin newline and trailing fill to
+// the wrap width. Answers stream into the terminal as committed fragments (see
+// commitParagraphs), each rendered on its own and joined back together in
+// prints, so that framing would otherwise leave a blank line between every
+// fragment. Trim the framing here and keep the paragraph's own indent.
 func RenderMarkdown(r *glamour.TermRenderer, text string) string {
 	if r == nil {
 		return text
@@ -109,5 +115,5 @@ func RenderMarkdown(r *glamour.TermRenderer, text string) string {
 	if err != nil {
 		return text
 	}
-	return strings.TrimRight(rendered, "\n")
+	return strings.TrimLeft(strings.TrimRight(rendered, " \n"), "\n")
 }
