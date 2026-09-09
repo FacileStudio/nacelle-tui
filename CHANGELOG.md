@@ -4,6 +4,23 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.26.0] - 2026-09-09
+
+### Added
+- **Parallel agents under the prompt**: running `parallel_subagent` tasks now render under the input prompt with status and results as they complete.
+- **Summarize-and-mask hybrid compaction**: masked context compaction keeps high-signal material by building a summary alongside the mask while compacting history.
+- **Compaction on history chunks**: history compacts by summarizing on chunks, cutting context size without losing the thread.
+
+### Fixed
+- **Slash menu position**: slash suggestions render below the prompt and preserve the typed text.
+- **Slash menu trigger**: the menu opens only at prompt start and on Tab; a mid-sentence slash no longer pops it open on its own.
+- **Thinking rendering**: expanded thinking streams through the theme renderer instead of raw markdown.
+- **Streamed spacing**: no more blank lines between streamed answer fragments.
+- **Queued edits**: a stale queue edit-marker is released so queued lines send, and queued messages use the question style.
+
+### Changed
+- **filet config**: harmonised `.filet.yml` to the strict suite standard.
+
 ## [0.25.0] - 2026-09-09
 
 ### Added
