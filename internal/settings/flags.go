@@ -81,7 +81,7 @@ func declareFlags(fallback Config) declared {
 func declareToggles(fallback Config) togglesFlags {
 	return togglesFlags{
 		bash:         flag.Bool("bash", *fallback.Bash, "let the model run commands"),
-		subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a parallel delegate tool that fans independent tasks out to concurrent nested runs; off by default"),
+		subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a parallel delegate tool that fans independent tasks out to concurrent nested runs; on by default"),
 		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
 		diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
 		tasks:        flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),

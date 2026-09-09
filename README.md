@@ -80,7 +80,7 @@ environment variables, then flags. The useful ones:
 | `-continue` | — | auto-resume the newest session for the current project |
 | `-tasks` | `NACELLE_TASKS` | task planning tool (on by default) |
 | `-approve-tools` | `NACELLE_APPROVE_TOOLS` | ask before every tool call runs |
-| `-subagents` | `NACELLE_SUBAGENTS` | give the model the parallel delegate tool (off by default) |
+| `-subagents` | `NACELLE_SUBAGENTS` | give the model the parallel delegate tool (on by default) |
 | `-max-iterations` | `NACELLE_MAX_ITERATIONS` | how many times the model may be asked |
 | `-mcp` | — | MCP servers file (repeatable) |
 | `-skill-dir` | `NACELLE_SKILL_DIRS` | extra skills directory (repeatable) |
