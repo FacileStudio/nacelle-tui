@@ -4,7 +4,7 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.25.0] - 2026-09-09
 
 ### Added
 - **Custom providers**: point nacelle at any server that speaks an existing backend's protocol (typically OpenAI-compatible) by setting `base_url` and `api_key` alongside `backend` and `model`. Configured through `NACELLE_PROVIDER_BASE_URL` / `NACELLE_PROVIDER_API_KEY` or `base_url:` / `api_key:` in `~/.nacelle.yml`. The new keys are additive, so existing config files and env vars keep working. Backends `openai`, `openrouter` and `google` already accepted `BaseURL`; the client now forwards them.
@@ -728,3 +728,4 @@ No changelog recorded — minor fixes between 0.15.0 and 0.16.1.
 [0.2.1]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.1.0
+[0.25.0]: https://github.com/FacileStudio/nacelle-tui/releases/tag/v0.25.0
