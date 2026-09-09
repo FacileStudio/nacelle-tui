@@ -63,7 +63,7 @@ func TestReasoningIsShownApartAndKeptOutOfTheConversation(t *testing.T) {
 // trace above the answer, so both commit paths should land the thinking line
 // above it too.
 func TestATurnPrintsThinkingAboveTheAnswer(t *testing.T) {
-	m := thought("the reasoning", 1200 * time.Millisecond)
+	m := thought("the reasoning", 1200*time.Millisecond)
 	m.run.answer.WriteString("the answer")
 
 	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 100, OutputTokens: 50}})
@@ -82,7 +82,7 @@ func TestATurnPrintsThinkingAboveTheAnswer(t *testing.T) {
 // Expanded is the same ordering, sharpened: the last reasoning line that was
 // still streaming when the turn ended must not slide under the answer either.
 func TestATurnPrintsTheLastReasoningLineAboveTheAnswerWhenExpanded(t *testing.T) {
-	m := thought("the last line of reasoning", 1200 * time.Millisecond)
+	m := thought("the last line of reasoning", 1200*time.Millisecond)
 	m.Expanded = true
 	m.run.answer.WriteString("the answer")
 

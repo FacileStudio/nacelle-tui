@@ -64,7 +64,12 @@ const (
 // committing an answer. Update drains the queue after every message, so the
 // order lines are said in is the order they land in.
 func (m *Model) say(who speaker, text string) {
-	m.unprinted = append(m.unprinted, m.paint(who, text))
+	painted := m.paint(who, text)
+	switch who {
+	case fromThinking, fromTool, fromResult, fromTurn:
+		painted += "\n"
+	}
+	m.unprinted = append(m.unprinted, painted)
 	m.session.Line(sessions.Speaker(who), text)
 }
 

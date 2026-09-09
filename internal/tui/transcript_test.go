@@ -243,3 +243,28 @@ func TestKindTurnRendersBoundaryWithoutBreakingConversation(t *testing.T) {
 		t.Errorf("conversation = %v, want full answer preserved", m.conversation)
 	}
 }
+
+// The finished widgets of a turn — the thinking line, the turn boundary, and
+// each tool line — get a blank row after them so they do not run into whatever
+// comes next. Without it the boundary "3.069s · 131k tokens · $0.0011" sat
+// glued to the next tool call and every tool line stuck to the one below it,
+// which read as one dense block instead of separate steps.
+func TestWidgetLinesAreSeparatedByBlankRows(t *testing.T) {
+	m := sized()
+	m.run.answer.WriteString("the answer")
+	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 10}})
+	m.say(fromTool, "$ read_file(x)")
+
+	said := visible(strings.Join(m.unprinted, "\n"))
+	boundaryAt := strings.Index(said, "10 tokens")
+	toolAt := strings.Index(said, "$ read_file(x)")
+	if boundaryAt < 0 || toolAt < 0 {
+		t.Fatalf("said = %q, want boundary and tool line", said)
+	}
+	if boundaryAt >= toolAt {
+		t.Errorf("said = %q, want the turn boundary before the tool line", said)
+	}
+	if gap := said[boundaryAt:toolAt]; strings.Count(gap, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the turn boundary and the tool line", said)
+	}
+}
