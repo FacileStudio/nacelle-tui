@@ -4,6 +4,15 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.26.1] - 2026-09-09
+
+### Fixed
+- **Thinking line placement**: the collapsed or expanded thinking line now prints above the answer it reasoned for, instead of sliding under the answer text at the end of an agent turn.
+- **Queued messages when idle**: a message typed once the agent is back to ready is sent immediately, rather than being held in the queue when no run is coming to drain it.
+
+### Changed
+- **Transcript spacing**: thinking lines, tool calls, tool results and turn timings each get a blank row after them, so the transcript reads as separate steps instead of one dense block.
+
 ## [0.26.0] - 2026-09-09
 
 ### Added
