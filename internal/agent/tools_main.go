@@ -9,8 +9,8 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/tasks"
 )
 
-// localTools opens the file/search/command tools and, when asked, adds the
-// web ones — the caller owns closing the returned Set.
+// localTools opens the file and command tools and, when asked, adds the web
+// one — the caller owns closing the returned Set.
 //
 // Every failure after tools.New succeeds closes the Set on the way out.
 // Without that it is dropped on the floor: the caller's own defer only ever
