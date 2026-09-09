@@ -28,7 +28,7 @@ This file tracks UI-only work. Core SDK changes live in `../nacelle/ROADMAP.md`.
 - **Session summary command** — *Done via `/status` command.*
 - **Dynamic compaction window** — automatically scales `compactAt` to 75% of `Capabilities.ContextWindow` when unconfigured. *Done in v0.21.7.*
 - **Resume** — `--continue` picks the newest session under `~/.nacelle/sessions/<project>/`; `/resume` picker in the TUI to resume past conversation. *Done via `--continue` flag and `/resume` command.*
-- **Subagents overview** — show list of running subagents and current task progress one per line under the input prompt (like pi or antigravity).
+- **Subagents overview** — show list of running subagents and current task progress one per line under the input prompt (like pi or antigravity). *Done via `parallel_result.go` in v0.26.0.*
 
 ---
 

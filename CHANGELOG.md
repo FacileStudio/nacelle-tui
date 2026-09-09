@@ -4,6 +4,14 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.27.0] - 2026-09-09
+
+### Added
+- **MCP tools get their own look**: tool calls whose source is an MCP server render with an orange `❋` glyph and group under an `mcp` kind, distinct from every built-in read/write/network/delegate family. The colour holds on success *and* failure — an MCP tool keeps its identity instead of flipping to the green/red outcome colour, so a server's tools stand out in the transcript and in batched groups.
+
+### Changed
+- **Queued lines read as the reader's own**: a queued message is prefixed with `| ` and its background bleeds across the full prompt width, matching how the sent question renders, so a held line reads as waiting rather than printed.
+
 ## [0.26.2] - 2026-09-09
 
 ### Fixed
