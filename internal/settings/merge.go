@@ -28,13 +28,21 @@ func (c *Config) merge(over Config) {
 	c.Hooks = append(c.Hooks, over.Hooks...)
 }
 
-// mergeStrings overwrites every string setting over actually mentions.
+// mergeStrings overwrites every string setting over actually mentions. A
+// provider's backend, model, base URL and API key merge field by field, so a
+// layer that sets only NACELLE_PROVIDER_BASE_URL leaves the rest alone.
 func (c *Config) mergeStrings(over Config) {
 	if over.Backend != "" {
 		c.Backend = over.Backend
 	}
 	if over.Model != "" {
 		c.Model = over.Model
+	}
+	if over.BaseURL != "" {
+		c.BaseURL = over.BaseURL
+	}
+	if over.APIKey != "" {
+		c.APIKey = over.APIKey
 	}
 	if over.Effort != "" {
 		c.Effort = over.Effort

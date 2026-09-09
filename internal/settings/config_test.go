@@ -91,7 +91,7 @@ func TestAFlagBeatsEverything(t *testing.T) {
 	written(t, "model: from-the-file\n")
 	t.Setenv(EnvPrefix+"MODEL", "from-the-environment")
 
-	config, err := settings(Config{Model: "from-the-flag"})
+	config, err := settings(Config{Provider: Provider{Model: "from-the-flag"}})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestATypoInAKeyIsRefusedRatherThanIgnored(t *testing.T) {
 func TestAnUnresolvableHomeMeansNoConfigFileRatherThanNoProgram(t *testing.T) {
 	t.Setenv("HOME", "")
 
-	config, err := settings(Config{Model: "from-the-flag"})
+	config, err := settings(Config{Provider: Provider{Model: "from-the-flag"}})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}

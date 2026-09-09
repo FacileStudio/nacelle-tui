@@ -18,7 +18,7 @@ func TestCountedNounPluralizes(t *testing.T) {
 
 func TestBannerShowsBackendModelRootSkillsAndContextFiles(t *testing.T) {
 	off := false
-	got := testBanner(&answeringStub{}, asSettled(Config{Model: "claude-opus-5", Root: ".", Toggles: Toggles{Bash: &off}}),
+	got := testBanner(&answeringStub{}, asSettled(Config{Provider: Provider{Model: "claude-opus-5"}, Root: ".", Toggles: Toggles{Bash: &off}}),
 		loaded{skills: []skill{{Name: "deploy"}, {Name: "filet"}}, contextFiles: 2}, connected{})
 
 	lines := strings.Split(got, "\n")

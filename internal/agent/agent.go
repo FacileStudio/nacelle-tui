@@ -67,16 +67,31 @@ func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve
 func chosen(config Config) (nacelle.Backend, error) {
 	switch config.Backend {
 	case "anthropic":
+		if config.BaseURL != "" || config.APIKey != "" {
+			return nil, fmt.Errorf("anthropic takes no custom endpoint: base_url and api_key apply only to google, openai, or openrouter")
+		}
 		return anthropic.New(anthropic.Config{Model: config.Model}), nil
 	case "google":
-		return google.New(google.Config{Model: config.Model})
+		return google.New(google.Config{
+			Model:   config.Model,
+			BaseURL: config.BaseURL,
+			APIKey:  config.APIKey,
+		})
 	case "openai":
-		return openai.New(openai.Config{Model: config.Model})
+		return openai.New(openai.Config{
+			Model:   config.Model,
+			BaseURL: config.BaseURL,
+			APIKey:  config.APIKey,
+		})
 	case "openrouter":
 		if config.Model == "" {
 			return nil, fmt.Errorf("openrouter needs a model: pass -model, or set model in ~/%s", settings.ConfigFile)
 		}
-		return openrouter.New(openrouter.Config{Model: config.Model})
+		return openrouter.New(openrouter.Config{
+			Model:   config.Model,
+			BaseURL: config.BaseURL,
+			APIKey:  config.APIKey,
+		})
 	default:
 		return nil, fmt.Errorf("unknown backend %q, want anthropic, google, openai, or openrouter", config.Backend)
 	}

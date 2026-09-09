@@ -51,3 +51,26 @@ func TestTheReasoningBudgetCrossesEveryLayer(t *testing.T) {
 		t.Errorf("reasoning budget = %d, want the environment to beat the file", *config.Budget)
 	}
 }
+
+// The provider group is the same story a grouping tests: its fields load from
+// the file and are overridden one at a time by the environment, so setting
+// only the base URL leaves the file's backend, model and key standing.
+func TestAProvidersFieldsResolveFieldByField(t *testing.T) {
+	written(t, "backend: openai\nmodel: auto\nbase_url: http://localhost:9999/v1\napi_key: from-the-file\n")
+	t.Setenv(EnvPrefix+"PROVIDER_BASE_URL", "http://localhost:3001/v1")
+
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	got := config.Provider
+	if got.Backend != "openai" || got.Model != "auto" {
+		t.Errorf("backend/model = %q/%q, want the file's", got.Backend, got.Model)
+	}
+	if got.BaseURL != "http://localhost:3001/v1" {
+		t.Errorf("base url = %q, want the environment to win", got.BaseURL)
+	}
+	if got.APIKey != "from-the-file" {
+		t.Errorf("api key = %q, want the file's value to survive an unrelated override", got.APIKey)
+	}
+}

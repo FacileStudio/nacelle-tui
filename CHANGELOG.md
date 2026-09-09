@@ -6,6 +6,16 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+### Added
+- **Custom providers**: point nacelle at any server that speaks an existing backend's protocol (typically OpenAI-compatible) by setting `base_url` and `api_key` alongside `backend` and `model`. Configured through `NACELLE_PROVIDER_BASE_URL` / `NACELLE_PROVIDER_API_KEY` or `base_url:` / `api_key:` in `~/.nacelle.yml`. The new keys are additive, so existing config files and env vars keep working. Backends `openai`, `openrouter` and `google` already accepted `BaseURL`; the client now forwards them.
+
+### Fixed
+- **Input prompt key handling**: Shift+Enter and Ctrl+J no longer insert a new line. Only Alt+Enter now inserts a new line; Enter always sends the message. The TUI now explicitly passes Alt+Enter through to the prompt (returns `false, nil` from `key()`), so only Enter is consumed by the client.
+- **Dependency bump**: upgraded `github.com/FacileStudio/nacelle` to `v0.13.0`
+
+### Changed
+- **Key handling**: Removed Shift+Enter and Ctrl+J from new line insertion; only Alt+Enter now inserts newlines
+
 ## [0.24.1] - 2026-09-09
 ### Changed
 - **Model paste consolidation**: paste handling now lives in `internal/tui/model.go`, removing `internal/tui/paste.go`.

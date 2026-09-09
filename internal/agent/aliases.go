@@ -9,6 +9,9 @@ import (
 // Config aliases settings.Config.
 type Config = settings.Config
 
+// Provider aliases settings.Provider, the active backend plus its endpoint.
+type Provider = settings.Provider
+
 // Skill aliases skills.Skill.
 type Skill = skills.Skill
 type skill = skills.Skill

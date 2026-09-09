@@ -93,7 +93,7 @@ could tell apart.
 | Layer | Source | Notes |
 |---|---|---|
 | Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
-| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_SEARCH`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories |
+| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_SEARCH`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
 | Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 0` (no cap), `compact_at: 100000` (absolute tokens), `search: ""` (no web search), `fetch: true`, `tasks: true` |
 
@@ -112,6 +112,10 @@ the person running this should opt into, not defaults sprung on them. See
 ```yaml
 backend: anthropic
 model: claude-opus-5
+# base_url: and api_key: point at a custom endpoint — see "Custom providers".
+# leave them out to use the vendor's own API and key resolution.
+# base_url: http://localhost:3001/v1
+# api_key: sk-your-unified-key
 effort: high
 reasoning_budget: 8192
 compact_at: 100000
@@ -140,6 +144,53 @@ setting carefully written is simply not in effect and nothing says so.
 
 **No per-project `./.nacelle.yml` yet.** A second precedence layer before the first has real
 users is a layer nobody has asked for the shape of.
+
+### Custom providers
+
+A custom provider points nacelle at an endpoint that is not one of the four vendor APIs, using an
+existing backend's protocol when the endpoint speaks it. It is four fields with the same precedence
+as everything else: `backend` and `model` (the `NACELLE_BACKEND` / `NACELLE_MODEL` behind them), plus
+`base_url` and `api_key` (the new ones), all read into one `Provider` group.
+
+The common case is an OpenAI-compatible gateway — any server that speaks the
+`v1/chat/completions` dialect the `openai` backend does, a class that includes most self-hosted
+proxies. Point `backend` at `openai`, set your own `base_url` and `api_key`, and the gateway is used
+as-is:
+
+```sh
+export NACELLE_BACKEND=openai
+export NACELLE_PROVIDER_BASE_URL=http://localhost:3001/v1
+export NACELLE_PROVIDER_API_KEY=sk-your-unified-key
+export NACELLE_MODEL=auto
+nacelle
+```
+
+Or the same provider in `~/.nacelle.yml`:
+
+```yaml
+backend: openai
+base_url: http://localhost:3001/v1
+api_key: sk-your-unified-key
+model: auto
+```
+
+`base_url` and `api_key` are optional everywhere. Leave `base_url` out and the backend's own default
+stands (`https://api.openai.com/v1` for `openai`); leave `api_key` out and the backend falls back to
+its usual environment variable (`OPENAI_API_KEY` and the rest). The `openai` backend always requires
+*a* key, so for a genuinely keyless local endpoint set `OPENAI_API_KEY` to any non-empty dummy value;
+the config errors otherwise. They only matter together with a custom endpoint.
+
+The file note from the precedence table above softens here: the config file **can** hold an
+`api_key`, for a private endpoint where a committed dotfile is the reasonable home for it. The old
+warning still stands for vendor keys — a file holding an `OPENAI_API_KEY` you actually use is a file
+that can never be committed to a dotfiles repo. A custom endpoint like freellmapi has its own key,
+so the two stories do not collide. In either case the env-var route is the one that keeps the key
+out of any file, and `NACELLE_PROVIDER_API_KEY` shares the `NACELLE_` prefix the rest of the layer
+uses.
+
+`anthropic` cannot be pointed at a custom endpoint: its `Config` takes a pre-built client rather
+than a URL and key. `openai`, `openrouter` and `google` all take a `BaseURL`. A local OpenAI-compatible
+gateway is the overwhelmingly common case, and it is the case that works.
 
 ## Context and skills
 

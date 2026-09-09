@@ -95,7 +95,7 @@ func (m *Model) help() tea.Cmd {
 		"Esc stops a run and nothing else. Ctrl+C stops one too, or quits when idle; ctrl+\\ force-quits.",
 		"Ctrl+T expands the reasoning collapsed to a single line, and keeps showing it in full until pressed again.",
 		"Enter during a run queues the line and sends it once the run finishes; stopping the run drops whatever is queued.",
-		"The prompt wraps and grows as you type. Alt+Enter, Shift+Enter (or ctrl+j) starts a new line without sending.",
+		"The prompt wraps and grows as you type. Alt+Enter inserts a new line; Enter always sends.",
 		"Scroll, select and copy with the terminal as usual — what was said is ordinary terminal output, not a window this client owns.",
 		"Typing / opens a dropdown of commands and skills — up/down move, tab/enter pick, esc closes it.",
 	}, "\n"))

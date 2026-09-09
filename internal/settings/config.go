@@ -23,20 +23,32 @@ type Limits struct {
 	CompactAt     *int64 `yaml:"compact_at"`
 }
 
+// Provider is the backend in use plus the endpoint and key that reach it:
+// which vendor protocol, which model, which base URL, and the bearer key.
+// Backend and Model were top-level settings until base_url and api_key joined
+// them, and the four sit in one group only to stay under filet's struct cap.
+// The yaml keys and NACELLE_ names are unchanged, so existing config files
+// keep working.
+type Provider struct {
+	Backend string `yaml:"backend"`
+	Model   string `yaml:"model"`
+	BaseURL string `yaml:"base_url"`
+	APIKey  string `yaml:"api_key"`
+}
+
 // Config is one layer of settings. Every field is a pointer or an empty-able
 // string so that a layer can say nothing about a setting rather than saying
 // zero, which is the whole difficulty of a precedence chain: "false" and "not
 // mentioned" are different answers and a bool cannot tell them apart.
 //
-// It holds no credentials, deliberately. They already have two homes — the
-// environment, and the Anthropic SDK's own profile — and a file with a key in
-// it is a file that can never be committed to a dotfiles repo, which is the
-// only reason to want one of these on two machines.
+// The one credential it can carry is a custom endpoint's own api_key, where a
+// dotfile is the reasonable home for it. A vendor key is still better kept in
+// the environment: a file holding an actual OPENAI_API_KEY is a file that can
+// never be committed to a dotfiles repo.
 type Config struct {
-	Backend string `yaml:"backend"`
-	Model   string `yaml:"model"`
-	Root    string `yaml:"root"`
-	System  string `yaml:"system"`
+	Provider `yaml:",inline"`
+	Root     string `yaml:"root"`
+	System   string `yaml:"system"`
 
 	Limits `yaml:",inline"`
 
@@ -156,7 +168,7 @@ func Defaults(system string) Config {
 	cont := false
 	return Config{
 		Web:       Web{Search: &search, Fetch: &fetch},
-		Backend:   "anthropic",
+		Provider:  Provider{Backend: "anthropic"},
 		Root:      ".",
 		System:    system,
 		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks, StrictConfinement: &strict},

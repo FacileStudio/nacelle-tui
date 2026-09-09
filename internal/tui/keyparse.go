@@ -69,6 +69,13 @@ func (m *Model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 			return true, nil
 		}
 	}
+	return m.promptKey(press)
+}
+
+// promptKey handles the keys that act on the prompt's own text, passed through
+// once nothing above claims the press. Anything it does not bind falls through
+// to history navigation.
+func (m *Model) promptKey(press tea.KeyPressMsg) (bool, tea.Cmd) {
 	switch press.String() {
 	case "ctrl+t":
 		return m.reveal()
@@ -76,6 +83,8 @@ func (m *Model) key(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		return m.escaped()
 	case "tab":
 		return m.tabKey(), nil
+	case "alt+enter":
+		return false, nil
 	case "enter":
 		return true, m.ask()
 	}
@@ -138,7 +147,11 @@ func (m *Model) navigateMenu(press tea.KeyPressMsg) bool {
 	case "down":
 		m.menu.Down()
 	case "tab", "enter":
-		m.selectMenuItem()
+		if it, ok := m.menu.SelectedItem(); ok {
+			m.prompt.SetValue(menu.InsertPick(m.prompt.Value(), it.Value))
+			m.prompt.CursorEnd()
+			m.menu.Dismiss()
+		}
 	case "esc":
 		m.menu.Dismiss()
 	default:
@@ -147,16 +160,6 @@ func (m *Model) navigateMenu(press tea.KeyPressMsg) bool {
 	m.menu.ClampView()
 	m.layout(m.windowHeight)
 	return true
-}
-
-func (m *Model) selectMenuItem() {
-	it, ok := m.menu.SelectedItem()
-	if !ok {
-		return
-	}
-	m.prompt.SetValue(menu.InsertPick(m.prompt.Value(), it.Value))
-	m.prompt.CursorEnd()
-	m.menu.Dismiss()
 }
 
 func (m *Model) historyKey(press tea.KeyPressMsg) (bool, tea.Cmd) {

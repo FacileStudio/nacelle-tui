@@ -11,15 +11,26 @@ import (
 // EnvPrefix is what every setting's environment variable starts with.
 const EnvPrefix = "NACELLE_"
 
+// providerEnv reads the active provider's four fields. Backend and Model reuse
+// the NACELLE_BACKEND/NACELLE_MODEL names every other layer uses; the endpoint
+// and key are the ones this layer adds, so they carry the PROVIDER_ prefix.
+func providerEnv() Provider {
+	return Provider{
+		Backend: os.Getenv(EnvPrefix + "BACKEND"),
+		Model:   os.Getenv(EnvPrefix + "MODEL"),
+		BaseURL: os.Getenv(EnvPrefix + "PROVIDER_BASE_URL"),
+		APIKey:  os.Getenv(EnvPrefix + "PROVIDER_API_KEY"),
+	}
+}
+
 // FromEnv is the settings layer the environment supplies.
 func FromEnv() Config {
 	return Config{
-		Backend: os.Getenv(EnvPrefix + "BACKEND"),
-		Model:   os.Getenv(EnvPrefix + "MODEL"),
-		Root:    os.Getenv(EnvPrefix + "ROOT"),
-		System:  os.Getenv(EnvPrefix + "SYSTEM"),
-		Limits:  Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
-		Sources: Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
+		Provider: providerEnv(),
+		Root:     os.Getenv(EnvPrefix + "ROOT"),
+		System:   os.Getenv(EnvPrefix + "SYSTEM"),
+		Limits:   Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
+		Sources:  Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
 		Toggles: Toggles{
 			Bash:              envBool(EnvPrefix + "BASH"),
 			Subagents:         envBool(EnvPrefix + "SUBAGENTS"),
