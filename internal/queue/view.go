@@ -55,8 +55,8 @@ func (q *Queue) View(editing, width int, style lipgloss.Style) []string {
 	if len(shown) > MaxRows {
 		shown, hidden = shown[:MaxRows], len(shown)-MaxRows
 	}
-	// Prefix like the sent question does and bleed the background across the
-	// whole width, so a queued line reads as the reader's own, just waiting.
+
+
 	w := max(width-2, 0)
 	lines := make([]string, 0, q.Height(editing))
 	for _, text := range shown {
