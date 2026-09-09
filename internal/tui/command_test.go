@@ -89,19 +89,18 @@ func TestKeyEnterSendsAFullyTypedCommandInsteadOfRepickingIt(t *testing.T) {
 	}
 }
 
-func TestNavigateMenuPickPreservesTextBeforeTheCommand(t *testing.T) {
+func TestTabOnMidSentenceSlashPreservesTextBeforeAndAfter(t *testing.T) {
 	m := sized()
 	m.prompt.SetValue("please run /cl now")
-	m.refreshMenu()
 
-	if !m.menu.Open() {
-		t.Fatal("mid-sentence slash command did not open the menu")
+	m.refreshMenu()
+	if m.menu.Open() {
+		t.Fatal("mid-sentence slash command auto-opened the menu")
 	}
 
-	m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyTab})
-
+	m.key(tea.KeyPressMsg{Code: tea.KeyTab})
 	if got, want := m.prompt.Value(), "please run /clear  now"; got != want {
-		t.Errorf("pick preserved the surrounding text: prompt = %q, want %q", got, want)
+		t.Errorf("tab did not preserve surrounding text: prompt = %q, want %q", got, want)
 	}
 }
 
@@ -173,6 +172,41 @@ func TestKeyRoutesUpDownToTheMenuInsteadOfScrollingWhileItIsOpen(t *testing.T) {
 
 	if m.menu.Selected == 0 || !handled {
 		t.Error("down was not handled by open menu")
+	}
+}
+
+func TestSecondSlashTypedMidSentenceCompletesWhenTabbed(t *testing.T) {
+	m := sized()
+	m.menu.Items = []menu.Item{{Value: "/skill:facile-review"}, {Value: "/skill:muse"}}
+	m.prompt.SetValue("/skill:facile-review /mus")
+
+	// typing a mid-sentence slash must not pop the menu open on its own
+	m.refreshMenu()
+	if m.menu.Open() {
+		t.Fatal("menu auto-opened on a mid-sentence slash, want it closed until tab")
+	}
+
+	// tab on the second slash opens the menu and completes the unique match
+	handled, _ := m.key(tea.KeyPressMsg{Code: tea.KeyTab})
+	if !handled || m.prompt.Value() != "/skill:facile-review /skill:muse " {
+		t.Errorf("tab: handled=%v prompt=%q, want the second slash completed", handled, m.prompt.Value())
+	}
+}
+
+func TestTabOpensTheMenuForAnAmbiguousMidSentenceSlash(t *testing.T) {
+	m := sized()
+	m.menu.Items = []menu.Item{{Value: "/skill:facile-review"}, {Value: "/skill:facile-plan"}, {Value: "/skill:muse"}}
+	m.prompt.SetValue("/skill:facile-review /f")
+
+	m.refreshMenu()
+	if m.menu.Open() {
+		t.Fatal("menu auto-opened on a mid-sentence slash, want it closed until tab")
+	}
+
+	handled, _ := m.key(tea.KeyPressMsg{Code: tea.KeyTab})
+	if !handled || !m.menu.Open() || len(m.menu.Filtered) != 2 {
+		t.Errorf("tab: handled=%v open=%v filtered=%+v, want the menu open on the two /f matches",
+			handled, m.menu.Open(), m.menu.Filtered)
 	}
 }
 
