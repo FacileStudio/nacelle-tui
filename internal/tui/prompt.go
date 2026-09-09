@@ -39,20 +39,12 @@ func (m *Model) ask() tea.Cmd {
 	}
 	m.prompt.Reset()
 
-	// Idle, the only thing a send can do is this: the queue has nothing to
-	// drain because no settle is coming. Holding the line here — the phantom
-	// edit a stale FromEnd produces — strands it in the ready state forever,
-	// the reported "I send a message and it just sits queued". So no queue
-	// logic when idle; dispatch, which is what the user asked for.
 	if !m.run.busy {
 		m.hist.Remember(question, m.Items())
 		m.layout(m.windowHeight)
 		return m.dispatch(question)
 	}
 
-	// Busy, a queued line is a real thing: it waits for the next settle to
-	// drain, and an edit to it replaces the line in place rather than sending
-	// a half-written draft. A fresh, unrelated message just joins the queue.
 	held := m.hist.Requeue(m.Items(), question)
 	if !held {
 		m.Add(question)
