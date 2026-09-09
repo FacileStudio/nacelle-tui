@@ -13,8 +13,8 @@ import (
 
 func (m *Model) turn(event nacelle.Event) {
 	m.Thought()
-	m.commitTail()
 	m.flushThinking()
+	m.commitTail()
 	line := m.turnBoundary(event.Usage)
 	m.say(fromTurn, line)
 	m.run.usage = m.run.usage.Add(event.Usage)

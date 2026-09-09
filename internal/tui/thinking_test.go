@@ -56,6 +56,49 @@ func TestReasoningIsShownApartAndKeptOutOfTheConversation(t *testing.T) {
 	}
 }
 
+// A turn is closed through turn(), not only through settle's flush(), and the
+// two must agree on where the thinking line goes. flush commits thinking before
+// the answer; turn used to commit the answer tail first, which dropped the
+// "▶ thought for Xs" line below the text it reasoned for. Streaming draws the
+// trace above the answer, so both commit paths should land the thinking line
+// above it too.
+func TestATurnPrintsThinkingAboveTheAnswer(t *testing.T) {
+	m := thought("the reasoning", 1200 * time.Millisecond)
+	m.run.answer.WriteString("the answer")
+
+	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 100, OutputTokens: 50}})
+
+	said := strings.Join(spoken(m), "\n")
+	answerAt := strings.Index(said, "the answer")
+	thinkAt := strings.Index(said, "▶ thought")
+	if answerAt < 0 || thinkAt < 0 {
+		t.Fatalf("said = %q, want both the thought line and the answer", said)
+	}
+	if thinkAt >= answerAt {
+		t.Errorf("said = %q, want the thinking line above the answer it reasoned for", said)
+	}
+}
+
+// Expanded is the same ordering, sharpened: the last reasoning line that was
+// still streaming when the turn ended must not slide under the answer either.
+func TestATurnPrintsTheLastReasoningLineAboveTheAnswerWhenExpanded(t *testing.T) {
+	m := thought("the last line of reasoning", 1200 * time.Millisecond)
+	m.Expanded = true
+	m.run.answer.WriteString("the answer")
+
+	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 100, OutputTokens: 50}})
+
+	said := strings.Join(spoken(m), "\n")
+	answerAt := strings.Index(said, "the answer")
+	thinkAt := strings.Index(said, "the last line of reasoning")
+	if answerAt < 0 || thinkAt < 0 {
+		t.Fatalf("said = %q, want both the reasoning line and the answer", said)
+	}
+	if thinkAt >= answerAt {
+		t.Errorf("said = %q, want the reasoning line above the answer", said)
+	}
+}
+
 func TestReasoningIsOnScreenWhileItIsStillStreaming(t *testing.T) {
 	m := sized()
 	m.run.busy = true
