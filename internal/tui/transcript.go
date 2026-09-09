@@ -162,7 +162,7 @@ func (m *Model) streaming() []string {
 		m.Stamp()
 		block := m.theme.Thinking.Render(m.Collapsed(m.Elapsed()))
 		if m.Expanded {
-			block = m.markdown(reasoning)
+			block = m.theme.Thinking.Width(max(m.width, 1)).Render(reasoning)
 		}
 		live = append(live, block)
 	}

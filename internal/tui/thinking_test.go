@@ -66,6 +66,23 @@ func TestReasoningIsOnScreenWhileItIsStillStreaming(t *testing.T) {
 	}
 }
 
+// Expanded reasoning streams through the same muted style the finished lines
+// scroll back up in, not through the markdown renderer the answer uses. A
+// half-finished trace full of markdown painting in as bold and code is the
+// artifact the renderer leaves behind, and it must not flicker in mid-stream
+// only to vanish when the line commits.
+func TestExpandedStreamingReasoningIsNotMarkdownRendered(t *testing.T) {
+	m := sized()
+	m.Expanded = true
+	m.run.busy = true
+	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "**bold** and `code` reasoning"})
+
+	screen := onScreen(m)
+	if !strings.Contains(screen, "**bold**") || !strings.Contains(screen, "`code`") {
+		t.Fatalf("screen = %q, want raw thinking text, not markdown-rendered", screen)
+	}
+}
+
 // A duration nobody measured is printed as no duration at all, rather than as
 // an invented 0.0s. Nothing stamps a start unless a frame was drawn while the
 // buffer was filling.
