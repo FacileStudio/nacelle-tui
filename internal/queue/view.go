@@ -56,7 +56,6 @@ func (q *Queue) View(editing, width int, style lipgloss.Style) []string {
 		shown, hidden = shown[:MaxRows], len(shown)-MaxRows
 	}
 
-
 	w := max(width-2, 0)
 	lines := make([]string, 0, q.Height(editing))
 	for _, text := range shown {
