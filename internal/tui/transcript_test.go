@@ -22,6 +22,26 @@ func TestSayingSomethingQueuesItForTheTerminal(t *testing.T) {
 	}
 }
 
+// The reader's own question is rendered with a muted background and a bold
+// pipe prefix so it stands out from the model's markdown answer without
+// reading like a chat bubble.
+func TestReaderQuestionIsPaintedWithMutedBackgroundAndBoldPipePrefix(t *testing.T) {
+	m := sized()
+	m.say(fromReader, "a question")
+
+	said := spoken(m)
+	if len(said) != 1 {
+		t.Fatalf("spoken = %v, want 1 line", said)
+	}
+	line := said[0]
+	if !strings.Contains(line, "a question") {
+		t.Errorf("spoken line = %q, want the question text", line)
+	}
+	if !strings.Contains(line, "| ") {
+		t.Errorf("spoken line = %q, want bold pipe prefix", line)
+	}
+}
+
 // One Println for the batch, not one per line: tea.Batch promises nothing
 // about the order its commands run in, and a transcript out of order is not a
 // transcript. The body is read back through fmt because the message type is

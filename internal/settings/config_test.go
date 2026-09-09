@@ -116,8 +116,8 @@ func TestATurnedOffToggleIsNotMistakenForAnUnsetOne(t *testing.T) {
 	if !*config.Thinking {
 		t.Error("thinking = false, want the file to have turned it on")
 	}
-	if *config.Bash {
-		t.Error("bash = true, want the default to stand when no layer mentions it")
+	if !*config.Bash {
+		t.Error("bash = false, want bash default on when no layer mentions it")
 	}
 }
 
@@ -132,7 +132,7 @@ func TestAnUnreadableEnvironmentValueFallsThroughRatherThanMeaningFalse(t *testi
 		t.Fatalf("settings: %v", err)
 	}
 	if !*config.Bash {
-		t.Error("bash = false, want the file's true to survive an unreadable override")
+		t.Error("bash = false, want file true to survive an unreadable override")
 	}
 }
 

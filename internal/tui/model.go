@@ -4,17 +4,15 @@ package tui
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/spinner"
-	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/glamour/v2"
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/history"
 	"github.com/FacileStudio/nacelle-tui/internal/menu"
-	"github.com/FacileStudio/nacelle-tui/internal/queue"
 	"github.com/FacileStudio/nacelle-tui/internal/status"
 	"github.com/FacileStudio/nacelle-tui/internal/theme"
 )
@@ -23,83 +21,6 @@ import (
 // first asked to stop — long enough to read the status line, short enough that
 // a ctrl+c minutes later still means "stop this run", not "quit".
 const forceQuit = 3 * time.Second
-
-// commandState is everything /skill:name and the dropdown menu need beyond
-// what command.go itself owns: skills to resolve a name against, the
-// dropdown's own filter/selection state, and the window height layout()
-// needs to reserve the dropdown's own space out of. Embedded rather than
-// named, the same reason Config embeds Discovery in config.go: every field
-// still reads as m.skills or m.menu, not m.commandState.skills — grouping
-// exists only to keep model's own field count from growing by one every
-// time this list does.
-type commandState struct {
-	skills map[string]skill
-	menu   menu.Menu
-}
-
-// look is how a line is drawn rather than what it says: the palette resolved
-// for the terminal's own background, the markdown renderer built for the
-// current width, and the spinner that keeps the status line moving. All three
-// are rebuilt or ticked by something other than the thing that produced the
-// text, and none of them is ever read without the others nearby.
-//
-// Embedded, so every field still reads as m.theme, m.pretty and m.spin — the
-// grouping exists for the same reason commandState's does, to keep model's own
-// field count from growing by one every time this client learns to draw
-// something new.
-//
-// spin is built with no style of its own and has to stay that way. The status
-// line renders the spinner, the phrase and the clock as one coloured span, so
-// a style here would emit its own reset in the middle of that span and drop
-// the colour from everything after the spinner — see working().
-type look struct {
-	theme        theme.Palette
-	pretty       *glamour.TermRenderer
-	spin         status.Spinner
-	groupTools   bool
-	promptStyles textarea.Styles
-}
-
-// core groups the agent and the startup banner so model stays under filet's
-// field cap. Embedded, so every field still reads as m.agent and m.banner.
-type core struct {
-	agent      *nacelle.Agent
-	banner     string
-	autoResume bool
-}
-
-// transcript groups the conversation and unprinted lines.
-type transcript struct {
-	conversation []nacelle.Message
-	unprinted    []string
-}
-
-// transcriptSize groups the transcript-size settings so model stays under
-// filet's field cap. Embedded, so every field still reads as m.compactAt
-// and m.compacting.
-type transcriptSize struct {
-	compactAt  int64
-	compacting bool
-}
-
-// Model is the whole client: a transcript, a prompt, and at most one run in
-// flight.
-type Model struct {
-	core
-	transcriptSize
-	transcript
-	queue.Queue
-
-	prompt textarea.Model
-
-	account
-	look
-	commandState
-	screen
-	thoughts
-	hist *history.History
-	run  inflight
-}
 
 // NewModel builds the client. The banner names the backend and model, so
 // which provider is billed is visible before typing, not after it fails.
@@ -110,9 +31,9 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	byName := bySkillName(skills)
 
 	m := &Model{
-		core:           core{agent: agent, banner: banner, autoResume: autoResume},
-		transcriptSize: transcriptSize{compactAt: compactAt},
-		prompt:         newPrompt(),
+		core:       core{agent: agent, banner: banner, autoResume: autoResume},
+		transcript: transcript{compactAt: compactAt},
+		prompt:     newPrompt(),
 		look: look{
 			theme: theme.Themed(true),
 			spin:  status.NewSpinner(),
@@ -246,4 +167,21 @@ func (m *Model) handlePaste(msg tea.PasteMsg) tea.Cmd {
 	m.prompt.InsertString(clean)
 	m.refreshMenu()
 	return nil
+}
+
+// parallelTasksView returns a view of the parallel subagent tasks.
+func (m *Model) parallelTasksView() string {
+	if len(m.parallelTasks) == 0 {
+		return ""
+	}
+	var lines []string
+	for _, tasks := range m.parallelTasks {
+		lines = append(lines, callLines(tasks)...)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// parallelTasksRows returns the number of parallel task rows for layout.
+func (m *Model) parallelTasksRows() int {
+	return parallelTaskRows(m.parallelTasks)
 }

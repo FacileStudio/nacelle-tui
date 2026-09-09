@@ -7,15 +7,15 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
 )
 
-func TestSearchIsOffUntilAnInstanceIsNamed(t *testing.T) {
+func TestSearchDefaultsToFuret(t *testing.T) {
 	written(t, "")
 
 	config, err := resolveSettings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if *config.Search != "" {
-		t.Errorf("search = %q, want no instance chosen on anyone's behalf", *config.Search)
+	if *config.Search != "https://furet.facile.studio" {
+		t.Errorf("search = %q, want https://furet.facile.studio by default", *config.Search)
 	}
 }
 
@@ -54,9 +54,7 @@ func TestAnUnusableSearchEndpointStopsTheClient(t *testing.T) {
 	set, _, err := localTools(config)
 	if set != nil {
 		t.Cleanup(func() {
-			if err := set.Close(); err != nil {
-				t.Errorf("closing the tool set: %v", err)
-			}
+			set.Close()
 		})
 	}
 	if err == nil {

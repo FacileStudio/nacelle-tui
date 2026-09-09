@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -75,8 +76,7 @@ func (m *Model) absorb(event nacelle.Event) {
 	case nacelle.KindToolCall:
 		m.absorbToolCall(*event.Tool)
 	case nacelle.KindToolResult:
-		m.run.finishTool(*event.Tool)
-		m.finished(event.Tool)
+		m.absorbToolResult(*event.Tool, event.Tool.Result)
 	case nacelle.KindTurn:
 		m.turn(event)
 	case nacelle.KindDone:
@@ -88,6 +88,9 @@ func (m *Model) absorb(event nacelle.Event) {
 }
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
+	if tool.Name == "parallel_subagent" {
+		m.handleParallelCall(tool)
+	}
 	m.commitParagraphs()
 	m.Thought()
 	m.run.reported = true
@@ -97,6 +100,32 @@ func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 			m.run.edits[tool.ID] = change
 		}
 	}
+}
+
+func (m *Model) handleParallelCall(tool nacelle.ToolEvent) {
+	var input struct {
+		Tasks []string `json:"tasks"`
+	}
+	if err := json.Unmarshal([]byte(tool.Input), &input); err == nil {
+		if m.parallelTasks == nil {
+			m.parallelTasks = make(map[string][]parallelTaskInfo)
+		}
+		list := make([]parallelTaskInfo, len(input.Tasks))
+		for i, t := range input.Tasks {
+			list[i] = parallelTaskInfo{Task: t, Active: true}
+		}
+		m.parallelTasks[tool.ID] = list
+	}
+}
+
+func (m *Model) absorbToolResult(tool nacelle.ToolEvent, rawResult string) {
+	if tool.Name == "parallel_subagent" {
+		if tasks, ok := m.parallelTasks[tool.ID]; ok {
+			m.handleParallelResult(rawResult, tool.ID, tasks)
+		}
+	}
+	m.run.finishTool(tool)
+	m.finished(&tool)
 }
 
 func (m *Model) commitParagraphs() {
@@ -134,19 +163,4 @@ func (m *Model) commitReasoning() {
 		m.run.reasoningFull.WriteString("\n")
 		m.say(fromThinking, complete)
 	}
-}
-
-type spentDelegation struct {
-	usage nacelle.Usage
-}
-
-func watchDelegations() tea.Cmd {
-	return func() tea.Msg {
-		return spentDelegation{usage: <-delegations}
-	}
-}
-
-func (m *Model) recordDelegation(spent spentDelegation) tea.Cmd {
-	m.run.usage = m.run.usage.Add(spent.usage)
-	return watchDelegations()
 }

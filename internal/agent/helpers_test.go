@@ -68,7 +68,7 @@ func writeSkill(t *testing.T, dir, frontmatterBody string) {
 }
 
 func resolveSettings(flags Config) (Config, error) {
-	return settings.Settings("", flags)
+	return settings.Settings(DefaultSystemPrompt(), flags)
 }
 
 func ptr(s string) *string {

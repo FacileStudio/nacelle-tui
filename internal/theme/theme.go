@@ -47,8 +47,9 @@ type Palette struct {
 }
 
 func transcriptStylesFor(quiet, faint, faintFg color.Color) TranscriptStyles {
+	question := lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color("15")).Bold(true)
 	return TranscriptStyles{
-		Question: lipgloss.NewStyle().PaddingLeft(1).Background(faint).Foreground(faintFg),
+		Question: question,
 		Thinking: lipgloss.NewStyle().Foreground(quiet).Italic(true),
 		Tool:     PlainTool(),
 		Result:   lipgloss.NewStyle().Foreground(quiet),

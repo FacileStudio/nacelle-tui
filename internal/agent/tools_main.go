@@ -30,24 +30,20 @@ import (
 // error paths still hand the caller nil, which is what it wants; only the
 // closing needs a name the returns cannot reach.
 func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
-	opened, err := tools.New(tools.Config{Root: config.Root, AllowBash: *config.Bash})
+	opened, err := tools.New(tools.Config{Root: config.Root, AllowBash: *config.Bash, StrictConfinement: *config.StrictConfinement})
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening %s: %w", config.Root, err)
 	}
 
-	defer func() {
-		if err != nil {
-			_ = opened.Close()
-		}
-	}()
-
 	local, err = opened.Tools()
 	if err != nil {
+		opened.Close()
 		return nil, nil, fmt.Errorf("building the tool set: %w", err)
 	}
 
 	var reaching []nacelle.Tool
 	if reaching, err = webTools(config); err != nil {
+		opened.Close()
 		return nil, nil, err
 	}
 	local = append(local, reaching...)

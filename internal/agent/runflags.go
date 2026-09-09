@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/FacileStudio/nacelle"
@@ -37,7 +39,7 @@ type preparedTools struct {
 
 func setupAgentTools() (preparedTools, error) {
 	flags := settings.FromFlags(settings.Defaults(""))
-	config, err := settings.Settings("", flags)
+	config, err := settings.Settings(DefaultSystemPrompt(), flags)
 	if err != nil {
 		return preparedTools{}, err
 	}
@@ -47,8 +49,7 @@ func setupAgentTools() (preparedTools, error) {
 	}
 	mcp, local, err := mcpTools(config, local)
 	if err != nil {
-		closeAll(set)
-		return preparedTools{}, err
+		return preparedTools{}, closeOnErr(err, set)
 	}
 	return preparedTools{config: config, set: set, mcp: mcp, local: local}, nil
 }
@@ -93,10 +94,13 @@ func buildUISession(v string) (*tui.UISession, func(), error) {
 	}
 	sess, err := setupAgentSession(prep, v)
 	if err != nil {
-		closeAll(prep.set, prep.mcp.set)
-		return nil, nil, err
+		return nil, nil, closeOnErr(err, prep.set, prep.mcp.set)
 	}
-	return sess, func() { closeAll(prep.set, prep.mcp.set) }, nil
+	return sess, func() {
+		if err := closeAll(prep.set, prep.mcp.set); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}, nil
 }
 
 type loaded struct {

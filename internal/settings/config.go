@@ -57,14 +57,16 @@ type Config struct {
 
 // Toggles is the on/off settings: whether the model may run commands, whether
 // the client will prompt for approval before a tool call runs, whether to show
-// a diff when a file is changed, and whether the model gets a subagent tool.
-// Every toggle is a pointer so "not in this file" can be told from "false".
+// a diff when a file is changed, whether the model gets a subagent tool, and
+// whether the model is confined to the working directory. Every toggle is a
+// pointer so "not in this file" can be told from "false".
 type Toggles struct {
-	Bash         *bool `yaml:"bash"`
-	Subagents    *bool `yaml:"subagents"`
-	ApproveTools *bool `yaml:"approve_tools"`
-	Diffs        *bool `yaml:"diffs"`
-	Tasks        *bool `yaml:"tasks"`
+	Bash              *bool `yaml:"bash"`
+	Subagents         *bool `yaml:"subagents"`
+	ApproveTools      *bool `yaml:"approve_tools"`
+	Diffs             *bool `yaml:"diffs"`
+	Tasks             *bool `yaml:"tasks"`
+	StrictConfinement *bool `yaml:"strict_confinement"`
 }
 
 // UI holds display settings for the interactive client.
@@ -140,16 +142,16 @@ func DerefBool(b *bool) bool {
 // window nacelle is aimed at, so the first sign of trouble is never
 // StopContext: the floor it leaves below itself is room for a full answer
 // plus the next turn's tools and system prompt.
-const DefaultCompactAt int64 = 100_000
+const DefaultCompactAt int64 = 75_000
 
 // Defaults is the bottom layer, and the only one that answers everything.
 func Defaults(system string) Config {
-	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks :=
-		false, false, true, true, false, false, false, true, true
-	subagents := false
-	iterations, budget := 0, int64(0)
-	compactAt := DefaultCompactAt
-	search, fetch := "", true
+	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks, strict :=
+		true, true, true, true, false, false, false, true, true, false
+	subagents := true
+	iterations, budget := 5, int64(0)
+	compactAt := int64(75000)
+	search, fetch := "https://furet.facile.studio", true
 	groupTools, showThinking := true, true
 	cont := false
 	return Config{
@@ -157,7 +159,7 @@ func Defaults(system string) Config {
 		Backend:   "anthropic",
 		Root:      ".",
 		System:    system,
-		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks},
+		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks, StrictConfinement: &strict},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{

@@ -58,7 +58,6 @@ var captureEdit = diff.CaptureEdit
 
 var truncate = layout.Truncate
 var unstyled = layout.Unstyled
-var promptCap = layout.PromptCap
 
 var shortTokens = status.ShortTokens
 var waitingVerb = status.WaitingVerb

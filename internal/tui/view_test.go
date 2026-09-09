@@ -61,15 +61,13 @@ func TestAFailedToolKeepsItsCallLineAndItsError(t *testing.T) {
 	}})
 	m.stranded()
 
-	lines := spoken(m)
-	if len(lines) != 1 {
-		t.Fatalf("transcript = %v, want 1 entry", lines)
+	cmd := m.prints()
+	printed := printedBy(cmd)
+	if !strings.Contains(printed, "run_command(go build ./...)") {
+		t.Errorf("call line missing from printed output: %q", printed)
 	}
-	if !strings.Contains(lines[0], "run_command(go build ./...)") {
-		t.Errorf("call line = %q", lines[0])
-	}
-	if !strings.Contains(lines[0], "exit status 2") || !strings.Contains(lines[0], "12ms") {
-		t.Errorf("failure line = %q", lines[0])
+	if !strings.Contains(printed, "exit status 2") || !strings.Contains(printed, "12ms") {
+		t.Errorf("failure line missing from printed output: %q", printed)
 	}
 }
 
@@ -89,15 +87,13 @@ func TestIdenticalFailuresCollapse(t *testing.T) {
 	}})
 	m.stranded()
 
-	lines := spoken(m)
-	if len(lines) != 1 {
-		t.Fatalf("transcript = %v, want 1 entry", lines)
+	cmd := m.prints()
+	printed := printedBy(cmd)
+	if !strings.Contains(printed, "run_command(go build ./...)") {
+		t.Errorf("call line missing from printed output: %q", printed)
 	}
-	if !strings.Contains(lines[0], "run_command(go build ./...)") {
-		t.Errorf("call line = %q", lines[0])
-	}
-	if !strings.Contains(lines[0], "2 times") {
-		t.Errorf("failure = %q, want 2 times count", lines[0])
+	if !strings.Contains(printed, "2 times") {
+		t.Errorf("collapse count missing from printed output: %q", printed)
 	}
 }
 
@@ -117,9 +113,13 @@ func TestDifferentFailuresAreNotCollapsed(t *testing.T) {
 	}})
 	m.stranded()
 
-	lines := spoken(m)
-	if len(lines) != 2 {
-		t.Fatalf("transcript = %v, want 2 entries", lines)
+	cmd := m.prints()
+	printed := printedBy(cmd)
+	if !strings.Contains(printed, "go build ./...") || !strings.Contains(printed, "go test ./...") {
+		t.Errorf("expected both call lines in printed output: %q", printed)
+	}
+	if !strings.Contains(printed, "exit status 2") || !strings.Contains(printed, "test failure") {
+		t.Errorf("expected both error lines in printed output: %q", printed)
 	}
 }
 

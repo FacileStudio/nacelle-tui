@@ -4,17 +4,16 @@ import (
 	"testing"
 )
 
-// Off until it proves itself: delegation spends a nested run's tokens on a
-// bet the person running this has not placed yet.
-func TestSubagentsDefaultOff(t *testing.T) {
+// On by default: delegation is enabled out of the box.
+func TestSubagentsDefaultOn(t *testing.T) {
 	written(t, "")
 
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if *config.Subagents {
-		t.Error("subagents default on")
+	if !*config.Subagents {
+		t.Error("subagents default off")
 	}
 }
 

@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/FacileStudio/nacelle"
 
@@ -114,16 +113,15 @@ func (m *Model) printGroupFailure(line, name string, errs []toolError, dur strin
 			collapsed = append(collapsed, collapse{toolError: e, count: 1})
 		}
 	}
-	lines := []string{toolStr}
+	m.unprinted = append(m.unprinted, toolStr)
 	for _, c := range collapsed {
 		text := fmt.Sprintf("%s failed after %s: %s", c.Name, took(c.Duration), c.Err)
 		if c.count > 1 {
 			text = fmt.Sprintf("%s failed %d times · last: %s: %s", c.Name, c.count, took(c.Duration), c.Err)
 		}
-		lines = append(lines, m.paint(fromResult, text))
+		m.unprinted = append(m.unprinted, m.paint(fromResult, text))
 		m.session.Line(sessions.Speaker(fromResult), text)
 	}
-	m.unprinted = append(m.unprinted, strings.Join(lines, "\n"))
 }
 
 func (m *Model) finishEdit(id string) {
@@ -187,7 +185,7 @@ func (m *Model) flushFailures() {
 		errLine = fmt.Sprintf("%s failed %d times · last: %s: %s", m.run.failures.name, m.run.failures.count, took(m.run.failures.duration), m.run.failures.err)
 	}
 	resultStr := m.paint(fromResult, errLine)
-	m.unprinted = append(m.unprinted, toolStr+"\n"+resultStr)
+	m.unprinted = append(m.unprinted, toolStr, resultStr)
 	m.session.Line(sessions.Speaker(fromTool), toolview.ColorGlyph(m.run.failures.toolLine, "31", toolview.ToolSourceRestore(m.run.failures.name, "")))
 	m.session.Line(sessions.Speaker(fromResult), errLine)
 	m.run.failures = failureCollapse{}

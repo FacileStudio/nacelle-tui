@@ -21,11 +21,12 @@ func FromEnv() Config {
 		Limits:  Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
 		Sources: Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
 		Toggles: Toggles{
-			Bash:         envBool(EnvPrefix + "BASH"),
-			Subagents:    envBool(EnvPrefix + "SUBAGENTS"),
-			ApproveTools: envBool(EnvPrefix + "APPROVE_TOOLS"),
-			Diffs:        envBool(EnvPrefix + "DIFFS"),
-			Tasks:        envBool(EnvPrefix + "TASKS"),
+			Bash:              envBool(EnvPrefix + "BASH"),
+			Subagents:         envBool(EnvPrefix + "SUBAGENTS"),
+			ApproveTools:      envBool(EnvPrefix + "APPROVE_TOOLS"),
+			Diffs:             envBool(EnvPrefix + "DIFFS"),
+			Tasks:             envBool(EnvPrefix + "TASKS"),
+			StrictConfinement: envBool(EnvPrefix + "STRICT_CONFINEMENT"),
 		},
 		Reasoning: Reasoning{
 			Effort:   os.Getenv(EnvPrefix + "EFFORT"),

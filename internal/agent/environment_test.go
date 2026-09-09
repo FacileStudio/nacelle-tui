@@ -112,3 +112,25 @@ func TestEnvironmentMentionsRunCommandOnlyWhenBashIsMounted(t *testing.T) {
 		t.Errorf("environment() = %q, want no word about run_command when -bash is off", got)
 	}
 }
+
+func TestEnvironmentDescribesConfinementBasedOnStrictConfinement(t *testing.T) {
+
+	on := environment(withApproval(false), time.Now())
+	if !strings.Contains(on, "absolute paths") {
+		t.Errorf("environment() without confinement = %q, want mention of absolute-path handling", on)
+	}
+	if !strings.Contains(on, "no confinement") {
+		t.Errorf("environment() without confinement = %q, want \"no confinement\" mentioned", on)
+	}
+
+	with := withApproval(false)
+	confined := true
+	with.StrictConfinement = &confined
+	withConfined := environment(with, time.Now())
+	if !strings.Contains(withConfined, "cannot reach outside") {
+		t.Errorf("environment() with confinement = %q, want confinement warning", withConfined)
+	}
+	if strings.Contains(withConfined, "no confinement") {
+		t.Errorf("environment() with confinement = %q, should not say \"no confinement\"", withConfined)
+	}
+}

@@ -81,7 +81,7 @@ func (m *Model) prints() tea.Cmd {
 	if len(m.unprinted) == 0 {
 		return nil
 	}
-	said := strings.Join(m.unprinted, "\n\n")
+	said := strings.Join(m.unprinted, "\n")
 	m.unprinted = nil
 	return m.printed(said)
 }
@@ -91,9 +91,10 @@ func (m *Model) prints() tea.Cmd {
 // Nobody is labelled. A transcript prefixing every line with who said it
 // spends the left margin on something the styling already says, and reads
 // like a chat log rather than like a session. The reader's own question is
-// the thing they scroll back to find, so that is what gets a background; the
-// answer is the thing being read, so it gets none, and is rendered as the
-// markdown the model almost certainly wrote it in.
+// the thing they scroll back to find, so that is what gets a muted background
+// plus a bold pipe prefix; the answer is the thing being read, so it gets
+// none, and is rendered as the markdown the model almost certainly wrote it
+// in.
 //
 // What the client says about itself is the one thing not held to a width, and
 // the banner is why. It is painted in newModel, before any WindowSizeMsg has
@@ -113,7 +114,7 @@ func (m *Model) paint(who speaker, text string) string {
 	width := max(m.width, 1)
 	switch who {
 	case fromReader:
-		return m.theme.Question.Width(width).Render(text)
+		return m.theme.Question.Width(width).Render("| " + text)
 	case fromModel:
 		return m.markdown(text)
 	case fromThinking:

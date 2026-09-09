@@ -44,7 +44,7 @@ func TestAnAnswerIsRenderedAsMarkdownRatherThanShownRaw(t *testing.T) {
 
 func TestOnlyTheReaderSQuestionCarriesABackground(t *testing.T) {
 	p := Themed(true)
-	question := p.Question.Render("what is in go.mod?")
+	question := p.Question.Render("| what is in go.mod?")
 	answer := p.Plain.Render("the module declaration")
 	if !strings.Contains(question, "what is in go.mod?") {
 		t.Errorf("question = %q", question)

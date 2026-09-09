@@ -189,10 +189,10 @@ func verifyPromptClearedRestoresLiveRows(t *testing.T, m *Model) {
 }
 
 func TestPromptContinuationsAndBounds(t *testing.T) {
-	if got := continuation(textarea.PromptInfo{LineNumber: 0, Focused: true}); got != "> " {
-		t.Errorf("first row marker = %q, want '> '", got)
+	if got := visible(continuation(textarea.PromptInfo{LineNumber: 0, Focused: true})); got != "| " {
+		t.Errorf("first row marker = %q, want '| '", got)
 	}
-	if got := continuation(textarea.PromptInfo{LineNumber: 1, Focused: true}); strings.TrimSpace(got) != "" {
+	if got := continuation(textarea.PromptInfo{LineNumber: 1, Focused: true}); strings.TrimSpace(visible(got)) != "" {
 		t.Errorf("wrapped row marker = %q, want blank", got)
 	}
 

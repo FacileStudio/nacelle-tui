@@ -2,6 +2,7 @@
 package skills
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -175,12 +176,18 @@ func projectSkillContainers(root string) []string {
 func skillsIn(dir string) []Skill {
 	var found []Skill
 	if err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil || !entry.IsDir() {
-			return nil //nolint:nilerr
+		if err != nil {
+			return err
+		}
+		if !entry.IsDir() {
+			return nil
 		}
 		manifest := filepath.Join(path, "SKILL.md")
 		if _, err := os.Stat(manifest); err != nil {
-			return nil //nolint:nilerr
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+			return nil
 		}
 		if s, ok := parseSkill(manifest); ok {
 			found = append(found, s)

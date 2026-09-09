@@ -47,7 +47,7 @@ func runHeadless(prompt string) error {
 // agent and a cleanup function the caller must defer.
 func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 	flags := settings.FromFlags(settings.Defaults(""))
-	config, err := settings.Settings("", flags)
+	config, err := settings.Settings(DefaultSystemPrompt(), flags)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -59,8 +59,7 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 
 	mcp, local, err := mcpTools(config, local)
 	if err != nil {
-		closeAll(set)
-		return nil, nil, err
+		return nil, nil, closeOnErr(err, set)
 	}
 
 	augmentSystem(&config)
@@ -68,30 +67,52 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 
 	hooks, _, err := settings.SessionHooks(config)
 	if err != nil {
-		closeAll(set, mcp.set)
-		return nil, nil, err
+		return nil, nil, closeOnErr(err, set, mcp.set)
 	}
 
 	agent, _, err := build(config, local, approve, hooks)
 	if err != nil {
-		closeAll(set, mcp.set)
-		return nil, nil, err
+		return nil, nil, closeOnErr(err, set, mcp.set)
 	}
 
-	return agent, func() { closeAll(set, mcp.set) }, nil
+	return agent, func() {
+		if err := closeAll(set, mcp.set); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}, nil
 }
 
-// closeAll calls Close on every io.Closer it receives, ignoring errors.
-// It exists so buildHeadlessAgent can clean up partial state without
-// discarding return values into _ — filet flags those.
-func closeAll(closers ...interface{ Close() error }) {
+// closeOnErr returns the original err if cleanup succeeds, or the cleanup
+// error if cleanup fails. The caller should prefer the cleanup error only
+// when it wants to surface close failures over the original failure.
+func closeOnErr(err error, closers ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+	if cerr := closeAll(closers...); cerr != nil {
+		return cerr
+	}
+	return err
+}
+
+// closeAll calls Close on every closer it receives. It returns the last
+// error returned by a Close() error call, if any.
+func closeAll(closers ...interface{}) error {
+	var lastErr error
 	for _, c := range closers {
-		if c != nil {
-			if err := c.Close(); err != nil {
-				continue
+		if c == nil {
+			continue
+		}
+		switch v := c.(type) {
+		case interface{ Close() error }:
+			if err := v.Close(); err != nil {
+				lastErr = err
 			}
+		case interface{ Close() }:
+			v.Close()
 		}
 	}
+	return lastErr
 }
 
 // stdinPrompt reads the first line of stdin when the terminal is not
