@@ -17,6 +17,7 @@ func TestToolKind(t *testing.T) {
 		{"write_file", "write"},
 		{"web_fetch", "network"},
 		{"subagent", "delegate"},
+		{"parallel_subagent", "delegate"},
 		{"unknown_custom_tool", "other"},
 	}
 
@@ -35,7 +36,7 @@ func TestToolKindGlyph(t *testing.T) {
 		{"read", "☰"},
 		{"write", "$"},
 		{"network", "↧"},
-		{"delegate", "»"},
+		{"delegate", "≫"},
 		{"other", "•"},
 	}
 

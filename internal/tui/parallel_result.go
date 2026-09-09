@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"charm.land/lipgloss/v2"
+
+	"github.com/FacileStudio/nacelle-tui/internal/layout"
 )
 
 // parallelResult mirrors the JSON returned by parallel_subagent.
@@ -12,10 +16,6 @@ type parallelResult struct {
 	Tasks  map[string]string `json:"tasks,omitempty"`
 	Errors map[string]string `json:"errors,omitempty"`
 }
-
-// maxParallelResultLines caps the rendered text of a single subagent result so
-// one long answer cannot push the prompt off the bottom of the terminal.
-const maxParallelResultLines = 6
 
 // handleParallelResult merges the fan-out result into the tracked tasks for
 // this call, then removes the call's entry so it does not sit in memory.
@@ -50,43 +50,27 @@ func (m *Model) parallelResultError(toolID string, tasks []parallelTaskInfo, err
 	delete(m.parallelTasks, toolID)
 }
 
-// truncateLines returns at most n lines from s. A trailing newline is stripped
-// so a partial last line is not dropped on the floor.
-func truncateLines(s string, n int) []string {
-	lines := strings.Split(s, "\n")
-	if len(lines) > n {
-		lines = lines[:n]
-	}
-	if len(lines) > 0 && lines[len(lines)-1] == "" {
-		lines = lines[:len(lines)-1]
-	}
-	return lines
+// taskTitle collapses a task's prompt onto one line, so the running task row
+// reads as an action instead of a pasted paragraph.
+func taskTitle(pt parallelTaskInfo) string {
+	return strings.Join(strings.Fields(pt.Task), " ")
 }
 
-// taskStatusLines returns the status and optional result lines for one parallel task.
-func taskStatusLines(pt parallelTaskInfo) []string {
-	switch {
-	case pt.Active:
-		return []string{"  · running..."}
-	case pt.Err != "":
-		return []string{"  · error: " + pt.Err}
-	case pt.Result != "":
-		out := make([]string, 0, len(truncateLines(pt.Result, maxParallelResultLines)))
-		for _, line := range truncateLines(pt.Result, maxParallelResultLines) {
-			out = append(out, "  · "+line)
-		}
-		return out
-	default:
-		return nil
-	}
-}
-
-// callLines returns all rendered lines for one parallel_subagent call's tasks.
-func callLines(tasks []parallelTaskInfo) []string {
+// callLines returns one rendered line per parallel task: the task's shortened
+// title in yellow on the left, and the run's combined spend against the right
+// margin. Results and errors arrive all at once and drop the call from the map
+// (see handleParallelResult), so this only ever shows tasks still running.
+func callLines(tasks []parallelTaskInfo, width int, spend string) []string {
+	const gap = 3
+	yellow := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	var lines []string
 	for _, pt := range tasks {
-		lines = append(lines, "≫ "+pt.Task)
-		lines = append(lines, taskStatusLines(pt)...)
+		sWidth := lipgloss.Width(spend)
+		room := width - sWidth - gap
+		title := layout.Truncate(taskTitle(pt), room)
+		left := yellow.Render("≫ " + title)
+		pad := max(width-sWidth-lipgloss.Width(left), 0)
+		lines = append(lines, left+strings.Repeat(" ", pad)+spend)
 	}
 	return lines
 }
@@ -95,15 +79,7 @@ func callLines(tasks []parallelTaskInfo) []string {
 func parallelTaskRows(tasks map[string][]parallelTaskInfo) int {
 	rows := 0
 	for _, call := range tasks {
-		for _, pt := range call {
-			rows++
-			if pt.Active || pt.Err != "" || pt.Result != "" {
-				rows++
-			}
-			if pt.Result != "" {
-				rows += len(truncateLines(pt.Result, maxParallelResultLines)) - 1
-			}
-		}
+		rows += len(call)
 	}
 	return rows
 }

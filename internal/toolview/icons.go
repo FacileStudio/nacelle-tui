@@ -10,16 +10,17 @@ import (
 )
 
 var toolIcons = map[string]string{
-	"run_command":  "$",
-	"edit_file":    "✎",
-	"write_file":   "✚",
-	"read_file":    "☰",
-	"search_files": "◎",
-	"find_files":   "◎",
-	"grep_files":   "◎",
-	"web_fetch":    "↧",
-	"download":     "↧",
-	"subagent":     "»",
+	"run_command":       "$",
+	"edit_file":         "✎",
+	"write_file":        "✚",
+	"read_file":         "☰",
+	"search_files":      "◎",
+	"find_files":        "◎",
+	"grep_files":        "◎",
+	"web_fetch":         "↧",
+	"download":          "↧",
+	"subagent":          "≫",
+	"parallel_subagent": "≫",
 }
 
 var toolStyles = map[string]lipgloss.Style{
@@ -29,7 +30,7 @@ var toolStyles = map[string]lipgloss.Style{
 	"✎": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	"✚": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	"↧": lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
-	"»": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
+	"≫": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
 }
 
 var toolANSI = map[string]string{
@@ -39,7 +40,7 @@ var toolANSI = map[string]string{
 	"✎": "35",
 	"✚": "35",
 	"↧": "36",
-	"»": "33",
+	"≫": "33",
 }
 
 // ToolKind categorizes a tool by its operation group for batching.
@@ -52,7 +53,7 @@ func ToolKind(name string) string {
 		return "write"
 	case "↧":
 		return "network"
-	case "»":
+	case "≫":
 		return "delegate"
 	default:
 		return "other"
@@ -69,7 +70,7 @@ func ToolKindGlyph(kind string) string {
 	case "network":
 		return "↧"
 	case "delegate":
-		return "»"
+		return "≫"
 	default:
 		return "•"
 	}

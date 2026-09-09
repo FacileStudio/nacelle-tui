@@ -26,7 +26,7 @@ func (m *Model) assembleView() tea.View {
 	above := m.aboveContent()
 	aboveHeight := lipgloss.Height(strings.Join(above, "\n"))
 	parts := append(above, m.prompt.View())
-	if below := m.viewMenu(); below != "" {
+	if below := m.belowContent(); below != "" {
 		parts = append(parts, "", below)
 	}
 	body := strings.Join(parts, "\n")
@@ -49,12 +49,26 @@ func (m *Model) aboveContent() []string {
 		above = append(above, "")
 	}
 	above = append(above, m.status())
-	if len(m.parallelTasks) > 0 {
-		above = append(above, m.parallelTasksView())
-		above = append(above, "")
-	}
 	above = append(above, strings.Join(m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Question), "\n"))
 	return above
+}
+
+// belowContent is everything rendered beneath the prompt: the running parallel
+// subagents and the slash-command suggestions. Both live here so they never
+// fight for the same rows, and so the menu's own blank-line separator applies
+// to the whole block rather than doubling between them.
+func (m *Model) belowContent() string {
+	var below []string
+	if len(m.parallelTasks) > 0 {
+		below = append(below, m.parallelTasksView())
+	}
+	if menu := m.viewMenu(); menu != "" {
+		below = append(below, menu)
+	}
+	if len(below) == 0 {
+		return ""
+	}
+	return strings.Join(below, "\n")
 }
 
 func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
