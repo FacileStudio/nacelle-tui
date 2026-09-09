@@ -1,6 +1,9 @@
 package tui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // The delivery loop skips a queued line it believes is being edited, so a
 // settle does not send half a rewrite. That skip must be released the moment
@@ -22,5 +25,26 @@ func TestASettleReleasesAStaleEditMarkOnTheQueue(t *testing.T) {
 	}
 	if !m.run.busy {
 		t.Error("deliver did not start a run for the released line")
+	}
+}
+
+// The related guard stops an unrelated message being swallowed as an edit, but
+// a message that IS related to a stale-marked queued line could still be held
+// while the agent is idle — and with no run coming there is no settle to drain
+// it, so it sits in the queue as "I typed and it did not send". Idle, the
+// queue holds nothing that will drain on its own, so ask must dispatch rather
+// than hold.
+func TestAskWhenIdleSendsEvenIfTheQueueLineLooksRelated(t *testing.T) {
+	m := sized()
+	m.agent = answering(t)
+	m.Add("make the header sticky")
+	m.hist.FromEnd = 1
+
+	m.prompt.SetValue("make the header sticky now")
+	cmd := m.ask()
+	defer m.run.cancel()
+
+	if printed := printedBy(cmd); !strings.Contains(printed, "make the header sticky now") {
+		t.Errorf("printed = %q, want the message dispatched, not held in the idle queue", printed)
 	}
 }
