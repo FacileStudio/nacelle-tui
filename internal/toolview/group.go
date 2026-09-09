@@ -40,7 +40,7 @@ func (g Group) GroupLine(width int) string {
 		return ToolLineSource(g.Name, g.Input, width, g.Tool.Source)
 	}
 
-	kind := ToolKind(g.Name)
+	kind := ToolKind(g.Name, g.Tool.Source)
 	glyph := g.GroupGlyph()
 	prefix := fmt.Sprintf("%s %d %ss", glyph, g.Count, kind)
 	if len(g.CallNames) > 0 {
@@ -66,7 +66,7 @@ func (g Group) GroupGlyph() string {
 		return "✗"
 	}
 	if g.Count > 1 {
-		return ToolKindGlyph(ToolKind(g.Name))
+		return ToolKindGlyph(ToolKind(g.Name, g.Tool.Source))
 	}
 	return ToolSourceGlyph(g.Name, g.Tool.Source)
 }

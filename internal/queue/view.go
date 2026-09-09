@@ -55,13 +55,15 @@ func (q *Queue) View(editing, width int, style lipgloss.Style) []string {
 	if len(shown) > MaxRows {
 		shown, hidden = shown[:MaxRows], len(shown)-MaxRows
 	}
-	w := max(width, 1)
+	// Prefix like the sent question does and bleed the background across the
+	// whole width, so a queued line reads as the reader's own, just waiting.
+	w := max(width-2, 0)
 	lines := make([]string, 0, q.Height(editing))
 	for _, text := range shown {
-		lines = append(lines, style.Render(layout.Truncate(layout.Unstyled(text), w)))
+		lines = append(lines, style.Width(width).Render("| "+layout.Truncate(layout.Unstyled(text), w)))
 	}
 	if hidden > 0 {
-		lines = append(lines, style.Render(layout.Truncate(fmt.Sprintf("and %d more", hidden), w)))
+		lines = append(lines, style.Width(width).Render("| "+layout.Truncate(fmt.Sprintf("and %d more", hidden), w)))
 	}
 	return lines
 }

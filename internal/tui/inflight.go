@@ -99,7 +99,7 @@ func (r *inflight) appendToLastGroup(ev nacelle.ToolEvent) bool {
 		return false
 	}
 	g := &r.groups[len(r.groups)-1]
-	if !g.End.IsZero() || toolview.ToolKind(ev.Name) != toolview.ToolKind(g.Tool.Name) {
+	if !g.End.IsZero() || toolview.ToolKind(ev.Name, ev.Source) != toolview.ToolKind(g.Tool.Name, g.Tool.Source) {
 		return false
 	}
 	g.Count++

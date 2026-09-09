@@ -71,7 +71,7 @@ func (m *Model) finished(tool *nacelle.ToolEvent) {
 	}
 
 	m.flushFailures()
-	m.say(fromTool, toolview.ColorGlyph(line, "32", toolview.ToolSourceRestore(tool.Name, tool.Source))+" · "+took(tool.Duration))
+	m.say(fromTool, toolview.ColorGlyph(line, toolview.ToolSourceColor(tool.Name, tool.Source, true), toolview.ToolSourceRestore(tool.Name, tool.Source))+" · "+took(tool.Duration))
 	m.finishEdit(tool.ID)
 }
 
@@ -84,7 +84,7 @@ func (m *Model) finishGroup(line string, tool *nacelle.ToolEvent) bool {
 	if g.Failed {
 		m.printGroupFailure(line, tool.Name, g.Errors, dur)
 	} else {
-		m.say(fromTool, toolview.ColorGlyph(line, "32", toolview.ToolSourceRestore(tool.Name, tool.Source))+" · "+dur)
+		m.say(fromTool, toolview.ColorGlyph(line, toolview.ToolSourceColor(tool.Name, tool.Source, true), toolview.ToolSourceRestore(tool.Name, tool.Source))+" · "+dur)
 	}
 	for _, id := range g.CallIDs {
 		m.finishEdit(id)
@@ -93,7 +93,7 @@ func (m *Model) finishGroup(line string, tool *nacelle.ToolEvent) bool {
 }
 
 func (m *Model) printGroupFailure(line, name string, errs []toolError, dur string) {
-	styled := toolview.ColorGlyph(line, "31", toolview.ToolSourceRestore(name, "")) + " · " + dur
+	styled := toolview.ColorGlyph(line, toolview.ToolSourceColor(name, "", false), toolview.ToolSourceRestore(name, "")) + " · " + dur
 	toolStr := m.paint(fromTool, styled)
 	m.session.Line(sessions.Speaker(fromTool), styled)
 	if len(errs) == 0 {
@@ -177,7 +177,7 @@ func (m *Model) flushFailures() {
 		return
 	}
 
-	toolStr := m.paint(fromTool, toolview.ColorGlyph(m.run.failures.toolLine, "31", toolview.ToolSourceRestore(m.run.failures.name, "")))
+	toolStr := m.paint(fromTool, toolview.ColorGlyph(m.run.failures.toolLine, toolview.ToolSourceColor(m.run.failures.name, "", false), toolview.ToolSourceRestore(m.run.failures.name, "")))
 	var errLine string
 	if m.run.failures.count == 1 {
 		errLine = fmt.Sprintf("%s failed after %s: %s", m.run.failures.name, took(m.run.failures.duration), m.run.failures.err)
@@ -186,7 +186,7 @@ func (m *Model) flushFailures() {
 	}
 	resultStr := m.paint(fromResult, errLine)
 	m.unprinted = append(m.unprinted, toolStr, resultStr)
-	m.session.Line(sessions.Speaker(fromTool), toolview.ColorGlyph(m.run.failures.toolLine, "31", toolview.ToolSourceRestore(m.run.failures.name, "")))
+	m.session.Line(sessions.Speaker(fromTool), toolview.ColorGlyph(m.run.failures.toolLine, toolview.ToolSourceColor(m.run.failures.name, "", false), toolview.ToolSourceRestore(m.run.failures.name, "")))
 	m.session.Line(sessions.Speaker(fromResult), errLine)
 	m.run.failures = failureCollapse{}
 }

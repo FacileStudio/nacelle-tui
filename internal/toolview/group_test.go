@@ -36,6 +36,22 @@ func TestGroupLineBatch(t *testing.T) {
 	}
 }
 
+func TestGroupLineBatchMCP(t *testing.T) {
+	g := Group{
+		Name:      "mycelium_memory_search",
+		Count:     3,
+		CallNames: []string{"a", "b", "c"},
+		Tool:      nacelle.ToolEvent{Source: nacelle.ToolSourceMCP},
+	}
+	line := g.GroupLine(80)
+	if !strings.Contains(line, "❋ 3 mcps") {
+		t.Errorf("GroupLine = %q, want '❋ 3 mcps'", line)
+	}
+	if glyph := g.GroupGlyph(); glyph != "❋" {
+		t.Errorf("GroupGlyph = %q, want ❋", glyph)
+	}
+}
+
 func TestGroupGlyphs(t *testing.T) {
 	g := Group{Name: "read_file", Count: 1}
 	if got := g.GroupGlyph(); got != "☰" {

@@ -3,27 +3,32 @@ package toolview
 import (
 	"strings"
 	"testing"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 func TestToolKind(t *testing.T) {
 	cases := []struct {
-		name string
-		want string
+		name   string
+		source nacelle.Source
+		want   string
 	}{
-		{"read_file", "read"},
-		{"search_files", "read"},
-		{"run_command", "write"},
-		{"edit_file", "write"},
-		{"write_file", "write"},
-		{"web_fetch", "network"},
-		{"subagent", "delegate"},
-		{"parallel_subagent", "delegate"},
-		{"unknown_custom_tool", "other"},
+		{"read_file", nacelle.ToolSourceLocal, "read"},
+		{"search_files", nacelle.ToolSourceLocal, "read"},
+		{"run_command", nacelle.ToolSourceLocal, "write"},
+		{"edit_file", nacelle.ToolSourceLocal, "write"},
+		{"write_file", nacelle.ToolSourceLocal, "write"},
+		{"web_fetch", nacelle.ToolSourceLocal, "network"},
+		{"subagent", nacelle.ToolSourceLocal, "delegate"},
+		{"parallel_subagent", nacelle.ToolSourceLocal, "delegate"},
+		{"unknown_custom_tool", nacelle.ToolSourceLocal, "other"},
+		{"some_mcp_tool", nacelle.ToolSourceMCP, "mcp"},
+		{"read_file", nacelle.ToolSourceMCP, "mcp"},
 	}
 
 	for _, tc := range cases {
-		if got := ToolKind(tc.name); got != tc.want {
-			t.Errorf("ToolKind(%q) = %q, want %q", tc.name, got, tc.want)
+		if got := ToolKind(tc.name, tc.source); got != tc.want {
+			t.Errorf("ToolKind(%q, %q) = %q, want %q", tc.name, tc.source, got, tc.want)
 		}
 	}
 }
@@ -37,6 +42,7 @@ func TestToolKindGlyph(t *testing.T) {
 		{"write", "$"},
 		{"network", "↧"},
 		{"delegate", "≫"},
+		{"mcp", "❋"},
 		{"other", "•"},
 	}
 

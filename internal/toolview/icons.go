@@ -6,6 +6,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/FacileStudio/nacelle"
+
 	"github.com/FacileStudio/nacelle-tui/internal/theme"
 )
 
@@ -31,6 +33,7 @@ var toolStyles = map[string]lipgloss.Style{
 	"✚": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	"↧": lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
 	"≫": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
+	"❋": lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
 }
 
 var toolANSI = map[string]string{
@@ -41,10 +44,14 @@ var toolANSI = map[string]string{
 	"✚": "35",
 	"↧": "36",
 	"≫": "33",
+	"❋": "208",
 }
 
 // ToolKind categorizes a tool by its operation group for batching.
-func ToolKind(name string) string {
+func ToolKind(name string, source nacelle.Source) string {
+	if source == nacelle.ToolSourceMCP {
+		return "mcp"
+	}
 	glyph := ToolGlyph(name)
 	switch glyph {
 	case "☰", "◎":
@@ -71,6 +78,8 @@ func ToolKindGlyph(kind string) string {
 		return "↧"
 	case "delegate":
 		return "≫"
+	case "mcp":
+		return "❋"
 	default:
 		return "•"
 	}
