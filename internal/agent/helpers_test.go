@@ -18,10 +18,6 @@ func asSettled(c Config) Config {
 		off := false
 		c.Bash = &off
 	}
-	if c.Search == nil {
-		none := ""
-		c.Search = &none
-	}
 	if c.Fetch == nil {
 		on := true
 		c.Fetch = &on
@@ -69,10 +65,6 @@ func writeSkill(t *testing.T, dir, frontmatterBody string) {
 
 func resolveSettings(flags Config) (Config, error) {
 	return settings.Settings(DefaultSystemPrompt(), flags)
-}
-
-func ptr(s string) *string {
-	return &s
 }
 
 func testBanner(backend nacelle.Backend, config settings.Config, found loaded, mcp connected) string {

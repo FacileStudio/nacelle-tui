@@ -46,10 +46,9 @@ type connected struct {
 // rather than as a server that is down. client.Connect refuses to degrade to
 // the servers that did come up for the same reason, one level further in.
 //
-// Both errors go back unwrapped, the call webTools makes about WebSearch and
-// for the same reason: each already begins with nacelle/mcp/client and names
-// the file or the server it is about, so a "connecting to the MCP servers" in
-// front of it says nothing the reader has not just read.
+// Both errors go back unwrapped: each already begins with nacelle/mcp/client
+// and names the file or the server it is about, so a "connecting to the MCP
+// servers" in front of it says nothing the reader has not just read.
 //
 // context.Background is deliberate rather than lazy. Connect bounds its own
 // handshake per server, and the sessions have to outlive this call by the

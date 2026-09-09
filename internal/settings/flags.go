@@ -37,8 +37,7 @@ type reasoningFlags struct {
 }
 
 type webFlags struct {
-	search *string
-	fetch  *bool
+	fetch *bool
 }
 
 type sourceFlags struct {
@@ -65,8 +64,7 @@ func declareFlags(fallback Config) declared {
 			budget:   flag.Int64("reasoning-budget", *fallback.Budget, "tokens one turn may spend on reasoning; 0 sets no ceiling"),
 		},
 		webFlags: webFlags{
-			search: flag.String("search", *fallback.Search, "base URL of a SearXNG instance to search the web through; empty means no web search"),
-			fetch:  flag.Bool("fetch", *fallback.Fetch, "let the model read a web page by URL; on by default"),
+			fetch: flag.Bool("fetch", *fallback.Fetch, "let the model read a web page by URL; on by default"),
 		},
 		togglesFlags: declareToggles(fallback),
 		iterations:   flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
@@ -83,7 +81,7 @@ func declareFlags(fallback Config) declared {
 func declareToggles(fallback Config) togglesFlags {
 	return togglesFlags{
 		bash:         flag.Bool("bash", *fallback.Bash, "let the model run commands"),
-		subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a subagent tool that delegates a self-contained task to a fresh nested run; off by default"),
+		subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a parallel delegate tool that fans independent tasks out to concurrent nested runs; off by default"),
 		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
 		diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
 		tasks:        flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),
@@ -108,7 +106,6 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"root":             func(c *Config) { c.Root = *f.root },
 		"system":           func(c *Config) { c.System = *f.system },
 		"continue":         func(c *Config) { c.Continue = f.contFlag },
-		"search":           func(c *Config) { c.Search = f.search },
 		"fetch":            func(c *Config) { c.Fetch = f.fetch },
 		"bash":             func(c *Config) { c.Bash = f.bash },
 		"subagents":        func(c *Config) { c.Subagents = f.subagents },

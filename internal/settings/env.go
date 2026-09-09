@@ -45,8 +45,7 @@ func FromEnv() Config {
 			Budget:   envInt64(EnvPrefix + "REASONING_BUDGET"),
 		},
 		Web: Web{
-			Search: envString(EnvPrefix + "SEARCH"),
-			Fetch:  envBool(EnvPrefix + "FETCH"),
+			Fetch: envBool(EnvPrefix + "FETCH"),
 		},
 		Discovery: Discovery{
 			ProjectContext: envBool(EnvPrefix + "PROJECT_CONTEXT"),
@@ -68,16 +67,6 @@ func envBool(name string) *bool {
 		return nil
 	}
 	return &value
-}
-
-// envString reads a setting whose empty value means something, returning nil
-// only when the variable is genuinely absent.
-func envString(name string) *string {
-	raw, ok := os.LookupEnv(name)
-	if !ok {
-		return nil
-	}
-	return &raw
 }
 
 // envInt reads a count, with the same treatment of an unreadable value.

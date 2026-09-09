@@ -14,13 +14,13 @@ profiles and panes are what a product grows, not what a contract test needs.
 - Streams one model turn at a time in a full-screen Bubble Tea v2 interface
 - Runs against any backend the SDK ships: `anthropic`, `google`, `openai`, or `openrouter`
 - Lets the model read and edit files under a root you choose, run commands when
-  `-bash` is on, search and fetch the web, and call MCP server tools from files
+  `-bash` is on, fetch web pages, and call MCP server tools from files
   every other client already has (`-mcp ~/.claude/.mcp.json`)
 - Lets the model lay a large job out as steps and keep them current while it
   works, drawn live above the prompt and scrolled to the step in flight
-- Delegates a self-contained side task to a nested run with `-subagents`, so a
-  wide search or a log dump costs the conversation one answer instead of its
-  whole output
+- Fans independent side tasks out to concurrent nested runs with `-subagents`,
+  so a wide search or a log dump costs the conversation one answer instead of
+  its whole output
 - Discovers project context (CLAUDE.md, AGENTS.md) and skills into the system
   prompt, each behind its own flag
 - Gates tool calls behind an approval prompt with `-approve-tools`, and trusts
@@ -80,13 +80,13 @@ environment variables, then flags. The useful ones:
 | `-continue` | — | auto-resume the newest session for the current project |
 | `-tasks` | `NACELLE_TASKS` | task planning tool (on by default) |
 | `-approve-tools` | `NACELLE_APPROVE_TOOLS` | ask before every tool call runs |
-| `-subagents` | `NACELLE_SUBAGENTS` | give the model a delegate with its own context window (off by default) |
+| `-subagents` | `NACELLE_SUBAGENTS` | give the model the parallel delegate tool (off by default) |
 | `-max-iterations` | `NACELLE_MAX_ITERATIONS` | how many times the model may be asked |
 | `-mcp` | — | MCP servers file (repeatable) |
 | `-skill-dir` | `NACELLE_SKILL_DIRS` | extra skills directory (repeatable) |
 
 `nacelle -version` prints exactly `nacelle <semver>`. See `-h` for the full set:
-reasoning effort and budget, web search/fetch, project-context and skill
+reasoning effort and budget, web fetch, project-context and skill
 discovery, hooks trust.
 
 Full settings reference: [docs/configuration.md](docs/configuration.md).

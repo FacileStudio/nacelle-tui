@@ -69,9 +69,9 @@ type Config struct {
 
 // Toggles is the on/off settings: whether the model may run commands, whether
 // the client will prompt for approval before a tool call runs, whether to show
-// a diff when a file is changed, whether the model gets a subagent tool, and
-// whether the model is confined to the working directory. Every toggle is a
-// pointer so "not in this file" can be told from "false".
+// a diff when a file is changed, whether the model gets the parallel delegate
+// tool, and whether the model is confined to the working directory. Every
+// toggle is a pointer so "not in this file" can be told from "false".
 type Toggles struct {
 	Bash              *bool `yaml:"bash"`
 	Subagents         *bool `yaml:"subagents"`
@@ -110,10 +110,9 @@ type Reasoning struct {
 	Budget   *int64 `yaml:"reasoning_budget"`
 }
 
-// Web holds the two network settings.
+// Web holds the fetch setting, the one network tool that stays mounted.
 type Web struct {
-	Search *string `yaml:"search"`
-	Fetch  *bool   `yaml:"fetch"`
+	Fetch *bool `yaml:"fetch"`
 }
 
 // Discovery holds the three settings that decide what this session folds into
@@ -163,11 +162,11 @@ func Defaults(system string) Config {
 	subagents := true
 	iterations, budget := 5, int64(0)
 	compactAt := int64(75000)
-	search, fetch := "https://furet.facile.studio", true
+	fetch := true
 	groupTools, showThinking := true, true
 	cont := false
 	return Config{
-		Web:       Web{Search: &search, Fetch: &fetch},
+		Web:       Web{Fetch: &fetch},
 		Provider:  Provider{Backend: "anthropic"},
 		Root:      ".",
 		System:    system,

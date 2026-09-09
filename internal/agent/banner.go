@@ -26,15 +26,9 @@ import (
 // each is a real "is that actually on" question this client had no way to
 // answer before without a debug build.
 //
-// Each web setting is named in the direction that would otherwise surprise:
-// search when it is on, because it had to be configured and confirming that
-// is the point; fetch when it is off, because it is on by default and a model
-// that cannot read a page it just found needs the reason on screen.
-//
-// Search is named only when it is on. Being off has no symptom — nothing is
-// offered, so nothing goes wrong and there is nothing to explain — and naming
-// it every launch would be a permanent line about something most people
-// running this have not configured and did not ask about.
+// The one web setting is named in the direction that would otherwise surprise:
+// fetch when it is off, because it is on by default and a model that cannot
+// read a page it just found needs the reason on screen.
 //
 // Root is resolved to an absolute path rather than echoed as typed, because
 // "-root ." reads the same from any directory nacelle happens to be
@@ -49,9 +43,9 @@ import (
 // where the model's own capabilities are listed is the shortest path from
 // that answer back to the switch that causes it.
 //
-// MCP earns its words only when a server was configured, for the reason
-// search does: a launch with none is the ordinary launch, nothing is offered,
-// and there is no symptom to explain. When there is one, both counts are named
+// MCP earns its words only when a server was configured: a launch with none is
+// the ordinary launch, nothing is offered, and there is no symptom to explain.
+// When there is one, both counts are named
 // rather than only the servers — a server that starts and offers nothing is
 // the one failure this client cannot otherwise show, since it is an error
 // nowhere and its only trace is a model that never reaches for the tool.
@@ -74,9 +68,6 @@ func banner(backend nacelle.Backend, config settings.Config, found loaded, mcp c
 
 	if mcp.servers > 0 {
 		line += " · " + countedNoun(mcp.servers, "MCP server") + ", " + countedNoun(mcp.tools, "tool")
-	}
-	if *config.Search != "" {
-		line += " · search on"
 	}
 	if !*config.Fetch {
 		line += " · fetch off"

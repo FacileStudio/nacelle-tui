@@ -93,9 +93,9 @@ could tell apart.
 | Layer | Source | Notes |
 |---|---|---|
 | Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
-| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_SEARCH`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
+| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 0` (no cap), `compact_at: 100000` (absolute tokens), `search: ""` (no web search), `fetch: true`, `tasks: true` |
+| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 0` (no cap), `compact_at: 100000` (absolute tokens), `fetch: true`, `tasks: true` |
 
 `project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
 there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
@@ -133,7 +133,6 @@ mcp:
 approve_tools: false
 diffs: true
 max_iterations: 0
-search: https://searx.example
 fetch: true
 tasks: true
 ```
@@ -286,45 +285,10 @@ command. That is true and deliberate — `run_command` is unconfined, so it stay
 nothing connected that answer back to a `bash: false` written once in `~/.nacelle.yml` and
 forgotten. Turn it on with `-bash`, `NACELLE_BASH=1`, or `bash: true`.
 
-## Web search
-
-`search:` (`NACELLE_SEARCH`, `-search`) is the base URL of a [SearXNG](https://docs.searxng.org)
-instance to search the web through. **Empty by default, and there is no instance this client
-could pick on your behalf** — nacelle is public, so any default would send your queries to
-somebody else's machine and leave them in that operator's logs. Empty means the tool is not
-mounted at all: the model is never told search exists, and nothing fails.
-
-It is a URL rather than a toggle plus a URL, so two settings cannot disagree about whether
-search is on. The banner says `search on` when one is set, and says nothing when none is —
-unlike `bash off`, which is named either way, because search being off has no symptom to
-explain.
-
-```yaml
-search: https://searx.example
-```
-
-Passing `-search ""` (or `NACELLE_SEARCH=`) turns search off for one run without editing the
-file, which is why this setting is a pointer internally while the other strings are not: for
-everything else empty means "not mentioned", and here it means "not this run".
-
-An endpoint that could never work — no scheme, no host — stops the client at startup rather
-than quietly leaving the tool unmounted, because search silently missing looks exactly like a
-model that decided not to search, and nothing on screen would connect that to a typo here.
-
-Three failures are named rather than left to read as an outage: an instance answering HTML
-means `json` is missing from `search.formats` in its `settings.yml` (off by default in
-SearXNG); a 403 is usually its limiter; a 404 usually means this was set to the `/search` page
-copied from a browser rather than the instance's base URL.
-
-Why an instance you host rather than the backends' own search: both have it, and neither is
-free — $10 per 1,000 searches on Anthropic, no free tier on OpenRouter. A local tool also works
-identically on both backends, where server-side search would be wired, and billed, per backend.
-
 ## Reading a page
 
 `fetch:` (`NACELLE_FETCH`, `-fetch`) lets the model read one web page by URL. **On by default**,
-unlike bash and unlike search, and it is what makes a search result more than a sentence — search
-answers with a title and two lines, and this reads the page behind them.
+unlike bash, and it is what turns a page's URL into text the model can act on.
 
 It is on by default because it cannot change anything and cannot reach anything but the public
 internet: loopback, private ranges, the cloud metadata endpoint and the special-use ranges are

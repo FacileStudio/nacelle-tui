@@ -15,9 +15,6 @@ func (c *Config) merge(over Config) {
 	if over.Budget != nil {
 		c.Budget = over.Budget
 	}
-	if over.Search != nil {
-		c.Search = over.Search
-	}
 	if over.Fetch != nil {
 		c.Fetch = over.Fetch
 	}

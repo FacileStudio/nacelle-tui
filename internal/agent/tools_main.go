@@ -12,9 +12,6 @@ import (
 // localTools opens the file/search/command tools and, when asked, adds the
 // web ones — the caller owns closing the returned Set.
 //
-// The two internet tools are built together in webTools, which is also where
-// the reason WebSearch's error goes back unwrapped is written down.
-//
 // Every failure after tools.New succeeds closes the Set on the way out.
 // Without that it is dropped on the floor: the caller's own defer only ever
 // sees the nil this returns on an error, so the *os.Root behind it — a real
@@ -53,7 +50,7 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 
 // withTasks mounts the plan tool when the settings ask for one. It is
 // deliberately not part of the set localTools builds. The SDK gives a nested
-// run the parent's tools minus only the subagent tool itself, so anything
+// run the parent's tools minus only the delegate tool itself, so anything
 // localTools returns is inherited by a delegate whether that makes sense or
 // not. The plan is drawn above the prompt on the one screen there is; a
 // delegate calling this would replace what the parent wrote, and nothing

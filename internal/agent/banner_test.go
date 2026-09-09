@@ -76,15 +76,3 @@ func TestAugmentSystemCountsContextFilesAndSkills(t *testing.T) {
 		t.Errorf("skills = %+v, want the one skill under -skill-dir", found.skills)
 	}
 }
-
-func TestTheBannerNamesSearchOnlyWhenAnInstanceIsSet(t *testing.T) {
-	without := testBanner(&answeringStub{}, asSettled(Config{Root: "."}), loaded{}, connected{})
-	if strings.Contains(without, "search on") {
-		t.Errorf("banner = %q, want no mention of search when none is configured", without)
-	}
-
-	with := testBanner(&answeringStub{}, asSettled(Config{Root: ".", Web: Web{Search: ptr("https://furet.example")}}), loaded{}, connected{})
-	if !strings.Contains(with, "search on") {
-		t.Errorf("banner = %q, want it to confirm search is on", with)
-	}
-}
