@@ -267,4 +267,28 @@ func TestWidgetLinesAreSeparatedByBlankRows(t *testing.T) {
 	if gap := said[boundaryAt:toolAt]; strings.Count(gap, "\n") < 2 {
 		t.Errorf("said = %q, want a blank row between the turn boundary and the tool line", said)
 	}
+	if before := said[:boundaryAt]; strings.Count(before, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the answer and the turn boundary", said)
+	}
+}
+
+// A turn boundary closes the answer it streamed under, so it must be held apart
+// from that answer by a blank row — not just from the tool line that follows. A
+// single answer line and a boundary gluing straight to it reads as the timing
+// being part of the answer, which is what the user reported ("11.159s · 318k
+// tokens · $0.0028" sitting under "Code committed.").
+func TestTurnBoundaryIsSeparatedFromTheAnswerAboveIt(t *testing.T) {
+	m := sized()
+	m.run.answer.WriteString("Code committed")
+	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 10}})
+
+	said := visible(strings.Join(m.unprinted, "\n"))
+	boundaryAt := strings.Index(said, "10 tokens")
+	answerAt := strings.Index(said, "Code committed")
+	if boundaryAt < 0 || answerAt < 0 || answerAt >= boundaryAt {
+		t.Fatalf("said = %q, want the answer before the boundary", said)
+	}
+	if gap := said[answerAt:boundaryAt]; strings.Count(gap, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the answer and the turn boundary", said)
+	}
 }

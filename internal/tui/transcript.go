@@ -66,11 +66,29 @@ const (
 func (m *Model) say(who speaker, text string) {
 	painted := m.paint(who, text)
 	switch who {
-	case fromThinking, fromTool, fromResult, fromTurn:
+	case fromThinking, fromTool, fromResult:
+		painted += "\n"
+	case fromTurn:
+		if !strings.HasSuffix(m.lastSaid(), "\n") {
+			painted = "\n" + painted
+		}
 		painted += "\n"
 	}
 	m.unprinted = append(m.unprinted, painted)
 	m.session.Line(sessions.Speaker(who), text)
+}
+
+// lastSaid is the last line already committed to the scrollback queue, or the
+// empty string when nothing has been said yet. The turn boundary closes the
+// answer it streamed under, so it gets a leading blank row to keep it apart
+// from that answer — unless the line above already ends in a newline (a
+// multi-line answer, or a preceding widget line), in which case the join's own
+// newline already supplies the blank.
+func (m *Model) lastSaid() string {
+	if len(m.unprinted) == 0 {
+		return ""
+	}
+	return m.unprinted[len(m.unprinted)-1]
 }
 
 // prints hands everything said since the last message to the terminal, as a
