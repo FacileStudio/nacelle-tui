@@ -6,6 +6,29 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-09-09
+### Added
+- **Parallel subagent UI**: display running parallel_subagent tasks with status and results in the TUI
+- **Strict confinement mode**: new `strict_confinement` toggle controls whether file tools are confined to the working directory
+- **Default system prompt**: built-in harness prompt describing available tools and safety rules
+- **Pipe-prefixed reader questions**: user questions now render with a bold `|` prefix for better readability
+
+### Changed
+- **Dependency bump**: upgraded `github.com/FacileStudio/nacelle` to `v0.12.0`
+- **Subagents enabled by default**: parallel delegation is now on out of the box
+- **Default search endpoint**: set to `https://furet.facile.studio`
+- **Default iterations**: increased from 0 to 5
+- **Default compact threshold**: lowered from 100KB to 75KB
+- **Default bash mode**: enabled by default
+- **Default thinking mode**: enabled by default
+- **Cleaner transcript spacing**: removed extra blank lines between transcript entries
+
+### Fixed
+- **Tool result spacing**: fixed double blank lines between grouped tool results and failure lines
+- **Skill directory walking**: fixed error handling in skill discovery to properly surface filesystem errors
+- **Headless cleanup**: improved error handling during agent shutdown in headless mode
+- **Test assertions**: updated tests to match new default behaviors
+
 ## [0.23.3] - 2026-09-08
 ### Added
 - **Paste sanitization**: added sanitizePaste function to strip terminal control sequences, normalize line endings, and remove bracketed-paste wrappers from pasted text, preventing `[106;5u` and similar artifacts.
