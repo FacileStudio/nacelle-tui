@@ -8,7 +8,7 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/agent"
 )
 
-var version = "v0.27.0"
+var version = "v0.28.0"
 
 func main() {
 	if err := agent.Run(version); err != nil {

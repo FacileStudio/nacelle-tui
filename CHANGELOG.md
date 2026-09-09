@@ -4,13 +4,16 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.28.0] - 2026-09-10
 
 ### Changed
 - **Parallel is the only delegate**: `-subagents` / `subagents:` / `NACELLE_SUBAGENTS` now mount `parallel_subagent` alone — independent tasks fan out to concurrent nested runs, and a one-item task list is the smallest parallel call. The single `subagent` tool is no longer wired in.
 
 ### Removed
 - **Web search**: the `web_search` tool is gone. The `-search` flag, `NACELLE_SEARCH`, and the `search:` config key no longer exist, and the banner no longer reports `search on`. Delete any `search:` line from `~/.nacelle.yml` — with `KnownFields(true)` a leftover key refuses the client at startup. `web_fetch` (and `fetch:` / `-fetch` / `NACELLE_FETCH`) is unchanged.
+
+### Fixed
+- **Turn boundary held apart from the answer it closes**: the muted timing line (`11.159s · 318k tokens · $0.0028`) no longer glues straight under a single-line answer. A blank row now separates a turn boundary from the answer above it, matching the spacing it already had from the tool line below.
 
 ## [0.27.0] - 2026-09-09
 
