@@ -117,14 +117,19 @@ func (m *Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // route is Update's own body, split out so draining the print queue is one seam.
+// It is a tagged-union dispatcher: every message type hands off to its one
+// owner and returns. The only arms that carry statements are the ones with
+// real logic — a key the command palette did not consume, a palette switch,
+// and the compaction-done branch; the rest are one-line forwards, and anything
+// the switch does not match falls through to promptRoute. The frame is long
+// because the dispatch is wide (13 arms plus the catch-all), not because any
+// arm does much.
 func (m *Model) route(message tea.Msg) tea.Cmd {
 	switch message := message.(type) {
 	case tea.WindowSizeMsg:
 		return m.resize(message)
 	case tea.KeyPressMsg:
-		if handled, cmd := m.key(message); handled {
-			return cmd
-		}
+		return m.keyOrPrompt(message)
 	case tea.BackgroundColorMsg:
 		m.theme = theme.Themed(message.IsDark())
 		m.restyle()
@@ -145,12 +150,7 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 	case compactOutcome:
 		return m.settleCompaction(message)
 	case compactFinished:
-		m.compacting = false
-		m.run.compactChan = nil
-		if m.run.busy && m.agent != nil {
-			return m.startRun(m.run.bgCtx)
-		}
-		return nil
+		return m.finishCompaction()
 	case tea.PasteMsg:
 		return m.handlePaste(message)
 	case tea.KeyboardEnhancementsMsg:
@@ -158,6 +158,28 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 	}
 
 	return m.promptRoute(message)
+}
+
+// keyOrPrompt routes a handled key to the command palette, and sends one that
+// was not consumed there on to the prompt — the route fall-through, folded into
+// a call so the dispatcher stays one line per arm.
+func (m *Model) keyOrPrompt(press tea.KeyPressMsg) tea.Cmd {
+	if handled, cmd := m.key(press); handled {
+		return cmd
+	}
+	return m.promptRoute(press)
+}
+
+// finishCompaction closes out a finished pass: the run that was holding the
+// channel collapses, and the pending run resumes now that the context is free.
+// Nothing queued means nothing waited on the pass, so there is no run to start.
+func (m *Model) finishCompaction() tea.Cmd {
+	m.compacting = false
+	m.run.compactChan = nil
+	if m.run.busy && m.agent != nil {
+		return m.startRun(m.run.bgCtx)
+	}
+	return nil
 }
 
 // promptRoute forwards unhandled messages to the prompt and refreshes the dropdown.
@@ -173,38 +195,4 @@ func (m *Model) handlePaste(msg tea.PasteMsg) tea.Cmd {
 	msg.Content = strings.ReplaceAll(msg.Content, "\r\n", "\n")
 	msg.Content = strings.ReplaceAll(msg.Content, "\r", "\n")
 	return m.promptRoute(msg)
-}
-
-// parallelTasksView returns a view of the parallel subagent tasks.
-func (m *Model) parallelTasksView() string {
-	if len(m.parallelTasks) == 0 {
-		return ""
-	}
-	spend := m.parallelSpend()
-	var lines []string
-	for _, tasks := range m.parallelTasks {
-		lines = append(lines, callLines(tasks, max(m.width, 1), spend)...)
-	}
-	return strings.Join(lines, "\n")
-}
-
-// parallelSpend is the run's combined token burn, in the same ↑in ↓out shape
-// the status footer uses, with a cost when the backend reported one. Every
-// nested agent reports its spend through DelegateUsage, so this covers the
-// whole fan-out rather than just the parent's own turns.
-func (m *Model) parallelSpend() string {
-	total := m.spent.Add(m.run.usage)
-	parts := []string{
-		"↑" + status.ShortTokens(total.InputTokens+total.CacheCreationTokens),
-		"↓" + status.ShortTokens(total.OutputTokens),
-	}
-	if total.Cost > 0 {
-		parts = append(parts, fmt.Sprintf("$%.4f", total.Cost))
-	}
-	return strings.Join(parts, " ")
-}
-
-// parallelTasksRows returns the number of parallel task rows for layout.
-func (m *Model) parallelTasksRows() int {
-	return parallelTaskRows(m.parallelTasks)
 }
