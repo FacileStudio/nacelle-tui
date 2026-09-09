@@ -90,7 +90,7 @@ func TestQueueView(t *testing.T) {
 	q.Add("first question")
 	lines := q.View(-1, 80, style)
 	if len(lines) != 1 || !strings.Contains(lines[0], "first question") {
-		t.Errorf("lines = %v, want [queued · first question]", lines)
+		t.Errorf("lines = %v, want [first question]", lines)
 	}
 }
 

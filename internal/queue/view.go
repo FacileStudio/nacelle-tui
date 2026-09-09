@@ -58,10 +58,10 @@ func (q *Queue) View(editing, width int, style lipgloss.Style) []string {
 	w := max(width, 1)
 	lines := make([]string, 0, q.Height(editing))
 	for _, text := range shown {
-		lines = append(lines, style.Render(layout.Truncate("queued · "+layout.Unstyled(text), w)))
+		lines = append(lines, style.Render(layout.Truncate(layout.Unstyled(text), w)))
 	}
 	if hidden > 0 {
-		lines = append(lines, style.Render(layout.Truncate(fmt.Sprintf("queued · and %d more", hidden), w)))
+		lines = append(lines, style.Render(layout.Truncate(fmt.Sprintf("and %d more", hidden), w)))
 	}
 	return lines
 }

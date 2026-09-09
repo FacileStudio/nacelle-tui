@@ -35,7 +35,6 @@ type UIStyles struct {
 	Waiting    lipgloss.Style
 	Ready      lipgloss.Style
 	Muted      lipgloss.Style
-	Queued     lipgloss.Style
 	Compacting lipgloss.Style
 }
 
@@ -46,7 +45,7 @@ type Palette struct {
 	Markdown string
 }
 
-func transcriptStylesFor(quiet, faint, faintFg color.Color) TranscriptStyles {
+func transcriptStylesFor(quiet color.Color) TranscriptStyles {
 	question := lipgloss.NewStyle().Background(lipgloss.Color("236")).Foreground(lipgloss.Color("15")).Bold(true)
 	return TranscriptStyles{
 		Question: question,
@@ -59,7 +58,7 @@ func transcriptStylesFor(quiet, faint, faintFg color.Color) TranscriptStyles {
 	}
 }
 
-func uiStylesFor(pick func(a, b color.Color) color.Color, quiet, faint, faintFg color.Color) UIStyles {
+func uiStylesFor(pick func(a, b color.Color) color.Color, quiet color.Color) UIStyles {
 	return UIStyles{
 		Menu: lipgloss.NewStyle().
 			Background(pick(lipgloss.Color("7"), lipgloss.Color("8"))).
@@ -67,7 +66,6 @@ func uiStylesFor(pick func(a, b color.Color) color.Color, quiet, faint, faintFg 
 		Plain:      lipgloss.NewStyle(),
 		Waiting:    lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
 		Ready:      lipgloss.NewStyle().Foreground(lipgloss.Color("2")),
-		Queued:     lipgloss.NewStyle().Background(faint).Foreground(faintFg),
 		Muted:      lipgloss.NewStyle().Foreground(quiet),
 		Compacting: lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	}
@@ -77,8 +75,6 @@ func uiStylesFor(pick func(a, b color.Color) color.Color, quiet, faint, faintFg 
 func Themed(dark bool) Palette {
 	pick := lipgloss.LightDark(dark)
 	quiet := pick(lipgloss.Color("242"), lipgloss.Color("244"))
-	faint := pick(lipgloss.Color("236"), lipgloss.Color("253"))
-	faintFg := pick(lipgloss.Color("15"), lipgloss.Color("0"))
 
 	style := "light"
 	if dark {
@@ -86,8 +82,8 @@ func Themed(dark bool) Palette {
 	}
 
 	return Palette{
-		TranscriptStyles: transcriptStylesFor(quiet, faint, faintFg),
-		UIStyles:         uiStylesFor(pick, quiet, faint, faintFg),
+		TranscriptStyles: transcriptStylesFor(quiet),
+		UIStyles:         uiStylesFor(pick, quiet),
 		Markdown:         style,
 	}
 }

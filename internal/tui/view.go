@@ -50,7 +50,7 @@ func (m *Model) aboveContent() []string {
 		above = append(above, m.parallelTasksView())
 		above = append(above, "")
 	}
-	above = append(above, strings.Join(m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Queued), "\n"))
+	above = append(above, strings.Join(m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Question), "\n"))
 	menuView := menu.View(&m.menu, max(m.width, 1), m.theme.Plain, m.theme.Menu, m.theme.Command)
 	if menuView != "" {
 		above = append(above, "", menuView)
