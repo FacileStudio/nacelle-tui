@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.26.2] - 2026-09-09
+
+### Fixed
+- **Thinking line stays above the answer it reasoned for**: the collapsed `▶ thought for Xs` line (or, expanded, the last reasoning line) no longer slides under the answer's already-printed paragraphs. The 0.26.1 fix reordered the turn-close flush, which only moved the *final* line of the answer. Because every completed paragraph is committed to the terminal's scrollback the moment it streams, the line is now introduced at the moment the model switches from reasoning to output — the first answer token or tool call — so it is always printed above the answer rather than after it. The reasoning text is still fully retained for `ctrl+t` expansion.
+
 ## [0.26.1] - 2026-09-09
 
 ### Fixed
