@@ -63,20 +63,45 @@ func (m *Model) flushThinking() {
 	reasoning := m.run.reasoning.String()
 	m.run.reasoning.Reset()
 
+	spent := m.Elapsed()
 	if reasoning != "" || m.run.reasoningFull.Len() > 0 {
-		spent := m.Elapsed()
 		m.Begun, m.Ended = time.Time{}, time.Time{}
 		m.Retained = m.run.reasoningFull.String() + reasoning
 		m.run.reasoningFull.Reset()
+	}
 
+	if reasoning != "" {
 		if m.Expanded {
-			if reasoning != "" {
-				m.say(fromThinking, reasoning)
-			}
+			m.say(fromThinking, reasoning)
 		} else {
 			m.say(fromThinking, m.Collapsed(spent))
 		}
 	}
+}
+
+// introduceReasoning commits pending reasoning to the scrollback, above the
+// output about to stream below it. The scrollback is append-only: once the
+// answer's paragraphs are printed under it, the line can never move back up, so
+// it has to go in before the first paragraph does. That is the whole bug it
+// exists for — turn() deferred the line to the end of the turn, by which point
+// every completed answer paragraph had already been printed beneath it.
+//
+// It only introduces reasoning that was not already shown. The text is moved
+// into reasoningFull so flushThinking at the end of the turn still folds it
+// into Retained, and the reasoning buffer is cleared so streaming() and the
+// end-of-turn flush do not draw it a second time.
+func (m *Model) introduceReasoning() {
+	if m.run.reasoning.Len() == 0 {
+		return
+	}
+	if m.Expanded {
+		m.say(fromThinking, m.run.reasoning.String())
+	} else {
+		m.say(fromThinking, m.Collapsed(m.Elapsed()))
+	}
+	m.run.reasoningFull.WriteString(m.run.reasoning.String())
+	m.run.reasoningFull.WriteString("\n")
+	m.run.reasoning.Reset()
 }
 
 func (m *Model) flush() string {

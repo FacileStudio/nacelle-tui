@@ -63,6 +63,7 @@ func (m *Model) absorb(event nacelle.Event) {
 	switch event.Kind {
 	case nacelle.KindText:
 		m.Thought()
+		m.introduceReasoning()
 		m.run.reported = m.run.reported || event.Text != ""
 		m.run.answer.WriteString(event.Text)
 		m.run.fullAnswer.WriteString(event.Text)
@@ -90,6 +91,7 @@ func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 	if tool.Name == "parallel_subagent" {
 		m.handleParallelCall(tool)
 	}
+	m.introduceReasoning()
 	m.commitParagraphs()
 	m.Thought()
 	m.run.reported = true

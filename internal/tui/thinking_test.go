@@ -79,20 +79,51 @@ func TestATurnPrintsThinkingAboveTheAnswer(t *testing.T) {
 	}
 }
 
-// Expanded is the same ordering, sharpened: the last reasoning line that was
-// still streaming when the turn ended must not slide under the answer either.
-func TestATurnPrintsTheLastReasoningLineAboveTheAnswerWhenExpanded(t *testing.T) {
-	m := thought("the last line of reasoning", 1200*time.Millisecond)
-	m.Expanded = true
-	m.run.answer.WriteString("the answer")
-
+// The case the endpoint test above cannot cover: a real answer streams into
+// the scrollback paragraph by paragraph as it arrives, and each completed
+// paragraph is printed before the turn ends. A thinking line deferred to turn()
+// therefore lands *under* all of it — the paragraphs were already handed to the
+// terminal. It has to be introduced the moment the answer starts, not at the
+// end, or it is permanently stuck below the text it preceded. That is the bug
+// the simple fixture above cannot see, because it keeps the whole answer in
+// the buffer until turn().
+func TestStreamedAnswerDoesNotPushTheThinkingLineBelowIt(t *testing.T) {
+	m := sized()
+	m.Begun = time.Now().Add(-1200 * time.Millisecond)
+	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "the reasoning"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "first paragraph\n"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "second paragraph\n"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "the tail"})
 	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 100, OutputTokens: 50}})
 
 	said := strings.Join(spoken(m), "\n")
-	answerAt := strings.Index(said, "the answer")
+	answerAt := strings.Index(said, "first paragraph")
+	thinkAt := strings.Index(said, "▶ thought for 1.2s")
+	if answerAt < 0 || thinkAt < 0 {
+		t.Fatalf("said = %q, want the thought line and the streamed answer", said)
+	}
+	if thinkAt >= answerAt {
+		t.Errorf("said = %q, want the thinking line above the answer it reasoned for", said)
+	}
+}
+
+// Expanded is the same ordering, sharpened: the last reasoning line that was
+// still streaming when the answer arrived must not slide under the answer's
+// already-committed paragraphs either.
+func TestAnswerDoesNotPushTheLastReasoningLineBelowItWhenExpanded(t *testing.T) {
+	m := sized()
+	m.Expanded = true
+	m.Begun = time.Now().Add(-1200 * time.Millisecond)
+	m.absorb(nacelle.Event{Kind: nacelle.KindThinking, Text: "the last line of reasoning"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "first paragraph\n"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: "the tail"})
+	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 100, OutputTokens: 50}})
+
+	said := strings.Join(spoken(m), "\n")
+	answerAt := strings.Index(said, "first paragraph")
 	thinkAt := strings.Index(said, "the last line of reasoning")
 	if answerAt < 0 || thinkAt < 0 {
-		t.Fatalf("said = %q, want both the reasoning line and the answer", said)
+		t.Fatalf("said = %q, want the reasoning line and the streamed answer", said)
 	}
 	if thinkAt >= answerAt {
 		t.Errorf("said = %q, want the reasoning line above the answer", said)
