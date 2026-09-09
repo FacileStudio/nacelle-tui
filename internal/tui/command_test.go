@@ -180,13 +180,11 @@ func TestSecondSlashTypedMidSentenceCompletesWhenTabbed(t *testing.T) {
 	m.menu.Items = []menu.Item{{Value: "/skill:facile-review"}, {Value: "/skill:muse"}}
 	m.prompt.SetValue("/skill:facile-review /mus")
 
-	// typing a mid-sentence slash must not pop the menu open on its own
 	m.refreshMenu()
 	if m.menu.Open() {
 		t.Fatal("menu auto-opened on a mid-sentence slash, want it closed until tab")
 	}
 
-	// tab on the second slash opens the menu and completes the unique match
 	handled, _ := m.key(tea.KeyPressMsg{Code: tea.KeyTab})
 	if !handled || m.prompt.Value() != "/skill:facile-review /skill:muse " {
 		t.Errorf("tab: handled=%v prompt=%q, want the second slash completed", handled, m.prompt.Value())
