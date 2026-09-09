@@ -6,6 +6,10 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-09-09
+### Changed
+- **Model paste consolidation**: paste handling now lives in `internal/tui/model.go`, removing `internal/tui/paste.go`.
+
 ## [0.24.0] - 2026-09-09
 ### Added
 - **Parallel subagent UI**: display running parallel_subagent tasks with status and results in the TUI
