@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/FacileStudio/nacelle"
+
+	"github.com/FacileStudio/nacelle-tui/internal/settings"
 )
 
 func TestADelegateWithNoApprovalGateMayCall(t *testing.T) {
@@ -34,5 +36,32 @@ func TestADelegateStillObeysTheParentsGate(t *testing.T) {
 	}
 	if asked != "run_command" {
 		t.Errorf("the gate was asked about %q, want the delegate's own calls", asked)
+	}
+}
+
+// The delegate set is the parallel tool alone: subagents defaults on, so the
+// mount is active in every ordinary session, and the single subagent tool is
+// not wired beside it.
+func TestSubagentsMountsOnlyTheParallelTool(t *testing.T) {
+	config := settings.Defaults("")
+	on := true
+	config.Subagents = &on
+
+	tools, err := withSubagents(config, &answeringStub{}, make([]nacelle.Tool, 0), nil)
+	if err != nil {
+		t.Fatalf("withSubagents: %v", err)
+	}
+	parallel := false
+	for _, tool := range tools {
+		name := tool.Name()
+		if name == nacelle.SubAgentToolName {
+			t.Error("the single subagent tool is still mounted")
+		}
+		if name == nacelle.ParallelSubAgentToolName {
+			parallel = true
+		}
+	}
+	if !parallel {
+		t.Error("the parallel_subagent tool is not mounted")
 	}
 }

@@ -19,19 +19,6 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 	if !*config.Subagents {
 		return local, nil
 	}
-	sub, err := nacelle.NewSubAgentTool(nacelle.Config{
-		Backend:       backend,
-		System:        config.System,
-		Tools:         local,
-		MaxIterations: *config.MaxIterations,
-	}, nacelle.SubAgentOptions{
-		Approve: delegateApprovals(approve),
-		Usage:   tui.DelegateUsage,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	parallel, err := nacelle.NewParallelSubAgentTool(nacelle.Config{
 		Backend:       backend,
 		System:        config.System,
@@ -45,11 +32,11 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 		return nil, err
 	}
 
-	return append(local, sub, parallel), nil
+	return append(local, parallel), nil
 }
 
 // delegateApprovals is the policy the nested run answers to. It has to be
-// stated, because the SDK's default for a nil SubAgentOptions.Approve is
+// stated, because the SDK's default for a nil ParallelSubAgentOptions.Approve is
 // deny-all: leaving it unset hands the delegate the parent's whole tool set
 // and then refuses every call it makes, which is a tool whose description
 // promises wide searches and log dumps and which can do neither.

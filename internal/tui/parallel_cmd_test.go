@@ -35,8 +35,8 @@ func TestParallelCommandSplitsTasksAndStartsARun(t *testing.T) {
 	}
 }
 
-// A single task still routes through the parallel path; the difference from
-// the single subagent is the concurrency cap, not the call shape.
+// A single task still routes through the parallel path; the tool takes a
+// task list, so one item is the smallest call.
 func TestParallelCommandWithSingleTaskStillStartsARun(t *testing.T) {
 	m := sized()
 	m.agent = answering(t)

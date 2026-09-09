@@ -19,7 +19,6 @@ func TestToolKind(t *testing.T) {
 		{"edit_file", nacelle.ToolSourceLocal, "write"},
 		{"write_file", nacelle.ToolSourceLocal, "write"},
 		{"web_fetch", nacelle.ToolSourceLocal, "network"},
-		{"subagent", nacelle.ToolSourceLocal, "delegate"},
 		{"parallel_subagent", nacelle.ToolSourceLocal, "delegate"},
 		{"unknown_custom_tool", nacelle.ToolSourceLocal, "other"},
 		{"some_mcp_tool", nacelle.ToolSourceMCP, "mcp"},

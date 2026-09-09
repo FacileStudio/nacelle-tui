@@ -16,8 +16,8 @@ import (
 // think of doing so itself.
 //
 // Tasks are split on `,`, trimmed, and empty entries dropped. A single task
-// still routes through the parallel tool rather than the single subagent —
-// the behaviour difference is the concurrency cap, not the call shape.
+// still routes through the parallel tool — its input is a task list, so a
+// one-item list is the smallest call.
 func (m *Model) handleParallelCommand(args string) tea.Cmd {
 	tasks := splitParallelTasks(args)
 	if len(tasks) == 0 {
@@ -41,9 +41,8 @@ func splitParallelTasks(args string) []string {
 }
 
 // buildParallelPrompt is the message the parent agent sees when the user
-// types `/parallel`. It names the tool explicitly so the model picks it
-// over the single-task variant, and it lists the tasks the way the tool's
-// schema wants them.
+// types `/parallel`. It names the tool explicitly and lists the tasks the
+// way the tool's schema wants them.
 func buildParallelPrompt(tasks []string) string {
 	var b strings.Builder
 	b.WriteString("Run these independent tasks in parallel using the ")

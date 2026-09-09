@@ -15,7 +15,7 @@ import (
 
 var delegations = make(chan nacelle.Usage, 64)
 
-// DelegateUsage delivers a delegated subagent run's spend to the update loop.
+// DelegateUsage delivers a delegated run's spend to the update loop.
 func DelegateUsage(u nacelle.Usage) {
 	delegations <- u
 }

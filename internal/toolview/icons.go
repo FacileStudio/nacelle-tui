@@ -21,7 +21,6 @@ var toolIcons = map[string]string{
 	"grep_files":        "◎",
 	"web_fetch":         "↧",
 	"download":          "↧",
-	"subagent":          "≫",
 	"parallel_subagent": "≫",
 }
 
