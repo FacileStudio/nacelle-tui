@@ -21,7 +21,7 @@ func visible(screen string) string { return ansi.Strip(screen) }
 
 // sized is a model with a window, because everything that renders needs one.
 func sized() *Model {
-	m := NewModel(nil, "test · model", nil, int64(100_000), false)
+	m := NewModel(nil, "test · model", nil, int64(100_000), false, "| ", "placeholder", "")
 	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
 	return m
 }
@@ -29,7 +29,23 @@ func sized() *Model {
 // bareBanner is the same model without a window, for tests that only drive
 // logic rather than rendering.
 func bareBanner() *Model {
-	return NewModel(nil, "banner", nil, int64(100_000), false)
+	return NewModel(nil, "banner", nil, int64(100_000), false, "| ", "placeholder", "")
+}
+
+// A start message is the first thing said: the launch block prints above the
+// banner, so an ascii-art welcome leads and the version banner follows. An
+// empty start message prints nothing — the banner stays the first and only
+// thing.
+func TestStartMessagePrintsAboveTheBanner(t *testing.T) {
+	m := NewModel(nil, "banner", nil, int64(100_000), false, "| ", "placeholder", "welcome\nto nacelle")
+	said := visible(strings.Join(m.unprinted, "\n"))
+	message, bannerAt := strings.Index(said, "to nacelle"), strings.Index(said, "banner")
+	if message < 0 || bannerAt < 0 || message > bannerAt {
+		t.Errorf("launch = %q, want the start message above the banner", said)
+	}
+	if got := visible(m.unprinted[0]); !strings.Contains(got, "to nacelle") {
+		t.Errorf("first thing said = %q, want the start message", got)
+	}
 }
 
 // Text arrives a few characters at a time. A transcript with one entry per

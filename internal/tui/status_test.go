@@ -189,11 +189,15 @@ func verifyPromptClearedRestoresLiveRows(t *testing.T, m *Model) {
 }
 
 func TestPromptContinuationsAndBounds(t *testing.T) {
-	if got := visible(continuation(textarea.PromptInfo{LineNumber: 0, Focused: true})); got != "" {
-		t.Errorf("first row marker = %q, want empty", got)
+	prompt := continuation("| ")
+	if got := visible(prompt(textarea.PromptInfo{LineNumber: 0, Focused: true})); got != "| " {
+		t.Errorf("first row marker = %q, want the prefix '| '", got)
 	}
-	if got := continuation(textarea.PromptInfo{LineNumber: 1, Focused: true}); strings.TrimSpace(visible(got)) != "" {
-		t.Errorf("wrapped row marker = %q, want blank", got)
+	if got := prompt(textarea.PromptInfo{LineNumber: 1, Focused: true}); strings.TrimSpace(visible(got)) != "" {
+		t.Errorf("wrapped row marker = %q, want only the indent", got)
+	}
+	if got := continuation("")(textarea.PromptInfo{LineNumber: 1, Focused: true}); got != "" {
+		t.Errorf("empty prefix wrapped row marker = %q, want no indent", got)
 	}
 
 	for _, height := range []int{6, 8, 12, 24} {

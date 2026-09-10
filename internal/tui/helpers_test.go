@@ -127,7 +127,7 @@ func TestAutoResumeLoadsSession(t *testing.T) {
 	log.Line(sessions.FromReader, "hello")
 	log.Line(sessions.FromModel, "world")
 
-	m := NewModel(nil, "banner", nil, 100_000, true)
+	m := NewModel(nil, "banner", nil, 100_000, true, "| ", "placeholder", "")
 	if cmd := m.Init(); cmd == nil {
 		t.Fatal("expected non-nil cmd")
 	}
@@ -141,7 +141,7 @@ func TestAutoResumeNoSessionLeavesConversationEmpty(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 
-	m := NewModel(nil, "banner", nil, 100_000, true)
+	m := NewModel(nil, "banner", nil, 100_000, true, "| ", "placeholder", "")
 	if cmd := m.Init(); cmd == nil {
 		t.Fatal("expected non-nil cmd")
 	}

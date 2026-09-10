@@ -135,11 +135,28 @@ diffs: true
 max_iterations: 0
 fetch: true
 tasks: true
+prompt_prefix: '| '
+prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
+# start_message: |-
+#   Welcome to nacelle.
+#     _   _
+#    | | | |
+#    | |_| |
+#    |_____|
 ```
 
 Every field is optional. A missing file is not an error — most people never write one — but an
 unreadable or malformed one is: a config silently ignored is worse than no config, because the
 setting carefully written is simply not in effect and nothing says so.
+
+`prompt_prefix` is what the input prompt's first row shows ahead of the caret, `| ` by default, and
+continuation rows of a wrapped question hang under a matching indent. Set it to `''` for none: an
+empty prefix draws nothing, so the first row opens at the margin and no two-space indent is added
+on wrapped rows. `prompt_placeholder` is the ghost text shown while the prompt is empty.
+
+`start_message` is printed as the first thing on launch, above the version banner. It is a plain
+string that may span lines, so use a `|`-literal (or `|-` to drop the trailing newline) to put a
+welcome block or an ascii banner there. Empty (the default) prints nothing.
 
 **No per-project `./.nacelle.yml` yet.** A second precedence layer before the first has real
 users is a layer nobody has asked for the shape of.

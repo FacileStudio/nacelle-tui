@@ -22,14 +22,17 @@ func DelegateUsage(u nacelle.Usage) {
 
 // SessionConfig configures the runtime settings for an interactive session.
 type SessionConfig struct {
-	Root         string
-	Model        string
-	Backend      string
-	Diffs        bool
-	GroupTools   *bool
-	ShowThinking bool
-	CompactAt    int64
-	AutoResume   bool
+	Root              string
+	Model             string
+	Backend           string
+	Diffs             bool
+	GroupTools        *bool
+	ShowThinking      bool
+	CompactAt         int64
+	AutoResume        bool
+	PromptPrefix      string
+	PromptPlaceholder string
+	StartMessage      string
 }
 
 // UISession holds the complete state needed to run an interactive terminal session.
@@ -45,7 +48,7 @@ type UISession struct {
 
 // Launch starts the Bubble Tea UI session loop for the given configuration.
 func Launch(c UISession) error {
-	opened := NewModel(c.Agent, c.Banner, c.Skills, c.CompactAt, c.AutoResume)
+	opened := NewModel(c.Agent, c.Banner, c.Skills, c.CompactAt, c.AutoResume, c.PromptPrefix, c.PromptPlaceholder, c.StartMessage)
 	opened.groupTools = c.GroupTools != nil && *c.GroupTools
 	opened.Expanded = c.ShowThinking
 	opened.run.root = c.Root

@@ -94,4 +94,13 @@ func (c *Config) mergeUI(over Config) {
 	if over.ShowThinking != nil {
 		c.ShowThinking = over.ShowThinking
 	}
+	if over.PromptPrefix != nil {
+		c.PromptPrefix = over.PromptPrefix
+	}
+	if over.PromptPlaceholder != nil {
+		c.PromptPlaceholder = over.PromptPlaceholder
+	}
+	if over.StartMessage != nil {
+		c.StartMessage = over.StartMessage
+	}
 }

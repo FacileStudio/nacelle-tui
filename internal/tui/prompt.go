@@ -6,14 +6,19 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const promptRows = 10
 
-func newPrompt() textarea.Model {
+// newPrompt builds the compose textarea. prefix is what the first row shows
+// ahead of the caret — "| " out of the box — and continuation rows get a matching
+// run of spaces so a wrapped question reads as one block. An empty prefix draws
+// nothing: the first row opens at the margin and continuation rows get no indent.
+func newPrompt(prefix string, placeholder string) textarea.Model {
 	prompt := textarea.New()
-	prompt.Placeholder = "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
-	prompt.SetPromptFunc(2, continuation)
+	prompt.Placeholder = placeholder
+	prompt.SetPromptFunc(lipgloss.Width(prefix), continuation(prefix))
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
 	prompt.MinHeight = 1
@@ -24,11 +29,18 @@ func newPrompt() textarea.Model {
 	return prompt
 }
 
-func continuation(info textarea.PromptInfo) string {
-	if info.LineNumber == 0 {
-		return ""
+// continuation is the gutter text for every row. The first row carries the
+// prefix itself; every later row carries an indent as wide as the prefix so
+// wrapped text hangs under what it follows. An empty prefix means no gutter at
+// all, so nothing is drawn on the first row and no extra spaces are added.
+func continuation(prefix string) func(textarea.PromptInfo) string {
+	indent := strings.Repeat(" ", lipgloss.Width(prefix))
+	return func(info textarea.PromptInfo) string {
+		if info.LineNumber == 0 {
+			return prefix
+		}
+		return indent
 	}
-	return "  "
 }
 
 func (m *Model) ask() tea.Cmd {

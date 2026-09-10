@@ -136,6 +136,53 @@ func TestAnUnreadableEnvironmentValueFallsThroughRatherThanMeaningFalse(t *testi
 	}
 }
 
+func TestPromptPrefixAndPlaceholderComeFromTheFile(t *testing.T) {
+	written(t, "prompt_prefix: '> '\nprompt_placeholder: ask away\n")
+
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	if *config.PromptPrefix != "> " {
+		t.Errorf("prompt prefix = %q, want the file's '> '", *config.PromptPrefix)
+	}
+	if *config.PromptPlaceholder != "ask away" {
+		t.Errorf("prompt placeholder = %q, want the file's value", *config.PromptPlaceholder)
+	}
+}
+
+func TestStartMessageComesFromTheFileAndDefaultsEmpty(t *testing.T) {
+	if config, err := settings(Config{}); err != nil {
+		t.Fatalf("settings: %v", err)
+	} else if *config.StartMessage != "" {
+		t.Errorf("start message = %q, want empty default", *config.StartMessage)
+	}
+
+	written(t, "start_message: |\n  welcome\n  to nacelle\n")
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	if *config.StartMessage != "welcome\nto nacelle\n" {
+		t.Errorf("start message = %q, want the file's multiline block verbatim", *config.StartMessage)
+	}
+}
+
+// An empty prefix is a real value, not "say nothing": it draws no prefix and no
+// continuation indent. The pointer has to tell empty apart from unset, so an
+// explicit empty prompt_prefix wins over the default rather than leaving it.
+func TestAnEmptyPromptPrefixBeatsTheDefault(t *testing.T) {
+	written(t, "prompt_prefix: ''\n")
+
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	if *config.PromptPrefix != "" {
+		t.Errorf("prompt prefix = %q, want empty to win over the default", *config.PromptPrefix)
+	}
+}
+
 // The whole promise of refusing a malformed file, applied to the keys. A file
 // saying max_iteration — one letter short — parsed cleanly, left the ceiling at
 // 40 and cost real money on the next long run without a word about it.

@@ -26,14 +26,16 @@ const forceQuit = 3 * time.Second
 // which provider is billed is visible before typing, not after it fails.
 // skills is every skill loaded this run — kept keyed by name so
 // /skill:name is a lookup, not a scan, every time it's typed, and listed
-// alongside the client's own commands in the dropdown menu.
-func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64, autoResume bool) *Model {
+// alongside the client's own commands in the dropdown menu. startMessage, when
+// non-empty, is printed as the first thing on screen — a welcome block or an
+// ascii banner — above the banner itself, each separated by a blank row.
+func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64, autoResume bool, promptPrefix string, promptPlaceholder string, startMessage string) *Model {
 	byName := bySkillName(skills)
 
 	m := &Model{
 		core:       core{agent: agent, banner: banner, autoResume: autoResume},
 		transcript: transcript{compactAt: compactAt},
-		composer:   composer{prompt: newPrompt(), hist: history.New()},
+		composer:   composer{prompt: newPrompt(promptPrefix, promptPlaceholder), hist: history.New()},
 		look: look{
 			theme: theme.Themed(true),
 			spin:  status.NewSpinner(),
@@ -52,6 +54,9 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	}
 	m.pretty = theme.Prettier(m.theme.Markdown, m.width)
 	m.promptStyles = m.prompt.Styles()
+	if startMessage != "" {
+		m.say(fromClient, strings.TrimRight(startMessage, "\n")+"\n")
+	}
 	m.say(fromClient, banner+"\n")
 	return m
 }

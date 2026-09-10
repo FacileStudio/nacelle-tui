@@ -95,10 +95,22 @@ type Toggles struct {
 // true (the default), every turn's chain of thought is printed in full rather
 // than collapsed to "thought for 2.9s". The ctrl+t key still toggles per-session
 // either way, and show_thinking only sets the starting position.
+//
+// PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
+// by default; a wrapped question hangs its later rows under a matching indent.
+// An empty prefix draws nothing at all — the first row opens at the margin and
+// no indent is added on continuation rows, so an empty string is a real choice
+// rather than "say nothing". PromptPlaceholder is the ghost text the prompt
+// shows while it is empty. StartMessage is printed as the first thing on
+// launch, above the banner; it is a string that may span lines, so a welcome
+// block or an ascii banner can sit there. Empty prints nothing.
 type UI struct {
-	Continue     *bool `yaml:"continue"`
-	GroupTools   *bool `yaml:"group_tools"`
-	ShowThinking *bool `yaml:"show_thinking"`
+	Continue          *bool   `yaml:"continue"`
+	GroupTools        *bool   `yaml:"group_tools"`
+	ShowThinking      *bool   `yaml:"show_thinking"`
+	PromptPrefix      *string `yaml:"prompt_prefix"`
+	PromptPlaceholder *string `yaml:"prompt_placeholder"`
+	StartMessage      *string `yaml:"start_message"`
 }
 
 // Reasoning holds the three settings that decide how hard the model thinks.
@@ -165,6 +177,9 @@ func Defaults(system string) Config {
 	fetch := true
 	groupTools, showThinking := true, true
 	cont := false
+	promptPrefix := "| "
+	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
+	startMessage := ""
 	return Config{
 		Web:       Web{Fetch: &fetch},
 		Provider:  Provider{Backend: "anthropic"},
@@ -179,7 +194,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Continue: &cont, GroupTools: &groupTools, ShowThinking: &showThinking},
+		UI: UI{Continue: &cont, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage},
 	}
 }
 
