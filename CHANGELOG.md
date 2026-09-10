@@ -4,6 +4,37 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Added
+- **The price ticks live as the model writes.** Previously the dollar figure in
+  the footer only appeared once a turn ended, because a backend reports `Cost`
+  only at turn boundaries. The TUI now derives a cost-per-token rate from each
+  finished turn and projects it over the live output estimate, so the `$` moves
+  up as tokens stream in and lands on the authoritative `Cost` at the next turn
+  boundary. No price is invented for backends that never report a cost
+  (anthropic returns tokens only), and nothing shows before the first turn.
+
+### Fixed
+- **A running command's streamed output no longer squishes onto one line.**
+  nacelle emits each completed output line as its own fragment without a
+  trailing newline, and the TUI was concatenating them raw, so the box's line
+  split never saw a break and every line ran together. Each fragment is now
+  normalised to end in a newline, so the running box grows one row per line and
+  the finished box keeps them separate.
+- **The tool-block left border is a coherent, filled spine.** The border colour
+  was being fed to `lipgloss.Color` as a bare SGR number, which lipgloss reads
+  as an ANSI-256 index — so green rendered as teal, red as slate, and the
+  running tool's own colour as a desaturated grey, reading as a thin pipe. The
+  border and the tool's glyph now share the same true-colour hue (green on
+  success, red on failure, the tool's own colour while running), drawn as one
+  self-contained block spine.
+- **The edit diff recap's removed-line count no longer drops onto the terminal
+  background.** The added and removed figures were Foreground-only fragments
+  whose reset killed the block background set once on the outer cell, so the
+  `-y` figure fell through to the default ground. Each figure now carries the
+  block background itself.
+
 ## [0.39.0] - 2026-09-10
 
 ### Added
