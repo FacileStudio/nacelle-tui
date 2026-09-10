@@ -50,10 +50,7 @@ type compactOutcome struct {
 // the rebuilt conversation and how the pass spent itself. The evicted middle
 // is replaced by the summary; the kept tail survives verbatim.
 func compactApply(conv []nacelle.Message, evictCut int, summary string, before int64) compactOutcome {
-	after := before - estTokens(convBytes(conv, evictCut)) + estTokens(len(summary))
-	if after < 0 {
-		after = 0
-	}
+	after := max(before-estTokens(convBytes(conv, evictCut))+estTokens(len(summary)), 0)
 	return compactOutcome{
 		before:  before,
 		after:   after,

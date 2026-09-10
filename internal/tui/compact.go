@@ -109,12 +109,7 @@ func keepCount(length int) int {
 		return length
 	}
 	n := length * compactKeepPercent / 100
-	if n < compactKeepMessages {
-		n = compactKeepMessages
-	}
-	if n > length-1 {
-		n = length - 1
-	}
+	n = min(max(n, compactKeepMessages), length-1)
 	return n
 }
 

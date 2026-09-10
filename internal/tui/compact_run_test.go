@@ -47,7 +47,9 @@ func (summarizing) CountTokens(context.Context, nacelle.Request) (int64, error) 
 
 func (s summarizing) Stream(_ context.Context, _ nacelle.Request) iter.Seq2[nacelle.Event, error] {
 	return func(yield func(nacelle.Event, error) bool) {
-		yield(nacelle.Event{Kind: nacelle.KindText, Text: s.answer}, nil)
+		if !yield(nacelle.Event{Kind: nacelle.KindText, Text: s.answer}, nil) {
+			return
+		}
 		yield(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd}, nil)
 	}
 }
