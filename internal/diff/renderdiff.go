@@ -15,10 +15,12 @@ var (
 	addedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color("22"))
 	// removedStyle tints a changed line's text red on a dark red backdrop.
 	removedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color("52"))
-	// addFg and remFg colour just the recap's +x / -y figures, on the plain
-	// block background rather than the changed-line tints.
-	addFg = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
-	remFg = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	// addFg and remFg colour the recap's +x / -y figures on the block
+	// background. Each carries that background itself because a rendered
+	// fragment ends in a full reset, which would otherwise cancel the
+	// surrounding cell's background before the second figure draws.
+	addFg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color(toolview.BlockBg))
+	remFg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color(toolview.BlockBg))
 )
 
 func truncate(s string, limit int) string {

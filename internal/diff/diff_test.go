@@ -83,6 +83,19 @@ func TestARecapSumsAddedAndRemovedLines(t *testing.T) {
 	}
 }
 
+func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
+	change := EditChange{Path: "f", Before: "a\nb\n", After: "a\nc\n"}
+	var recap string
+	for line := range strings.SplitSeq(strings.TrimSuffix(RenderDiff(change, 80, "32", muted), "\n"), "\n") {
+		if strings.Contains(plain(line), "-1") {
+			recap = line
+		}
+	}
+	if !strings.Contains(recap, "92;48;5;237") || !strings.Contains(recap, "91;48;5;237") {
+		t.Errorf("recap = %q, want both counts on the block background", recap)
+	}
+}
+
 func TestACreatedFileIsAllAdditions(t *testing.T) {
 	change := EditChange{Path: "new.go", Before: "", After: "package main\n"}
 	diff := RenderDiff(change, 80, "32", muted)
