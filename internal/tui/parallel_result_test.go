@@ -109,12 +109,12 @@ func TestTaskTitlePrefersTheGeneratedTitle(t *testing.T) {
 }
 
 // Without a title the row falls back to the task prompt collapsed onto one
-// line, capped short so a fan-out whose summarizer has not landed never reads
-// as the full prompt.
+// line, minus path and URL tokens, capped short so a fan-out whose summarizer
+// has not landed never reads as the full prompt or a file location.
 func TestTaskTitleFallsBackToCollapsedTask(t *testing.T) {
 	pt := parallelTaskInfo{Task: "analyze http://x.dev\nfor TODO comments", Active: true}
-	if got := taskTitle(pt); got != "analyze http://x.dev for TODO comments" {
-		t.Errorf("taskTitle = %q, want the collapsed task", got)
+	if got := taskTitle(pt); got != "analyze for TODO comments" {
+		t.Errorf("taskTitle = %q, want the collapsed task with the URL dropped", got)
 	}
 }
 
@@ -162,16 +162,16 @@ func TestRecordTitleAppliesToTheRightTask(t *testing.T) {
 	}
 }
 
-// recordTool applies a nested task's live tool call to its row and re-arms the
+// recordUpdate applies a nested task's live tool call to its row and re-arms the
 // watch, so the row shows what the subagent is running while it grinds.
-func TestRecordToolAppliesTheRunningTool(t *testing.T) {
+func TestRecordUpdateAppliesTheRunningTool(t *testing.T) {
 	m := sized()
 	m.parallelTasks = make(map[string][]parallelTaskInfo)
 	m.parallelTasks["d0"] = make([]parallelTaskInfo, 2)
 	m.parallelTasks["d0"][0] = parallelTaskInfo{Task: "one", Active: true}
 	m.parallelTasks["d0"][1] = parallelTaskInfo{Task: "two", Active: true}
 
-	m.recordTool(subagentTool{batch: "d0", idx: 1, tool: "read_file"})
+	m.recordUpdate(subagentUpdate{batch: "d0", idx: 1, tool: "read_file"})
 
 	if m.parallelTasks["d0"][1].Tool != "read_file" {
 		t.Errorf("running tool not applied to task 1")
@@ -180,21 +180,21 @@ func TestRecordToolAppliesTheRunningTool(t *testing.T) {
 		t.Errorf("running tool leaked onto task 0")
 	}
 
-	m.recordTool(subagentTool{batch: "ghost", idx: 0, tool: "run_command"})
+	m.recordUpdate(subagentUpdate{batch: "ghost", idx: 0, tool: "run_command"})
 	if _, ok := m.parallelTasks["ghost"]; ok {
 		t.Error("a tool call to an unknown batch created state")
 	}
 }
 
 // A tool event that trails a finished result does not resurrect a row:
-// recordTool only touches still-running tasks.
-func TestRecordToolIgnoresFinishedTasks(t *testing.T) {
+// recordUpdate only touches still-running tasks.
+func TestRecordUpdateIgnoresFinishedTool(t *testing.T) {
 	m := sized()
 	m.parallelTasks = make(map[string][]parallelTaskInfo)
 	m.parallelTasks["d0"] = make([]parallelTaskInfo, 1)
 	m.parallelTasks["d0"][0] = parallelTaskInfo{Task: "one", Active: false, Tool: ""}
 
-	m.recordTool(subagentTool{batch: "d0", idx: 0, tool: "edit_file"})
+	m.recordUpdate(subagentUpdate{batch: "d0", idx: 0, tool: "edit_file"})
 
 	if m.parallelTasks["d0"][0].Tool != "" {
 		t.Errorf("a late tool call reset a finished task's row")

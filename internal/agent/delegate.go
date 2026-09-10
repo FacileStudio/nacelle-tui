@@ -25,11 +25,12 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 		Tools:         local,
 		MaxIterations: *config.MaxIterations,
 	}, nacelle.ParallelSubAgentOptions{
-		Approve: delegateApprovals(approve),
-		Usage:   tui.DelegateUsage,
-		Detach:  true,
-		Results: tui.PostDetached,
-		Tool:    tui.ReportSubagentTool,
+		Approve:   delegateApprovals(approve),
+		Usage:     tui.DelegateUsage,
+		Detach:    true,
+		Results:   tui.PostDetached,
+		Tool:      tui.ReportSubagentTool,
+		LiveUsage: tui.ReportSubagentUsage,
 	})
 	if err != nil {
 		return nil, err

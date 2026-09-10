@@ -44,9 +44,9 @@ func (m *Model) taskRow(pt parallelTaskInfo) string {
 	clock := whiteClock.Render(taskClock(pt))
 	spend := ""
 	if s := taskSpend(pt.Usage); s != "" {
-		spend = " " + m.theme.Muted.Render(s)
+		spend = m.theme.Muted.Render(s) + " "
 	}
-	tail := strings.TrimSpace(clock + " " + spend)
+	tail := strings.TrimSpace(spend + clock)
 	room := max(m.width-lipgloss.Width(tool)-lipgloss.Width(tail)-gap, 0)
 	title := layout.Truncate(taskTitle(pt), max(room-3, 0))
 	left := taskTone(pt).Render("≫ " + title + ":")
@@ -88,4 +88,18 @@ func taskSpend(usage nacelle.Usage) string {
 // parallelTasksRows returns the number of parallel task rows for layout.
 func (m *Model) parallelTasksRows() int {
 	return parallelTaskRows(m.parallelTasks)
+}
+
+// hasLiveParallel reports whether any subagent task is still running, so the
+// spinner keeps ticking — and with it the elapsed clock and live spend keep
+// redrawing — after the parent run has settled and m.run.busy went false.
+func (m *Model) hasLiveParallel() bool {
+	for _, tasks := range m.parallelTasks {
+		for _, pt := range tasks {
+			if pt.Active {
+				return true
+			}
+		}
+	}
+	return false
 }

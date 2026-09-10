@@ -43,17 +43,22 @@ func watchDetached() tea.Cmd {
 // launchDetached starts one fan-out without touching the main run. It registers
 // the batch's row state, says in the main thread that the agents were started,
 // and hands the actual delegation to a background goroutine; busy stays false,
-// so the prompt stays live.
+// so the prompt stays live. The tick the register returns is the only thing
+// that wakes the loop while nothing else is happening, so the elapsed clocks
+// under the prompt move for a fan-out launched from an idle prompt.
 func (m *Model) launchDetached(tasks []string) tea.Cmd {
 	id := m.nextDetachID()
-	m.registerParallel(id, tasks)
+	tick := m.registerParallel(id, tasks)
 
 	cfg := m.delegate
 	go func() {
 		results, err := nacelle.DelegateParallel(context.Background(), cfg, tasks, nacelle.ParallelSubAgentOptions{
 			Approve: delegateApprove(cfg),
 			Tool: func(batch string, idx int, tool string) {
-				subagentTools <- subagentTool{batch: id, idx: idx, tool: tool}
+				subagentUpdates <- subagentUpdate{batch: id, idx: idx, tool: tool}
+			},
+			LiveUsage: func(batch string, idx int, usage nacelle.Usage) {
+				subagentUpdates <- subagentUpdate{batch: id, idx: idx, usage: usage, spend: true}
 			},
 		})
 		if err != nil {
@@ -68,14 +73,16 @@ func (m *Model) launchDetached(tasks []string) tea.Cmd {
 			detached <- detachedResult{batch: id, idx: next.Index, result: next.Result, err: next.Err, usage: next.Usage}
 		}
 	}()
-	return nil
+	return tick
 }
 
 // registerParallel seeds the row state for a batch and announces it in the main
 // thread. Both the /parallel command and a model's non-blocking tool call end up
 // here; the batch key is theirs to choose. The fan-out's streamed results route
-// back by that same key.
-func (m *Model) registerParallel(batch string, tasks []string) {
+// back by that same key. It returns the spinner tick so a fan-out launched from
+// an idle prompt wakes the loop; spun keeps the tick alive while the task rows
+// are still live.
+func (m *Model) registerParallel(batch string, tasks []string) tea.Cmd {
 	if m.parallelTasks == nil {
 		m.parallelTasks = make(map[string][]parallelTaskInfo)
 	}
@@ -87,6 +94,7 @@ func (m *Model) registerParallel(batch string, tasks []string) {
 	m.titleParallelTasks(batch, tasks)
 	m.say(fromClient, fmt.Sprintf("started %d parallel agents", len(tasks)))
 	m.layout(m.windowHeight)
+	return m.spin.Tick
 }
 
 // nextDetachID hands out a batch key for a detached fan-out. The "detach"

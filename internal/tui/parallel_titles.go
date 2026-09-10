@@ -39,7 +39,7 @@ func (m *Model) recordTitle(t taskTitled) tea.Cmd {
 // titleSystem is the one-shot summarizer that turns a subagent's task into a
 // 6-7 word status-line title. It runs on the same backend as the session —
 // billed like the work it names — and with no tools.
-const titleSystem = "You turn a list of subagent tasks into terse status-line titles. Reply with exactly one title per task, one per line, in the same order as given. Each title is 6-7 words, lower case, no punctuation, no emoji, no numbering, no leading bullets. Reply with nothing but the titles."
+const titleSystem = "You turn a list of subagent tasks into terse status-line titles. Reply with exactly one title per task, one per line, in the same order as given. Each title is a 6-7 word plain description of the task. Never include file paths, URLs, directory names, or quoted identifiers in a title — describe the work with ordinary words only. Lower case, no punctuation, no emoji, no numbering, no leading bullets. Reply with nothing but the titles."
 
 const titleMaxTokens int64 = 200
 
@@ -52,15 +52,31 @@ func buildTitlesPrompt(tasks []string) string {
 	return strings.Join(lines, "\n")
 }
 
-// shortTitle hard-caps a returned title at seven words, so a model that ran
-// long cannot push a task row onto the next line.
+// shortTitle strips path and URL tokens from a returned title, then hard-caps
+// it at seven words, so a model that ran long — or pasted a path the task
+// happened to name — cannot push a task row onto the next line or read as a
+// file location. Used for both generated titles and the collapsed-task fallback.
 func shortTitle(s string) string {
 	s = strings.TrimSpace(s)
-	fields := strings.Fields(s)
+	fields := stripPathTokens(strings.Fields(s))
 	if len(fields) > 7 {
-		s = strings.Join(fields[:7], " ")
+		fields = fields[:7]
 	}
-	return s
+	return strings.Join(fields, " ")
+}
+
+// stripPathTokens drops tokens that look like a file path or URL — anything
+// carrying a path separator or a scheme — so a task title stays a plain
+// description of the work, never the location the work was done in.
+func stripPathTokens(fields []string) []string {
+	keep := fields[:0]
+	for _, f := range fields {
+		if strings.Contains(f, "://") || strings.Contains(f, "/") || strings.Contains(f, `\`) {
+			continue
+		}
+		keep = append(keep, f)
+	}
+	return keep
 }
 
 // titleParallelTasks names a parallel call's tasks in the background and

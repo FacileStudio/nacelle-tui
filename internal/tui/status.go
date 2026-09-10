@@ -114,7 +114,7 @@ func (m *Model) ongoing() string {
 }
 
 func (m *Model) spun(message spinner.TickMsg) tea.Cmd {
-	return m.spin.Spun(message, m.run.busy)
+	return m.spin.Spun(message, m.run.busy || m.hasLiveParallel())
 }
 
 func cutShort(stop nacelle.Stop) string {

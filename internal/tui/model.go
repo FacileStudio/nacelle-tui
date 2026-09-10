@@ -91,7 +91,7 @@ func (m *Model) Init() tea.Cmd {
 			}
 		}
 	}
-	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchDetached(), watchTools())
+	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchDetached(), watchUpdates())
 }
 
 // Update routes each message to the one place that owns it, and hands whatever
@@ -149,8 +149,8 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.recordDelegation(message)
 	case detachedResult:
 		return m.recordDetached(message)
-	case subagentTool:
-		return m.recordTool(message)
+	case subagentUpdate:
+		return m.recordUpdate(message)
 	case taskTitled:
 		return m.recordTitle(message)
 	case taskUpdate:
