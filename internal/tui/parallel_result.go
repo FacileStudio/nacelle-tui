@@ -75,9 +75,13 @@ func (m *Model) dropFinishedParallel() {
 	}
 }
 
-// taskTitle collapses a task's prompt onto one line, so the running task row
-// reads as an action instead of a pasted paragraph.
+// taskTitle is the title a running task row shows: the short description the
+// summarizer generated when one has landed, else the task's prompt collapsed
+// onto one line. Either way the row reads as an action, not a pasted block.
 func taskTitle(pt parallelTaskInfo) string {
+	if pt.Title != "" {
+		return pt.Title
+	}
 	return strings.Join(strings.Fields(pt.Task), " ")
 }
 

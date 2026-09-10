@@ -107,15 +107,29 @@ func (m *Model) handleParallelCall(tool nacelle.ToolEvent) {
 	var input struct {
 		Tasks []string `json:"tasks"`
 	}
-	if err := json.Unmarshal([]byte(tool.Input), &input); err == nil {
-		if m.parallelTasks == nil {
-			m.parallelTasks = make(map[string][]parallelTaskInfo)
-		}
-		list := make([]parallelTaskInfo, len(input.Tasks))
-		for i, t := range input.Tasks {
-			list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
-		}
-		m.parallelTasks[tool.ID] = list
+	if err := json.Unmarshal([]byte(tool.Input), &input); err != nil {
+		return
+	}
+	if m.parallelTasks == nil {
+		m.parallelTasks = make(map[string][]parallelTaskInfo)
+	}
+	list := make([]parallelTaskInfo, len(input.Tasks))
+	for i, t := range input.Tasks {
+		list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
+	}
+	m.parallelTasks[tool.ID] = list
+	if m.agent != nil {
+		call := tool.ID
+		backend := m.agent.Backend()
+		tasks := input.Tasks
+		go func() {
+			titles := titleTasks(tasks, backend)
+			for i, title := range titles {
+				if title != "" {
+					taskTitles <- taskTitled{Call: call, Index: i, Title: title}
+				}
+			}
+		}()
 	}
 }
 

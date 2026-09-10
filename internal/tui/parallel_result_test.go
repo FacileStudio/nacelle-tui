@@ -97,3 +97,57 @@ func TestDropFinishedParallelForgetsCompletedCalls(t *testing.T) {
 		t.Error("a call with a running task was forgotten")
 	}
 }
+
+// taskTitle prefers the short title the summarizer generated over the raw
+// task prompt, so the running row stops dumping the full delegate prompt.
+func TestTaskTitlePrefersTheGeneratedTitle(t *testing.T) {
+	pt := parallelTaskInfo{Task: "analyze http://x.dev\nfor TODO comments and read the git log", Title: "scan site for todos", Active: true}
+	got := taskTitle(pt)
+	if got != "scan site for todos" {
+		t.Errorf("taskTitle = %q, want the generated title", got)
+	}
+}
+
+// Without a title the row falls back to the task prompt collapsed onto one
+// line, preserving the pre-title behaviour.
+func TestTaskTitleFallsBackToCollapsedTask(t *testing.T) {
+	pt := parallelTaskInfo{Task: "analyze http://x.dev\nfor TODO comments", Active: true}
+	if got := taskTitle(pt); got != "analyze http://x.dev for TODO comments" {
+		t.Errorf("taskTitle = %q, want the collapsed task", got)
+	}
+}
+
+// shortTitle hard-caps a title the model ran long at seven words so a row can
+// never wrap.
+func TestShortTitleCapsAtSevenWords(t *testing.T) {
+	if got := shortTitle("a b c d e f g h i j k"); got != "a b c d e f g" {
+		t.Errorf("shortTitle = %q, want the first seven words", got)
+	}
+	if got := shortTitle("short title"); got != "short title" {
+		t.Errorf("shortTitle = %q, want it untouched when short", got)
+	}
+}
+
+// recordTitle applies a summarizer result to the right task in the right call
+// and re-arms the watch, so the title lands without blocking the loop.
+func TestRecordTitleAppliesToTheRightTask(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["t0"] = make([]parallelTaskInfo, 2)
+	m.parallelTasks["t0"][0] = parallelTaskInfo{Task: "one", Active: true}
+	m.parallelTasks["t0"][1] = parallelTaskInfo{Task: "two", Active: true}
+
+	m.recordTitle(taskTitled{Call: "t0", Index: 1, Title: "second one"})
+
+	if m.parallelTasks["t0"][1].Title != "second one" {
+		t.Errorf("title not applied to task 1")
+	}
+	if m.parallelTasks["t0"][0].Title != "" {
+		t.Errorf("title leaked onto task 0")
+	}
+
+	m.recordTitle(taskTitled{Call: "missing", Index: 0, Title: "ghost"})
+	if _, ok := m.parallelTasks["missing"]; ok {
+		t.Error("a title to an unknown call created state")
+	}
+}

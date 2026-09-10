@@ -74,6 +74,7 @@ type parallelTaskInfo struct {
 	Result string
 	Err    string
 	Usage  nacelle.Usage
+	Title  string
 	Began  time.Time
 	End    time.Time
 	Active bool

@@ -57,9 +57,10 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	return m
 }
 
-// Init asks the terminal what colour it is, and opens the two watches that
+// Init asks the terminal what colour it is, and opens the watches that
 // carry work in from goroutines this loop does not own — a delegated run's
-// spend, and the plan the task tool reports.
+// spend, the plan the task tool reports, and the titles the task-row
+// summarizer returns.
 //
 // Both have to be armed here; a watcher only re-armed by its own message
 // never sees a first run, so the feature silently does nothing.
@@ -86,7 +87,7 @@ func (m *Model) Init() tea.Cmd {
 			}
 		}
 	}
-	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks())
+	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles())
 }
 
 // Update routes each message to the one place that owns it, and hands whatever
@@ -145,6 +146,8 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.settle()
 	case spentDelegation:
 		return m.recordDelegation(message)
+	case taskTitled:
+		return m.recordTitle(message)
 	case taskUpdate:
 		return m.recordTasks(message)
 	case compactOutcome:
