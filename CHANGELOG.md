@@ -4,7 +4,10 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [0.33.0] - 2026-09-10
+## [0.34.0] - 2026-09-10
+
+### Changed
+- **The input prompt no longer pipes its first line**: the bottom textarea opens bare, so what you type starts at the left margin instead of after a bold `| `. Continuation rows keep their two-space indent. The `| ` prefix stays wherever it already reads as a delivered message — in the transcript and in the queue list — so a typed prompt and a sent message no longer look identical while you are composing.
 
 ### Changed
 - **The model's own `parallel_subagent` call no longer blocks**: the tool runs detached (nacelle v0.16.0 `Detach` mode). When the model calls it, the tool returns a stub immediately and the fan-out grinds in the background, so the parent's turn — and your main thread — stay free. The call reads as a "started N parallel agents" message, the tool row completes at once instead of sitting "running", and each subagent's result still lands as a titled row under the prompt with its own spend. You can keep chatting while subagents work, whether the fan-out came from `/parallel` or from the model choosing the tool itself.
