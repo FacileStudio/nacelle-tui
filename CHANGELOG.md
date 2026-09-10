@@ -4,6 +4,15 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.35.1] - 2026-09-10
+
+### Fixed
+- **The input prompt keeps a one-space margin after its prefix** on the first line, so a continuation row no longer sits flush against the prompt start.
+
+### Changed
+- **The TUI model takes a `SessionConfig` struct** instead of seven positional arguments, so UI runtime settings can no longer be swapped by accident when building the model.
+- **The filet gate now fails on any info-severity finding locally**, matching the CI gate, so a red check can no longer be a green local run.
+
 ## [0.35.0] - 2026-09-10
 
 ### Changed
