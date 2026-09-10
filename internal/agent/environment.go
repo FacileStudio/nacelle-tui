@@ -80,13 +80,15 @@ func DefaultSystemPrompt() string {
 }
 
 func environment(config Config, now time.Time) string {
-	return sessionBlock(config, now) + sessionMeta(now) + approvalNote(config) + bashRules(config) + tasksNote()
+	return sessionBlock(config) + sessionMeta(now) + approvalNote(config) + bashRules(config) + tasksNote()
 }
 
-func sessionBlock(config Config, now time.Time) string {
+func sessionBlock(config Config) string {
 	var body strings.Builder
 	body.WriteString("\n\n## This session\n\n")
-	body.WriteString("Working directory: " + absolute(config.Root) + "\n\n")
+	body.WriteString("Working directory: ")
+	body.WriteString(absolute(config.Root))
+	body.WriteString("\n\n")
 	if *config.StrictConfinement {
 		body.WriteString("File and directory tools take paths relative to the working directory and cannot reach outside " +
 			"it: absolute paths that sit under the working directory are resolved relative " +

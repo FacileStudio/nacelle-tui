@@ -39,7 +39,7 @@ func estTokens(bytes int) int64 {
 // "what is about to be discarded" when estimating how much a pass frees.
 func convBytes(conv []nacelle.Message, n int) int {
 	total := 0
-	for i := 0; i < n; i++ {
+	for i := range n {
 		total += msgBytes(conv[i])
 	}
 	return total
@@ -80,9 +80,7 @@ func partBytes(part nacelle.Part) int {
 // because it runs on the same thread that owns the conversation.
 func (m *Model) maskEvicted(evictCut int) (int, int, int64) {
 	budget := (m.size - m.compactAt + compactSlack) * 4
-	if budget < 0 {
-		budget = 0
-	}
+	budget = max(budget, 0)
 	results, thinking := 0, 0
 	var saved int64
 	for i := 0; i < evictCut && i < len(m.conversation); i++ {

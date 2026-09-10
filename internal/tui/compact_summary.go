@@ -1,8 +1,10 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/FacileStudio/nacelle"
 )
@@ -179,3 +181,38 @@ const compactAsk = "Above are the older turns to compact, and nothing else. Writ
 // compactedHeader opens the message installed in place of the summarized
 // middle, so the model reads it as a compressed past rather than as a new turn.
 const compactedHeader = "[compacted context — the earlier turns were summarized]:\n\n"
+
+// compactTimeout bounds one summarizer call. A backend that hangs would
+// otherwise hold the session at "compacting" forever, because settleCompaction
+// runs only when the outcome arrives. A pass past the deadline is a failure:
+// its partial summary is dropped and the mask fallback runs, which still
+// frees the bulky tool output — so a spurious timeout costs an attempt, never
+// correctness. Generous, because the pass replaces a large chunk (possibly
+// hundreds of KB) with a short summary.
+const compactTimeout = 120 * time.Second
+
+// summarizeInto runs one bounded summarizer call. The agent streams the chunk
+// on a child context carrying a deadline, so a hung backend frees the session
+// rather than holding it. A stream error, or a context whose deadline fired
+// while the transport wound down cleanly, both come back as the error and the
+// partial text is discarded: a transport that honours cancellation by stopping
+// reports nothing through the stream, so the deadline must be read off the
+// context itself.
+func summarizeInto(parent context.Context, agent *nacelle.Agent, asks []nacelle.Message) (string, error) {
+	local, cancel := context.WithTimeout(parent, compactTimeout)
+	defer cancel()
+
+	var b strings.Builder
+	for event, err := range agent.Stream(local, asks) {
+		if err != nil {
+			return "", err
+		}
+		if event.Kind == nacelle.KindText {
+			b.WriteString(event.Text)
+		}
+	}
+	if localErr := local.Err(); localErr != nil {
+		return "", localErr
+	}
+	return strings.TrimSpace(b.String()), nil
+}

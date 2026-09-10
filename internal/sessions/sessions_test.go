@@ -204,7 +204,7 @@ func TestSessionRotation(t *testing.T) {
 	sessionRotationSize = 1024
 	t.Cleanup(func() { sessionRotationSize = 256 * 1024 })
 
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		log.Line(fromReader, strings.Repeat("x", 200))
 	}
 

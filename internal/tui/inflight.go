@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,9 +146,9 @@ func (r *inflight) beginTool(ev nacelle.ToolEvent, groupTools bool) {
 // filesystem gives.
 func (r *inflight) finishTool(ev nacelle.ToolEvent) {
 	if ev.ID == "" {
-		for i := len(r.groups) - 1; i >= 0; i-- {
-			if r.groups[i].End.IsZero() {
-				r.groups[i].FinishCall(ev)
+		for _, g := range slices.Backward(r.groups) {
+			if g.End.IsZero() {
+				g.FinishCall(ev)
 				return
 			}
 		}

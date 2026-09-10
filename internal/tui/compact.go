@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -158,25 +157,23 @@ func (m *Model) beginCompaction(ctx context.Context) tea.Cmd {
 // summary of the raw evicted middle and sends back just that result; it never
 // mutates the conversation. Because the conversation is stable while a pass is
 // in flight — send holds the run busy — reading it here is safe.
+//
+// The summarizer runs inside a deadline set by summarizeInto, so a wedged
+// backend cannot hold the session at "compacting" forever: whichever way the
+// stream winds down once the deadline fires, the outcome still arrives and
+// the pass falls back to the mask.
 func runCompaction(m *Model, ctx context.Context, results chan compactOutcome, evictCut int) {
 	defer close(results)
 	conv := m.conversation
 	outcome := compactOutcome{before: m.size, evictCut: evictCut}
 
 	if agent := m.summarizer(); agent != nil {
-		asks := compactPrompt(conv, evictCut)
-		var b strings.Builder
-		for event, err := range agent.Stream(ctx, asks) {
-			if err != nil {
-				outcome.err = err
-				results <- outcome
-				return
-			}
-			if event.Kind == nacelle.KindText {
-				b.WriteString(event.Text)
-			}
+		summary, err := summarizeInto(ctx, agent, compactPrompt(conv, evictCut))
+		if err != nil {
+			outcome.err = err
+		} else {
+			outcome.summary = summary
 		}
-		outcome.summary = strings.TrimSpace(b.String())
 	}
 
 	results <- outcome

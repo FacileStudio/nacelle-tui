@@ -45,7 +45,7 @@ func TestAllowedForSessionIsNotAskedAgain(t *testing.T) {
 		msg.(Request).Decision <- AllowedForSession
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if !a.Ask(context.Background(), "search", nil) {
 			t.Fatalf("call %d was refused", i)
 		}
@@ -111,27 +111,27 @@ func TestAskUnblocksWhenItsContextIsCancelled(t *testing.T) {
 }
 
 func TestConcurrentAsksAreSerializedToOneAtATime(t *testing.T) {
-	var inFlight int32
-	var maxObserved int32
+	var inFlight atomic.Int32
+	var maxObserved atomic.Int32
 	a := New()
 	a.send = func(msg tea.Msg) {
-		n := atomic.AddInt32(&inFlight, 1)
+		n := inFlight.Add(1)
 		for {
-			old := atomic.LoadInt32(&maxObserved)
-			if n <= old || atomic.CompareAndSwapInt32(&maxObserved, old, n) {
+			old := maxObserved.Load()
+			if n <= old || maxObserved.CompareAndSwap(old, n) {
 				break
 			}
 		}
 		req := msg.(Request)
 		go func() {
 			time.Sleep(5 * time.Millisecond)
-			atomic.AddInt32(&inFlight, -1)
+			inFlight.Add(-1)
 			req.Decision <- AllowedOnce
 		}()
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()
@@ -140,7 +140,7 @@ func TestConcurrentAsksAreSerializedToOneAtATime(t *testing.T) {
 	}
 	wg.Wait()
 
-	if maxObserved > 1 {
-		t.Errorf("max concurrent prompts = %d, want at most 1", maxObserved)
+	if maxObserved.Load() > 1 {
+		t.Errorf("max concurrent prompts = %d, want at most 1", maxObserved.Load())
 	}
 }

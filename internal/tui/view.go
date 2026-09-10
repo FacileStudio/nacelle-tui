@@ -7,6 +7,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/FacileStudio/nacelle-tui/internal/layout"
+	"github.com/FacileStudio/nacelle-tui/internal/theme"
 )
 
 type screen struct {
@@ -87,6 +88,14 @@ func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
 	if widthChanged {
 		m.restyle()
 	}
+	return nil
+}
+
+// retheme swaps the palette for a terminal background-colour report and
+// rebuilds the renderer, so route's dispatcher stays one line per arm.
+func (m *Model) retheme(message tea.BackgroundColorMsg) tea.Cmd {
+	m.theme = theme.Themed(message.IsDark())
+	m.restyle()
 	return nil
 }
 

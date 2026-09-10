@@ -97,7 +97,7 @@ func assertSummaryBlock(t *testing.T, conv []nacelle.Message, evictCut int, outc
 // assertKeptTail checks that the kept tail of the rebuilt conversation matches
 // the original messages verbatim, in order.
 func assertKeptTail(t *testing.T, conversation []nacelle.Message, conv []nacelle.Message, evictCut int) {
-	for i := 0; i < len(conversation); i++ {
+	for i := range len(conversation) {
 		if conversation[i].Role != conv[evictCut+i].Role {
 			t.Errorf("message %d of the tail does not match the kept message %d", i, evictCut+i)
 		}
@@ -140,7 +140,7 @@ func TestSummarizerSeesTheRawEvictedChunk(t *testing.T) {
 
 	prompt := compactPrompt(conv, evictCut)
 
-	for i := 0; i < evictCut; i++ {
+	for i := range evictCut {
 		for _, part := range prompt[i].Parts {
 			result, ok := part.(nacelle.ToolResult)
 			if !ok {
@@ -211,7 +211,7 @@ func TestCompactPromptFeedsExactlyTheEvictedChunk(t *testing.T) {
 	if len(prompt) != evictCut+1 {
 		t.Fatalf("summarizer prompt = %d messages, want the %d evicted + the ask", len(prompt), evictCut)
 	}
-	for i := 0; i < evictCut; i++ {
+	for i := range evictCut {
 		if prompt[i].Role != conv[i].Role || len(prompt[i].Parts) != len(conv[i].Parts) {
 			t.Errorf("prompt message %d does not match the evicted chunk message %d", i, i)
 		}

@@ -45,10 +45,6 @@ func (m *Model) ask() tea.Cmd {
 		return m.dispatch(question)
 	}
 
-	// A message typed while the main run is busy answers on a fresh side
-	// agent rather than sitting queued until the run — often a whole parallel
-	// fan-out — finishes. A command still queues, because a control line like
-	// /quit must not spawn a conversation of its own.
 	if _, isCommand := m.parseCommand(question); !isCommand {
 		m.startSide(question)
 		return nil

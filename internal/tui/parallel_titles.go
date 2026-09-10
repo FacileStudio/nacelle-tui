@@ -63,6 +63,24 @@ func shortTitle(s string) string {
 	return s
 }
 
+// titleParallelTasks names a parallel call's tasks in the background and
+// reports each title back on the shared channel as it arrives. It runs only
+// when a session is live, so the summarizer is billed like the work it names.
+func (m *Model) titleParallelTasks(call string, tasks []string) {
+	if m.agent == nil {
+		return
+	}
+	backend := m.agent.Backend()
+	go func() {
+		titles := titleTasks(tasks, backend)
+		for i, title := range titles {
+			if title != "" {
+				taskTitles <- taskTitled{Call: call, Index: i, Title: title}
+			}
+		}
+	}()
+}
+
 // titleTasks is the extra LLM call behind the task rows: one summarizer run
 // takes the whole fan-out and returns one short title per task, in order.
 // A backend that errors or returns no text leaves the rows on their collapsed

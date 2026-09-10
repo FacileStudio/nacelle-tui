@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -129,8 +130,8 @@ func instrumentsIn(dir string) []instrumentFile {
 // general than even the filesystem root.
 func renderLevels(levels [][]instrumentFile) string {
 	var body strings.Builder
-	for i := len(levels) - 1; i >= 0; i-- {
-		for _, f := range levels[i] {
+	for _, level := range slices.Backward(levels) {
+		for _, f := range level {
 			label := "Project instructions"
 			if f.global {
 				label = "Global instructions"

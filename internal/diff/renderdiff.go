@@ -78,7 +78,8 @@ func RenderDiff(change EditChange, width int, muted lipgloss.Style) string {
 	shown := 0
 	for i, block := range blocks {
 		if i > 0 {
-			out.WriteString(muted.Render("  …") + "\n")
+			out.WriteString(muted.Render("  …"))
+			out.WriteString("\n")
 			shown++
 		}
 		var cut bool

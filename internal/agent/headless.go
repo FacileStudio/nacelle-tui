@@ -85,7 +85,7 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 // closeOnErr returns the original err if cleanup succeeds, or the cleanup
 // error if cleanup fails. The caller should prefer the cleanup error only
 // when it wants to surface close failures over the original failure.
-func closeOnErr(err error, closers ...interface{}) error {
+func closeOnErr(err error, closers ...any) error {
 	if err == nil {
 		return nil
 	}
@@ -97,7 +97,7 @@ func closeOnErr(err error, closers ...interface{}) error {
 
 // closeAll calls Close on every closer it receives. It returns the last
 // error returned by a Close() error call, if any.
-func closeAll(closers ...interface{}) error {
+func closeAll(closers ...any) error {
 	var lastErr error
 	for _, c := range closers {
 		if c == nil {

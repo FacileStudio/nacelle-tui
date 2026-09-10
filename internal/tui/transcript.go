@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -244,11 +243,4 @@ func (m *Model) restyle() {
 
 func (m *Model) markdown(text string) string {
 	return theme.RenderMarkdown(m.pretty, text)
-}
-
-func countedNoun(n int, noun string) string {
-	if n == 1 {
-		return "1 " + noun
-	}
-	return fmt.Sprintf("%d %ss", n, noun)
 }

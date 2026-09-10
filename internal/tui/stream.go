@@ -118,19 +118,7 @@ func (m *Model) handleParallelCall(tool nacelle.ToolEvent) {
 		list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
 	}
 	m.parallelTasks[tool.ID] = list
-	if m.agent != nil {
-		call := tool.ID
-		backend := m.agent.Backend()
-		tasks := input.Tasks
-		go func() {
-			titles := titleTasks(tasks, backend)
-			for i, title := range titles {
-				if title != "" {
-					taskTitles <- taskTitled{Call: call, Index: i, Title: title}
-				}
-			}
-		}()
-	}
+	m.titleParallelTasks(tool.ID, input.Tasks)
 }
 
 func (m *Model) absorbToolResult(tool nacelle.ToolEvent, rawResult string) {

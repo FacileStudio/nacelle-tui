@@ -16,8 +16,8 @@ func extractEditPath(cmd string) (string, bool) {
 
 func matchInplaceMarker(cmd string) (string, bool) {
 	for _, m := range []string{"sed -i", "awk -i", "perl -i"} {
-		if idx := strings.Index(cmd, m); idx >= 0 {
-			return cmd[idx+len(m):], true
+		if _, after, matched := strings.Cut(cmd, m); matched {
+			return after, true
 		}
 	}
 	return "", false

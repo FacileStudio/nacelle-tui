@@ -59,7 +59,7 @@ func TestCompactAtPrecedence(t *testing.T) {
 		t.Errorf("env compact_at = %d, want 300000", *c.CompactAt)
 	}
 
-	c := env.read(t, s.Config{Limits: s.Limits{CompactAt: int64Ptr(400000)}})
+	c := env.read(t, s.Config{Limits: s.Limits{CompactAt: new(int64(400000))}})
 	if *c.CompactAt != 400000 {
 		t.Errorf("flag compact_at = %d, want 400000", *c.CompactAt)
 	}
@@ -76,8 +76,4 @@ func TestCompactAtFileVariants(t *testing.T) {
 	if c := env.read(t, s.Config{}); *c.CompactAt != 0 {
 		t.Errorf("compact_at: 0 = %d, want 0", *c.CompactAt)
 	}
-}
-
-func int64Ptr(i int64) *int64 {
-	return &i
 }

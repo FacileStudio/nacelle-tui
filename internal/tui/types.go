@@ -88,6 +88,22 @@ type parallelState struct {
 	parallelTasks map[string][]parallelTaskInfo
 }
 
+// sideState groups the side-run list and the system prompt they launch with,
+// so model stays under filet's field cap. Embedded, so every field still reads
+// as m.sides and m.system.
+type sideState struct {
+	sides  []sideRun
+	system string
+}
+
+// composer groups the prompt's own textarea and its recall history, so model
+// stays under filet's field cap. Embedded, so every field still reads as
+// m.prompt and m.hist.
+type composer struct {
+	prompt textarea.Model
+	hist   *history.History
+}
+
 // Model is the whole client: a transcript, a prompt, and at most one run in
 // flight.
 type Model struct {
@@ -95,17 +111,15 @@ type Model struct {
 	transcript
 	queue.Queue
 
-	prompt textarea.Model
+	composer
 
 	account
 	look
 	commandState
 	screen
 	thoughts
-	hist *history.History
 
 	parallelState
-	run    inflight
-	sides  []sideRun
-	system string
+	run inflight
+	sideState
 }

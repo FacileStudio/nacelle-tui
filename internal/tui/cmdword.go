@@ -57,7 +57,7 @@ func (m *Model) cursorWordAt() cursorWord {
 		end++
 	}
 	full := start
-	for i := 0; i < row; i++ {
+	for i := range row {
 		full += len(lines[i]) + 1
 	}
 	return cursorWord{text: line[start:end], row: row, start: start, end: end, full: full}

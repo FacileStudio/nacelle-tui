@@ -145,7 +145,7 @@ func TestViewMenuRendering(t *testing.T) {
 	m.prompt.SetValue("/")
 	m.refreshMenu()
 
-	first := strings.Split(visible(m.viewMenu()), "\n")[0]
+	first, _, _ := strings.Cut(visible(m.viewMenu()), "\n")
 	if !strings.HasPrefix(first, "→ /clear") {
 		t.Errorf("first row = %q, want selected marker", first)
 	}

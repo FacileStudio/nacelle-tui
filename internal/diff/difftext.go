@@ -1,5 +1,7 @@
 package diff
 
+import "slices"
+
 // lcsCellLimit caps the dynamic-programming table at roughly four million
 // cells. Beyond it the middle of the two texts is shown as one wholesale
 // replacement rather than paired up line by line — coarser, but never wrong,
@@ -107,9 +109,9 @@ func lcsTable(before, after []string) [][]int {
 	for i := range table {
 		table[i] = make([]int, len(after)+1)
 	}
-	for i := len(before) - 1; i >= 0; i-- {
-		for j := len(after) - 1; j >= 0; j-- {
-			if before[i] == after[j] {
+	for i, bi := range slices.Backward(before) {
+		for j, aj := range slices.Backward(after) {
+			if bi == aj {
 				table[i][j] = table[i+1][j+1] + 1
 				continue
 			}

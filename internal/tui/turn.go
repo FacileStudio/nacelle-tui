@@ -8,7 +8,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
-	"github.com/FacileStudio/nacelle-tui/internal/tasks"
 )
 
 func (m *Model) turn(event nacelle.Event) {
@@ -134,17 +133,4 @@ func (m *Model) reveal() (bool, tea.Cmd) {
 		m.say(fromClient, "reasoning will collapse to a single line from here")
 	}
 	return true, nil
-}
-
-func watchTasks() tea.Cmd {
-	return func() tea.Msg {
-		return <-tasks.ReportChan()
-	}
-}
-
-func (m *Model) recordTasks(reported tasks.TaskUpdate) tea.Cmd {
-	m.tasks = tasks.TaskList(reported)
-	tasks.SetCurrentPlan(m.tasks)
-	m.layout(m.windowHeight)
-	return watchTasks()
 }

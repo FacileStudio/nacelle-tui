@@ -33,7 +33,7 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	m := &Model{
 		core:       core{agent: agent, banner: banner, autoResume: autoResume},
 		transcript: transcript{compactAt: compactAt},
-		prompt:     newPrompt(),
+		composer:   composer{prompt: newPrompt(), hist: history.New()},
 		look: look{
 			theme: theme.Themed(true),
 			spin:  status.NewSpinner(),
@@ -49,7 +49,6 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 			editState: editState{
 				edits: map[string]editChange{}},
 		},
-		hist: history.New(),
 	}
 	m.pretty = theme.Prettier(m.theme.Markdown, m.width)
 	m.promptStyles = m.prompt.Styles()
@@ -132,9 +131,7 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 	case tea.KeyPressMsg:
 		return m.keyOrPrompt(message)
 	case tea.BackgroundColorMsg:
-		m.theme = theme.Themed(message.IsDark())
-		m.restyle()
-		return nil
+		return m.retheme(message)
 	case spinner.TickMsg:
 		return m.spun(message)
 	case approvalRequest:

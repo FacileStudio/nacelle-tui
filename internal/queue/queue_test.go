@@ -97,7 +97,7 @@ func TestQueueView(t *testing.T) {
 func TestQueueViewOverflow(t *testing.T) {
 	q := New()
 	style := lipgloss.NewStyle()
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		q.Add("item")
 	}
 	lines := q.View(-1, 80, style)

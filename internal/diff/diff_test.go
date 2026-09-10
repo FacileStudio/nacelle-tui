@@ -72,7 +72,7 @@ func TestADiffIsCutToTheWindowWithoutWrapping(t *testing.T) {
 	change := EditChange{Path: "f", Before: long + "\n", After: long + "\nadded\n"}
 	diff := RenderDiff(change, 40, muted)
 
-	for _, line := range strings.Split(diff, "\n") {
+	for line := range strings.SplitSeq(diff, "\n") {
 		if width := len([]rune(plain(line))); width > 41 {
 			t.Errorf("line %q is %d cells, wider than the 40-cell window plus its prefix", line, width)
 		}
