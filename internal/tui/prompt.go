@@ -6,7 +6,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 )
 
 const promptRows = 10
@@ -27,7 +26,7 @@ func newPrompt() textarea.Model {
 
 func continuation(info textarea.PromptInfo) string {
 	if info.LineNumber == 0 {
-		return lipgloss.NewStyle().Bold(true).Render("| ")
+		return ""
 	}
 	return "  "
 }
