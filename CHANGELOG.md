@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.30.1] - 2026-09-10
+
+### Fixed
+- **A hung summarizer can no longer freeze a session during compaction**: the summary call behind a pass now runs under a 120-second deadline. When the deadline fires, the partial text is dropped and the pass falls back to the mask — which still frees the bulky tool output — instead of holding the session at "compacting" forever.
+
 ## [0.30.0] - 2026-09-10
 
 ### Added
