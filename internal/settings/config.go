@@ -98,10 +98,9 @@ type Toggles struct {
 //
 // PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
 // by default; a wrapped question hangs its later rows under a matching indent.
-// An empty prefix draws nothing at all — the first row opens at the margin and
-// no indent is added on continuation rows, so an empty string is a real choice
-// rather than "say nothing". PromptPlaceholder is the ghost text the prompt
-// shows while it is empty. StartMessage is printed as the first thing on
+// A single space of margin always follows the prefix, so the input never touches
+// the left edge — an empty prefix still leaves one leading space.
+// PromptPlaceholder is the ghost text the prompt shows while it is empty. StartMessage is printed as the first thing on
 // launch, above the banner; it is a string that may span lines, so a welcome
 // block or an ascii banner can sit there. Empty prints nothing.
 type UI struct {

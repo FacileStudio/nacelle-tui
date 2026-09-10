@@ -12,13 +12,14 @@ import (
 const promptRows = 10
 
 // newPrompt builds the compose textarea. prefix is what the first row shows
-// ahead of the caret — "| " out of the box — and continuation rows get a matching
-// run of spaces so a wrapped question reads as one block. An empty prefix draws
-// nothing: the first row opens at the margin and continuation rows get no indent.
+// ahead of the caret — "| " out of the box — always followed by one space of
+// margin before the text, and continuation rows get a matching run of spaces so
+// a wrapped question reads as one block. An empty prefix still leaves that one
+// space: the text never touches the left edge.
 func newPrompt(prefix string, placeholder string) textarea.Model {
 	prompt := textarea.New()
 	prompt.Placeholder = placeholder
-	prompt.SetPromptFunc(lipgloss.Width(prefix), continuation(prefix))
+	prompt.SetPromptFunc(lipgloss.Width(prefix)+1, continuation(prefix))
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
 	prompt.MinHeight = 1
@@ -30,14 +31,15 @@ func newPrompt(prefix string, placeholder string) textarea.Model {
 }
 
 // continuation is the gutter text for every row. The first row carries the
-// prefix itself; every later row carries an indent as wide as the prefix so
-// wrapped text hangs under what it follows. An empty prefix means no gutter at
-// all, so nothing is drawn on the first row and no extra spaces are added.
+// prefix plus a trailing margin space; every later row carries an indent as wide
+// as that same gutter so wrapped text hangs under what it follows. The margin
+// space is always there, so even an empty prefix leaves one space before the
+// text on the first row and one space of gutter on continuation rows.
 func continuation(prefix string) func(textarea.PromptInfo) string {
-	indent := strings.Repeat(" ", lipgloss.Width(prefix))
+	indent := strings.Repeat(" ", lipgloss.Width(prefix)+1)
 	return func(info textarea.PromptInfo) string {
 		if info.LineNumber == 0 {
-			return prefix
+			return prefix+" "
 		}
 		return indent
 	}
