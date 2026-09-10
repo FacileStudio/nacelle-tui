@@ -69,9 +69,6 @@ func (m *Model) absorb(event nacelle.Event) {
 		m.commitParagraphs()
 	case nacelle.KindThinking:
 		m.run.reasoning.WriteString(event.Text)
-		if m.Expanded {
-			m.commitReasoning()
-		}
 
 	case nacelle.KindToolCall:
 		m.absorbToolCall(*event.Tool)
@@ -125,24 +122,5 @@ func (m *Model) commitParagraphs() {
 
 	if complete != "" {
 		m.say(fromModel, complete)
-	}
-}
-
-func (m *Model) commitReasoning() {
-	text := m.run.reasoning.String()
-	idx := strings.LastIndex(text, "\n")
-	if idx < 0 {
-		return
-	}
-	complete := text[:idx]
-	partial := text[idx+1:]
-
-	m.run.reasoning.Reset()
-	m.run.reasoning.WriteString(partial)
-
-	if complete != "" {
-		m.run.reasoningFull.WriteString(complete)
-		m.run.reasoningFull.WriteString("\n")
-		m.say(fromThinking, complete)
 	}
 }
