@@ -17,6 +17,7 @@ func (m *Model) turn(event nacelle.Event) {
 	line := m.turnBoundary(event.Usage)
 	m.say(fromTurn, line)
 	m.run.usage = m.run.usage.Add(event.Usage)
+	m.run.liveOut = 0
 	m.sink.Record(event.Usage, time.Now())
 	m.sized(event.Usage)
 	m.run.turnBegan = time.Time{}

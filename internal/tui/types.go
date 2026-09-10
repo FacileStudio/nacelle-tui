@@ -82,6 +82,11 @@ type parallelTaskInfo struct {
 	Began  time.Time
 	End    time.Time
 	Active bool
+	// Ledgered is how much of this task's usage has already been folded into
+	// the session total via live spend updates. A detached fan-out's spend
+	// joins m.spent as it streams; finishDetached adds only the residual,
+	// so live updates and the final authoritative figure never double-count.
+	Ledgered nacelle.Usage
 	// Cleared marks a finished task hidden by a /clear. It stays in the batch so
 	// running siblings keep their original slice indices — the live-update and
 	// result paths address tasks by that position — but the view, the layout

@@ -47,6 +47,10 @@ func (m *Model) status() string {
 	return stateLine + "\n" + m.theme.Muted.Render(truncate(counts, width))
 }
 
+// footer is the costs line under the state line: price when the backend
+// reported one, input and output tokens, and the context size. The output and
+// context counts carry the live estimate (liveOut) so they tick as the model
+// writes; the real per-turn usage replaces the estimate the moment a turn ends.
 func (m *Model) footer() []string {
 	total := m.spent.Add(m.run.usage)
 
@@ -56,9 +60,9 @@ func (m *Model) footer() []string {
 	}
 	spent = append(spent,
 		"↑"+shortTokens(total.InputTokens+total.CacheCreationTokens),
-		"↓"+shortTokens(total.OutputTokens))
+		"↓"+shortTokens(total.OutputTokens+m.run.liveOut))
 	if m.size > 0 {
-		spent = append(spent, "↕"+shortTokens(m.size))
+		spent = append(spent, "↕"+shortTokens(m.size+m.run.liveOut))
 	}
 	return spent
 }

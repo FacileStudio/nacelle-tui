@@ -132,7 +132,10 @@ func (m *Model) applyDetached(tasks []parallelTaskInfo, r detachedResult) {
 	}
 }
 
-// finishDetached records a task's outcome and spend, and marks it done.
+// finishDetached records a task's outcome and spend, and marks it done. The
+// task's own spend joins the session total here; for a detached fan-out some of
+// it may already have been folded live, so only the residual over what was is
+// added — otherwise live updates and the authoritative figure double-count.
 func (m *Model) finishDetached(pt *parallelTaskInfo, r detachedResult) {
 	if r.err != "" {
 		pt.Err = r.err
@@ -144,7 +147,14 @@ func (m *Model) finishDetached(pt *parallelTaskInfo, r detachedResult) {
 	pt.Active = false
 	pt.Tool = ""
 	if r.usage.Total() > 0 {
-		m.spent = m.spent.Add(r.usage)
+		residual := nacelle.Usage{
+			InputTokens:         max(r.usage.InputTokens-pt.Ledgered.InputTokens, 0),
+			OutputTokens:        max(r.usage.OutputTokens-pt.Ledgered.OutputTokens, 0),
+			CacheReadTokens:     max(r.usage.CacheReadTokens-pt.Ledgered.CacheReadTokens, 0),
+			CacheCreationTokens: max(r.usage.CacheCreationTokens-pt.Ledgered.CacheCreationTokens, 0),
+			Cost:                max(r.usage.Cost-pt.Ledgered.Cost, 0),
+		}
+		m.spent = m.spent.Add(residual)
 	}
 }
 

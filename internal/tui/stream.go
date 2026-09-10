@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -66,9 +67,11 @@ func (m *Model) absorb(event nacelle.Event) {
 		m.run.reported = m.run.reported || event.Text != ""
 		m.run.answer.WriteString(event.Text)
 		m.run.fullAnswer.WriteString(event.Text)
+		m.tickLiveOut(event.Text)
 		m.commitParagraphs()
 	case nacelle.KindThinking:
 		m.run.reasoning.WriteString(event.Text)
+		m.tickLiveOut(event.Text)
 
 	case nacelle.KindToolCall:
 		m.absorbToolCall(*event.Tool)
@@ -80,7 +83,17 @@ func (m *Model) absorb(event nacelle.Event) {
 		m.run.usage = event.Usage
 		m.run.stop = event.Stop
 		m.sized(event.Usage)
+		m.run.liveOut = 0
 	}
+}
+
+// tickLiveOut adds a streamed delta's estimated output tokens to the live
+// counter. Both the answer and the reasoning are billed as output, so both
+// tick it. ~4 characters per token is the standard heuristic; the figure is a
+// running estimate that the authoritative per-turn count replaces when the
+// turn ends.
+func (m *Model) tickLiveOut(delta string) {
+	m.run.liveOut += int64(utf8.RuneCountInString(delta)) / 4
 }
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {

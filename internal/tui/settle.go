@@ -47,6 +47,7 @@ func (m *Model) settle() tea.Cmd {
 	m.sayNothingCame()
 	m.spent = m.spent.Add(m.run.usage)
 	m.run.usage = nacelle.Usage{}
+	m.run.liveOut = 0
 	m.run.turnBegan = time.Time{}
 
 	m.taskReminder()

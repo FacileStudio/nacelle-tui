@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
@@ -57,15 +59,42 @@ func ReportSubagentUsage(batch string, idx int, usage nacelle.Usage) {
 // only touches still-running tasks, so an update that trails a finished result
 // can neither resurrect a row nor double-count it.
 func (m *Model) recordUpdate(u subagentUpdate) tea.Cmd {
-	tasks, ok := m.parallelTasks[u.batch]
-	if ok && u.idx >= 0 && u.idx < len(tasks) {
-		if tasks[u.idx].Active {
-			if u.spend {
-				tasks[u.idx].Usage = tasks[u.idx].Usage.Add(u.usage)
-			} else {
-				tasks[u.idx].Tool = u.tool
-			}
-		}
+	if !m.validUpdate(u) {
+		return watchUpdates()
+	}
+	pt := &m.parallelTasks[u.batch][u.idx]
+	if u.spend {
+		pt.Usage = pt.Usage.Add(u.usage)
+		m.foldSubagentSpend(pt, u)
+	} else {
+		pt.Tool = u.tool
 	}
 	return watchUpdates()
+}
+
+func (m *Model) validUpdate(u subagentUpdate) bool {
+	tasks, ok := m.parallelTasks[u.batch]
+	return ok && u.idx >= 0 && u.idx < len(tasks) && tasks[u.idx].Active
+}
+
+// foldSubagentSpend joins a live spend to the session total for a detached
+// fan-out, and remembers how much was folded so the task's final figure only
+// adds the residual. A model-called fan-out stays out — see isDetachedBatch.
+func (m *Model) foldSubagentSpend(pt *parallelTaskInfo, u subagentUpdate) {
+	if !isDetachedBatch(u.batch) {
+		return
+	}
+	m.spent = m.spent.Add(u.usage)
+	pt.Ledgered = pt.Ledgered.Add(u.usage)
+}
+
+// isDetachedBatch reports whether a batch key belongs to a /parallel fan-out
+// rather than to the model's parallel_subagent tool call. The two are told apart
+// by the "detach" prefix launchDetached hands out, and they pay for it here: a
+// model-callable fan-out's spend already reaches the session total through
+// nacelle's Usage hook (delegations), so folding its live updates in again would
+// double-count it. A detached fan-out has no Usage hook, so its live spend has
+// to be folded here to reach the footer in real time.
+func isDetachedBatch(batch string) bool {
+	return strings.HasPrefix(batch, "detach")
 }

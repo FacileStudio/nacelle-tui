@@ -81,6 +81,7 @@ func Launch(c UISession) error {
 func (m *Model) send(text string) tea.Cmd {
 	m.run.stop = ""
 	m.run.usage = nacelle.Usage{}
+	m.run.liveOut = 0
 	m.run.began = time.Now()
 	m.run.turnBegan = time.Now()
 	m.run.interrupted = time.Time{}

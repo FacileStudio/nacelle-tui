@@ -20,6 +20,12 @@ type answerStream struct {
 	committedLen  int
 	reasoning     strings.Builder
 	reasoningFull strings.Builder
+	// liveOut is an estimate of the output tokens streamed since the last
+	// turn boundary, from the deltas themselves. The stream reports real
+	// usage only when a turn ends, so this is what lets the output and
+	// context counters tick while the model is still writing; it is cleared
+	// the moment the authoritative per-turn usage lands.
+	liveOut int64
 }
 
 // runControl holds the run's coordination state. Embedded in inflight so every
