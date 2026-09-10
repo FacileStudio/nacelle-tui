@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.32.0] - 2026-09-10
+
+### Changed
+- **`/parallel` no longer blocks the main thread**: a typed fan-out is detached. The TUI owns the work — it launches the nested agents itself (via nacelle `DelegateParallel`) instead of asking the parent model to, so the parent run's `busy` flag is never set and the prompt stays live the whole time. "started N parallel agents" appears in the main thread, and each subagent still renders as a titled row under the prompt with a live clock and its own spend. You can now chat while the agents grind. The `parallel_subagent` tool the model calls mid-turn is unchanged and still waits on its result.
+
 ## [0.31.0] - 2026-09-10
 
 ### Removed
