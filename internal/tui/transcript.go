@@ -228,11 +228,9 @@ func (m *Model) inFlightGroups() []string {
 		if !g.End.IsZero() {
 			continue
 		}
-		line := g.InFlightLine(m.width)
-		if line == "" {
-			continue
+		if row := m.inFlightGroup(g); row != "" {
+			groups = append(groups, row)
 		}
-		groups = append(groups, toolview.ToolLinePainted(line))
 	}
 	return groups
 }

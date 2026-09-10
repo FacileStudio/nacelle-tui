@@ -50,3 +50,13 @@ func ToolSourceColor(name string, source nacelle.Source, ok bool) string {
 	}
 	return "31"
 }
+
+// ToolBorder returns the ANSI colour a tool's result box wears on its left
+// border while the tool is still running: the tool's own glyph colour, orange
+// for an MCP tool. A finished box trades this for green or red via the caller.
+func ToolBorder(name string, source nacelle.Source) string {
+	if source == nacelle.ToolSourceMCP {
+		return mcpANSI
+	}
+	return ToolRestore(name)
+}

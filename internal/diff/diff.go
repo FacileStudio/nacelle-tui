@@ -16,6 +16,13 @@ var editTools = map[string]bool{
 	"run_command": true,
 }
 
+// IsEditTool reports whether a tool's result is drawn as a boxed change (a
+// file diff, or a run_command's output). Every other tool prints its ordinary
+// one-line report.
+func IsEditTool(name string) bool {
+	return editTools[name]
+}
+
 // contextLines is how many unchanged lines surround each block of changes,
 // the same neighbourhood every git reader defaults to.
 const contextLines = 3

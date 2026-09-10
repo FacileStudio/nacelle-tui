@@ -49,14 +49,16 @@ type runControl struct {
 
 // failureCollapse tracks consecutive identical tool failures so they
 // render as one line with a count rather than as N identical two-line
-// blocks. Cleared at the same edges as the rest of a run's state: flush
-// in stranded and settle, reset in clearGroups.
+// blocks. box holds the boxed detail of the first failure, so a collapsed run
+// still draws its red box once. Cleared at the same edges as the rest of a
+// run's state: flush in stranded and settle, reset in clearGroups.
 type failureCollapse struct {
 	toolLine string
 	name     string
 	err      string
 	duration time.Duration
 	count    int
+	box      string
 }
 
 // inflight is the one run this client allows at a time: how to hear from it,
@@ -89,13 +91,16 @@ type turn struct {
 
 // editState is what a run tracks per tool call, plus what drawing a diff for
 // its file edits needs: the directory the file tools work in, whether diffs
-// were asked for at all, and the before/after of every editing call in
-// flight, keyed by call id. It lives on the run rather than the model because
-// a run's edits are not a property of the client.
+// were asked for at all, the before/after of every editing call in flight
+// keyed by call id, and the raw result string of each call so a boxed
+// run_command's output can be drawn alongside its file diff. Both maps live
+// here rather than on the model because a run's edits and outputs are not a
+// property of the client.
 type editState struct {
-	root  string
-	diffs bool
-	edits map[string]editChange
+	root    string
+	diffs   bool
+	edits   map[string]editChange
+	outputs map[string]string
 }
 
 // beginTool turns a call into a group row. A new call either extends the

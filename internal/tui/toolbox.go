@@ -1,0 +1,121 @@
+package tui
+
+import (
+	"strings"
+
+	"charm.land/lipgloss/v2"
+
+	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/diff"
+	"github.com/FacileStudio/nacelle-tui/internal/toolview"
+)
+
+// commandLineCap bounds how many rows of a run_command's output one box shows,
+// before a marker says the rest was cut. A command's whole output can be huge;
+// a glance at the tail plus the marker is enough without flooding scrollback.
+const commandLineCap = 200
+
+// boxBorder is the left-spine colour of a finished edit or command box: green
+// for a call that worked, red for one that failed. A still-running box wears
+// the tool's own colour via toolview.ToolBorder instead.
+func boxBorder(ok bool) string {
+	if ok {
+		return "32"
+	}
+	return "31"
+}
+
+// finishEdit renders the boxed detail of one finished call — its file diff,
+// its run_command output, or both — and hands it to the transcript. ok is the
+// call's outcome and colours the left border.
+func (m *Model) finishEdit(id string, tool *nacelle.ToolEvent, ok bool) {
+	if box := m.editBoxFor(id, tool, ok); box != "" {
+		m.say(fromDiff, box)
+	}
+}
+
+// editBoxFor builds the box(es) a finished call shows and forgets the call's
+// pending data. It is used by both the success path and, stored in the failure
+// collapse, the first of a run of identical failures — so a collapsed run
+// draws its box once, not once per identical error.
+func (m *Model) editBoxFor(id string, tool *nacelle.ToolEvent, ok bool) string {
+	change, edited := m.drainEdit(id)
+	result, has := m.run.outputs[id]
+	if has {
+		delete(m.run.outputs, id)
+	}
+	var box strings.Builder
+	if edited {
+		if d := renderDiff(change, m.width, boxBorder(ok), m.theme.Muted); d != "" {
+			box.WriteString(d)
+		}
+	}
+	if tool.Name == "run_command" && has {
+		box.WriteString(m.outputBox(result, ok))
+	}
+	return box.String()
+}
+
+// drainEdit takes and clears the captured change for a call, applying the
+// prior-contents fallback a run_command or overwritten file needs.
+func (m *Model) drainEdit(id string) (editChange, bool) {
+	change, edited := m.run.edits[id]
+	if !edited {
+		return change, false
+	}
+	delete(m.run.edits, id)
+	if change.After == "" && change.Before != "" {
+		change.After = priorContents(m.run.root, change.Path)
+	}
+	return change, true
+}
+
+// boxedGroupRow is the single pane row a running edit or command draws in the
+// live region: its held line inside the same block background its result will
+// fill, so the box is continuous from "running" to "done".
+func (m *Model) boxedGroupRow(g toolGroup) string {
+	line := g.InFlightLine(m.width)
+	if line == "" {
+		return ""
+	}
+	content := max(m.width-1, 10)
+	return m.theme.Muted.Background(lipgloss.Color(toolview.BlockBg)).Width(content).Render(truncate(toolview.ToolLinePainted(line), content))
+}
+
+// inFlightGroup draws one running tool's live row — boxed for an edit or
+// command with the tool's own colour on the left border while it runs, and as
+// the ordinary held line for every other tool.
+func (m *Model) inFlightGroup(g toolGroup) string {
+	if diff.IsEditTool(g.Name) {
+		if row := m.boxedGroupRow(g); row != "" {
+			return toolview.Box([]string{row}, toolview.ToolBorder(g.Name, g.Tool.Source))
+		}
+		return ""
+	}
+	line := g.InFlightLine(m.width)
+	if line == "" {
+		return ""
+	}
+	return toolview.ToolLinePainted(line)
+}
+
+// outputBox renders a run_command's raw output as a full-width box sharing the
+// diff's background, so a command's stdout and stderr are as visible as the
+// file edits around them. The border follows the same verdict as the diffs.
+func (m *Model) outputBox(result string, ok bool) string {
+	if result == "" {
+		return ""
+	}
+	content := max(m.width-1, 10)
+	base := m.theme.Muted.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
+	lines := strings.Split(strings.TrimSuffix(result, "\n"), "\n")
+	rows := make([]string, 0, min(len(lines), commandLineCap)+1)
+	for i, ln := range lines {
+		if i >= commandLineCap {
+			rows = append(rows, base.Render("  … more"))
+			break
+		}
+		rows = append(rows, base.Render("  "+truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-2)))
+	}
+	return toolview.Box(rows, boxBorder(ok))
+}

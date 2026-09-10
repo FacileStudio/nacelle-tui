@@ -45,6 +45,11 @@ func (m *Model) finished(tool *nacelle.ToolEvent) {
 	if tool.Discarded {
 		return
 	}
+	if m.run.outputs == nil {
+		m.run.outputs = make(map[string]string)
+	}
+	m.run.outputs[tool.ID] = tool.Result
+
 	line, held := m.run.heldLine(tool.ID, m.width)
 	if !held {
 		line = toolview.ToolLine(tool.Name, tool.Input, m.width)
@@ -72,7 +77,7 @@ func (m *Model) finished(tool *nacelle.ToolEvent) {
 
 	m.flushFailures()
 	m.say(fromTool, toolview.ColorGlyph(line, toolview.ToolSourceColor(tool.Name, tool.Source, true), toolview.ToolSourceRestore(tool.Name, tool.Source))+" · "+took(tool.Duration))
-	m.finishEdit(tool.ID)
+	m.finishEdit(tool.ID, tool, true)
 }
 
 func (m *Model) finishGroup(line string, tool *nacelle.ToolEvent) bool {
@@ -87,7 +92,7 @@ func (m *Model) finishGroup(line string, tool *nacelle.ToolEvent) bool {
 		m.say(fromTool, toolview.ColorGlyph(line, toolview.ToolSourceColor(tool.Name, tool.Source, true), toolview.ToolSourceRestore(tool.Name, tool.Source))+" · "+dur)
 	}
 	for _, id := range g.CallIDs {
-		m.finishEdit(id)
+		m.finishEdit(id, tool, !g.Failed)
 	}
 	return true
 }
@@ -124,20 +129,6 @@ func (m *Model) printGroupFailure(line, name string, errs []toolError, dur strin
 	}
 }
 
-func (m *Model) finishEdit(id string) {
-	change, edited := m.run.edits[id]
-	if !edited {
-		return
-	}
-	delete(m.run.edits, id)
-	if change.After == "" && change.Before != "" {
-		change.After = priorContents(m.run.root, change.Path)
-	}
-	if diff := renderDiff(change, m.width, m.theme.Muted); diff != "" {
-		m.say(fromDiff, diff)
-	}
-}
-
 // canPrintTool returns false when a grouped tool result has not yet had its
 // last call — printing the group line here would duplicate it on every call
 // in the batch. Non-grouped tools always return true.
@@ -151,7 +142,8 @@ func (m *Model) canPrintTool(id string, held bool) bool {
 // trackFailure increments the failure counter and either extends an existing
 // collapse batch or starts a new one. The collapse matches on (name, err), so
 // identical failures render as "name · N times · duration" rather than one
-// line per repeated error.
+// line per repeated error. The first failure's boxed detail is kept, so the
+// collapse draws its red box once rather than once per identical error.
 func (m *Model) trackFailure(line string, tool *nacelle.ToolEvent) {
 	errText := tool.Err.Error()
 	if m.run.failures.name == tool.Name && m.run.failures.err == errText {
@@ -166,6 +158,7 @@ func (m *Model) trackFailure(line string, tool *nacelle.ToolEvent) {
 		err:      errText,
 		duration: tool.Duration,
 		count:    1,
+		box:      m.editBoxFor(tool.ID, tool, false),
 	}
 }
 
@@ -185,7 +178,11 @@ func (m *Model) flushFailures() {
 		errLine = fmt.Sprintf("%s failed %d times · last: %s: %s", m.run.failures.name, m.run.failures.count, took(m.run.failures.duration), m.run.failures.err)
 	}
 	resultStr := m.paint(fromResult, errLine)
-	m.unprinted = append(m.unprinted, toolStr, resultStr)
+	lines := []string{toolStr, resultStr}
+	if m.run.failures.box != "" {
+		lines = append(lines, m.run.failures.box)
+	}
+	m.unprinted = append(m.unprinted, lines...)
 	m.session.Line(sessions.Speaker(fromTool), toolview.ColorGlyph(m.run.failures.toolLine, toolview.ToolSourceColor(m.run.failures.name, "", false), toolview.ToolSourceRestore(m.run.failures.name, "")))
 	m.session.Line(sessions.Speaker(fromResult), errLine)
 	m.run.failures = failureCollapse{}
@@ -212,5 +209,6 @@ func (m *Model) stranded() {
 	}
 	m.run.clearGroups()
 	m.run.edits = map[string]editChange{}
+	m.run.outputs = map[string]string{}
 	m.dropFinishedParallel()
 }

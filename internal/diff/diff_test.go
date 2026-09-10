@@ -20,7 +20,7 @@ func plain(diff string) string {
 
 func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 	change := EditChange{Path: "main.go", Before: "one\ntwo\nthree\n", After: "one\nTWO\nthree\n"}
-	diff := RenderDiff(change, 80, muted)
+	diff := RenderDiff(change, 80, "32", muted)
 	text := plain(diff)
 
 	if !strings.Contains(text, "- two") {
@@ -36,33 +36,72 @@ func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 	}
 }
 
+func TestADiffNamesTheFileAtTheTop(t *testing.T) {
+	change := EditChange{Path: "main.go", Before: "old\n", After: "new\n"}
+	diff := plain(RenderDiff(change, 80, "32", muted))
+
+	if !strings.Contains(diff, "main.go") {
+		t.Errorf("diff = %q, want the changed file named in the header", diff)
+	}
+}
+
+func TestADiffSitsInAFullWidthBoxWithAColouredSpine(t *testing.T) {
+	change := EditChange{Path: "f", Before: "old\n", After: "new\n"}
+	diff := RenderDiff(change, 40, "32", muted)
+
+	for line := range strings.SplitSeq(strings.TrimSuffix(diff, "\n"), "\n") {
+		if !strings.HasPrefix(plain(line), "│") {
+			t.Errorf("line %q lacks the left border", line)
+		}
+		if width := len([]rune(plain(line))); width != 40 {
+			t.Errorf("line %q is %d cells, want the full 40-cell pane", line, width)
+		}
+	}
+	if !strings.Contains(diff, "48;5;237") {
+		t.Errorf("diff = %q, want the pane's shared background", diff)
+	}
+}
+
 func TestADiffColoursRemovalsRedAndAdditionsGreen(t *testing.T) {
 	change := EditChange{Path: "f", Before: "old\n", After: "new\n"}
-	diff := RenderDiff(change, 80, muted)
+	diff := RenderDiff(change, 80, "32", muted)
 
-	if !strings.Contains(diff, diffRemoved.Render("  - old")) {
-		t.Errorf("diff = %q, want removals in ANSI red", diff)
+	if !strings.Contains(diff, "91") || !strings.Contains(diff, "48;5;52") {
+		t.Errorf("diff = %q, want removals in red on a dark red ground", diff)
 	}
-	if !strings.Contains(diff, diffAdded.Render("  + new")) {
-		t.Errorf("diff = %q, want additions in ANSI green", diff)
+	if !strings.Contains(diff, "92") || !strings.Contains(diff, "48;5;22") {
+		t.Errorf("diff = %q, want additions in green on a dark green ground", diff)
+	}
+}
+
+func TestARecapSumsAddedAndRemovedLines(t *testing.T) {
+	change := EditChange{Path: "f", Before: "a\nb\nc\n", After: "a\nx\nc\nd\n"}
+	diff := plain(RenderDiff(change, 80, "32", muted))
+
+	if !strings.Contains(diff, "+2") || !strings.Contains(diff, "-1") {
+		t.Errorf("recap = %q, want +2 -1 for one line changed and one added", diff)
 	}
 }
 
 func TestACreatedFileIsAllAdditions(t *testing.T) {
 	change := EditChange{Path: "new.go", Before: "", After: "package main\n"}
-	diff := plain(RenderDiff(change, 80, muted))
+	diff := RenderDiff(change, 80, "32", muted)
+	text := plain(diff)
 
-	if strings.Contains(diff, "- ") {
-		t.Errorf("diff = %q, want no removals for a new file", diff)
+	if strings.Contains(diff, "48;5;52") {
+		t.Errorf("diff = %q, want no red ground for a new file", diff)
 	}
-	if !strings.Contains(diff, "+ package main") {
-		t.Errorf("diff = %q, want the written line as an addition", diff)
+	if !strings.Contains(text, "+ package main") {
+		t.Errorf("diff = %q, want the written line as an addition", text)
+	}
+	if strings.Contains(text, "- ") {
+		t.Errorf("diff = %q, want no removals for a new file", text)
 	}
 }
 
 func TestAnUnchangedFileRendersNothing(t *testing.T) {
 	change := EditChange{Path: "same.go", Before: "a\nb\n", After: "a\nb\n"}
-	if diff := RenderDiff(change, 80, muted); diff != "" {
+	if diff := RenderDiff(change, 80, "32", muted); diff != "" {
 		t.Errorf("diff = %q, want nothing for identical contents", diff)
 	}
 }
@@ -70,11 +109,11 @@ func TestAnUnchangedFileRendersNothing(t *testing.T) {
 func TestADiffIsCutToTheWindowWithoutWrapping(t *testing.T) {
 	long := strings.Repeat("x", 200)
 	change := EditChange{Path: "f", Before: long + "\n", After: long + "\nadded\n"}
-	diff := RenderDiff(change, 40, muted)
+	diff := RenderDiff(change, 40, "32", muted)
 
-	for line := range strings.SplitSeq(diff, "\n") {
-		if width := len([]rune(plain(line))); width > 41 {
-			t.Errorf("line %q is %d cells, wider than the 40-cell window plus its prefix", line, width)
+	for line := range strings.SplitSeq(strings.TrimSuffix(diff, "\n"), "\n") {
+		if width := len([]rune(plain(line))); width > 40 {
+			t.Errorf("line %q is %d cells, wider than the 40-cell pane", line, width)
 		}
 	}
 }
@@ -84,12 +123,23 @@ func TestAHugeRewriteFallsBackToOneReplacementBlock(t *testing.T) {
 	after := strings.Repeat("new line\n", 3000)
 	change := EditChange{Path: "f", Before: before, After: after}
 
-	diff := RenderDiff(change, 80, muted)
+	diff := RenderDiff(change, 80, "32", muted)
 	if got := strings.Count(plain(diff), "+ new line"); got == 0 {
 		t.Error("diff shows no additions for a wholesale rewrite")
 	}
-	if lines := len(strings.Split(plain(diff), "\n")); lines > shownDiffLines+2 {
+	if lines := len(strings.Split(plain(diff), "\n")); lines > shownDiffLines+8 {
 		t.Errorf("diff renders %d lines, want it capped near %d", lines, shownDiffLines)
+	}
+}
+
+func TestCountChangeCountsAllLinesNotJustShown(t *testing.T) {
+	before := strings.Repeat("r\n", 100)
+	after := strings.Repeat("a\n", 200)
+	change := EditChange{Path: "f", Before: before, After: after}
+
+	added, removed := CountChange(change)
+	if added != 200 || removed != 100 {
+		t.Errorf("count = %d,%d want 200,100", added, removed)
 	}
 }
 
