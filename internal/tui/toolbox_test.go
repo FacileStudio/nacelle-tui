@@ -19,14 +19,20 @@ func TestARunCommandOutputRendersAsABox(t *testing.T) {
 	}})
 
 	said := strings.Join(m.unprinted, "\n")
-	if !strings.Contains(said, "38;5;32") {
-		t.Errorf("output = %q, want the success box's green border", said)
+	if strings.Contains(said, "38;5;3") {
+		t.Errorf("output = %q, want no ANSI256 grey-range border escape", said)
 	}
 	if !strings.Contains(visible(said), "ok   package") || !strings.Contains(visible(said), "PASS") {
 		t.Errorf("output = %q, want the command's output in the box", visible(said))
 	}
-	for line := range strings.SplitSeq(visible(said), "\n") {
-		if strings.Contains(line, "│") && len([]rune(line)) != 80 {
+	for line := range strings.SplitSeq(said, "\n") {
+		if !strings.HasPrefix(visible(line), "│") {
+			continue
+		}
+		if !strings.HasPrefix(line, "\x1b[32;48;5;237m│") {
+			t.Errorf("box row = %q, want the success box's green SGR spine", line)
+		}
+		if len([]rune(visible(line))) != 80 {
 			t.Errorf("box row = %q, want a full 80-cell pane", line)
 		}
 	}
@@ -43,11 +49,16 @@ func TestAFailedRunCommandRendersARedOutputBox(t *testing.T) {
 	m.stranded()
 
 	said := strings.Join(m.unprinted, "\n")
-	if !strings.Contains(said, "38;5;31") {
-		t.Errorf("output = %q, want the failure box's red border", said)
+	if strings.Contains(said, "38;5;3") {
+		t.Errorf("output = %q, want no ANSI256 grey-range border escape", said)
 	}
 	if !strings.Contains(visible(said), "boom: lost the build") {
 		t.Errorf("output = %q, want the failed command's output in a box", visible(said))
+	}
+	for line := range strings.SplitSeq(said, "\n") {
+		if strings.HasPrefix(visible(line), "│") && !strings.HasPrefix(line, "\x1b[31;48;5;237m│") {
+			t.Errorf("box row = %q, want the failure box's red SGR spine", line)
+		}
 	}
 }
 
@@ -71,18 +82,23 @@ func TestAFinishedEditRendersARecapBox(t *testing.T) {
 }
 
 // While an edit or command is still running, its live region row is the same
-// box the result will fill, wearing the tool's own colour on the left border.
+// box the result will fill, wearing the tool's own colour on the left border —
+// the same magenta (SGR 35) the tool glyph already wears raw, so the spine and
+// the line agree.
 func TestTheLiveBoxWearsTheToolColourWhileRunning(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 	m.absorb(called("l", "edit_file", `{"path":"view.go"}`))
 
 	view := m.View().Content
-	if !strings.Contains(view, "38;5;35") {
-		t.Errorf("view = %q, want the running edit box's magenta border", view)
+	if !strings.Contains(view, "\x1b[35;48;5;237m│") {
+		t.Errorf("view = %q, want the running edit box's magenta spine", view)
 	}
-	if !strings.Contains(view, "│") {
-		t.Errorf("view = %q, want a boxed left border while running", view)
+	if !strings.Contains(view, "\x1b[35m✎") {
+		t.Errorf("view = %q, want the glyph in that same magenta", view)
+	}
+	if strings.Contains(view, "38;5;3") {
+		t.Errorf("view = %q, want no ANSI256 grey-range border escape", view)
 	}
 }
 
@@ -143,5 +159,88 @@ func TestStreamedOutputIsNotDuplicatedAtResult(t *testing.T) {
 	}
 	if strings.Count(said, "go build") != 1 {
 		t.Errorf("output = %q, want the streamed line once, not duplicated by the result", said)
+	}
+}
+
+// A streamed fragment is one completed line without its trailing newline, so
+// the live box must split the accumulated buffer per fragment and grow a row
+// per line as it arrives. Concatenating the fragments raw squishes every line
+// onto one.
+func TestStreamedFragmentsFillTheLiveBoxOneRowEach(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.absorb(called("s", "run_command", `{"command":"make"}`))
+	for _, frag := range []string{"syntax ok", "compiling", "linking", "done"} {
+		m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "s", Name: "run_command"}, Text: frag})
+	}
+
+	view := visible(m.View().Content)
+	for _, line := range []string{"  syntax ok", "  compiling", "  linking", "  done"} {
+		if !strings.Contains(view, line) {
+			t.Errorf("view = %q, want streamed line %q in the running box", view, line)
+		}
+	}
+	rows := 0
+	for line := range strings.SplitSeq(view, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "│") {
+			rows++
+		}
+	}
+	if rows != 1+4 {
+		t.Errorf("view = %q, want the held line plus 4 streamed rows, got %d", view, rows)
+	}
+	if strings.Contains(view, "syntax okcompilinglinkingdone") {
+		t.Errorf("view = %q, want no squished single row", view)
+	}
+}
+
+// The same split must survive into the finished box: the streamed fragments
+// win over the result's whole-output copy, so the committed pane is one row
+// per line rather than one squished row.
+func TestStreamedFragmentsStaySeparateRowsInTheFinishedBox(t *testing.T) {
+	m := sized()
+	m.absorb(called("f", "run_command", `{"command":"make"}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "f", Name: "run_command"}, Text: "syntax ok"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "f", Name: "run_command"}, Text: "compiling"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "f", Name: "run_command"}, Text: "linking"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "f", Name: "run_command"}, Text: "done"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
+		ID: "f", Name: "run_command", Input: `{"command":"make"}`, Result: "syntax ok\ncompiling\nlinking\ndone\n",
+	}})
+	m.stranded()
+
+	said := visible(strings.Join(m.unprinted, "\n"))
+	rows := 0
+	for line := range strings.SplitSeq(said, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "│") {
+			rows++
+		}
+	}
+	if rows != 4 {
+		t.Errorf("output = %q, want 4 finished box rows, got %d", said, rows)
+	}
+	raw := strings.Join(m.unprinted, "\n")
+	if !strings.Contains(raw, "\x1b[32;48;5;237m│") {
+		t.Errorf("output = %q, want the finished streamed box's green spine", raw)
+	}
+	if strings.Contains(said, "syntax okcompilinglinkingdone") {
+		t.Errorf("output = %q, want no squished single row", said)
+	}
+}
+
+// A running command's live box border wears the tool's own colour — magenta
+// for a run_command, orange 208 for an MCP one — while a finished box flips
+// the same spine to green or red. One scheme, no grey drift between states.
+func TestTheLiveBoxBorderUsesTheToolsOwnColourForRunCommandToo(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.absorb(called("c", "run_command", `{"command":"make"}`))
+
+	view := m.View().Content
+	if !strings.Contains(view, "\x1b[35;48;5;237m│") {
+		t.Errorf("view = %q, want the running command box's magenta spine", view)
+	}
+	if strings.Contains(view, "38;5;3") {
+		t.Errorf("view = %q, want no ANSI256 grey-range border escape", view)
 	}
 }

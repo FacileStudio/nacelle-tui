@@ -102,8 +102,12 @@ func (m *Model) tickLiveOut(delta string) {
 
 // absorbToolOutput accumulates a streamed fragment of a call's output onto the
 // call's box buffer, so a running command's live region can fill as its
-// output arrives. The final KindToolResult still carries the whole output; a
-// backend that streams it here first lets the running box show progress.
+// output arrives. A fragment is one completed line, emitted without its
+// newline — nacelle's line emitter strips it so a consumer sees "one", not
+// "one\n" — so each fragment is normalised to end in one and the box's line
+// split stays honest. The final KindToolResult still carries the whole
+// output; a backend that streams it here first lets the running box show
+// progress.
 func (m *Model) absorbToolOutput(tool nacelle.ToolEvent, text string) {
 	if text == "" {
 		return
@@ -111,7 +115,11 @@ func (m *Model) absorbToolOutput(tool nacelle.ToolEvent, text string) {
 	if m.run.outputs == nil {
 		m.run.outputs = make(map[string]string)
 	}
-	m.run.outputs[tool.ID] += text
+	fragment := text
+	if !strings.HasSuffix(fragment, "\n") {
+		fragment += "\n"
+	}
+	m.run.outputs[tool.ID] += fragment
 }
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
