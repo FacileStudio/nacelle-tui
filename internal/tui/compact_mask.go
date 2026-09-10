@@ -175,7 +175,7 @@ func (m *Model) trimThinking(message *nacelle.Message, budget int64) (int64, int
 // or produced nothing. The mask still frees the bulky tool output, so a failed
 // summary costs nothing but the attempt.
 func (m *Model) applyMaskFallback(outcome compactOutcome) {
-	evictCut := len(m.conversation) - keepCount(len(m.conversation))
+	evictCut := outcome.evictCut
 	results, thinking, _ := m.maskEvicted(evictCut)
 	done := compacted{
 		evictCut: evictCut,

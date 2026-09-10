@@ -161,7 +161,7 @@ func (m *Model) beginCompaction(ctx context.Context) tea.Cmd {
 func runCompaction(m *Model, ctx context.Context, results chan compactOutcome, evictCut int) {
 	defer close(results)
 	conv := m.conversation
-	outcome := compactOutcome{before: m.size}
+	outcome := compactOutcome{before: m.size, evictCut: evictCut}
 
 	if agent := m.summarizer(); agent != nil {
 		asks := compactPrompt(conv, evictCut)
@@ -212,7 +212,7 @@ func (m *Model) settleCompaction(outcome compactOutcome) tea.Cmd {
 	m.compacting = false
 	m.run.compactChan = nil
 
-	evictCut := len(m.conversation) - keepCount(len(m.conversation))
+	evictCut := outcome.evictCut
 
 	if outcome.err != nil {
 		m.applyMaskFallback(outcome)

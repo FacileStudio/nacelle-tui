@@ -175,7 +175,7 @@ func TestCompactReportNamesTheWholePass(t *testing.T) {
 func TestSettleCompactionInstallsASummary(t *testing.T) {
 	m := sized()
 	m.conversation = bigConversation()
-	outcome := compactOutcome{before: int64(125_000), summary: "Decisions:\n- done."}
+	outcome := compactOutcome{before: int64(125_000), evictCut: len(m.conversation) - keepCount(len(m.conversation)), summary: "Decisions:\n- done."}
 
 	m.settleCompaction(outcome)
 

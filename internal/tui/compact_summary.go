@@ -37,6 +37,7 @@ type compactOutcome struct {
 	before       int64
 	after        int64
 	done         compacted
+	evictCut     int
 	summary      string
 	err          error
 }

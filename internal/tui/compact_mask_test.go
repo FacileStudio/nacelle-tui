@@ -135,7 +135,7 @@ func TestMaskFallbackKeepsTheConversationStanding(t *testing.T) {
 	m.size = compactAt + 25_000
 	m.compactAt = compactAt
 
-	outcome := compactOutcome{before: m.size}
+	outcome := compactOutcome{before: m.size, evictCut: len(m.conversation) - keepCount(len(m.conversation))}
 	m.applyMaskFallback(outcome)
 
 	saved := 0
@@ -163,7 +163,7 @@ func TestSettleCompactionFallsBackToTheMaskOnFailure(t *testing.T) {
 	m := sized()
 	m.conversation = bigConversation()
 	m.size = compactAt + 25_000
-	outcome := compactOutcome{before: m.size, err: errors.New("summarizer hiccuped")}
+	outcome := compactOutcome{before: m.size, evictCut: len(m.conversation) - keepCount(len(m.conversation)), err: errors.New("summarizer hiccuped")}
 
 	m.settleCompaction(outcome)
 
