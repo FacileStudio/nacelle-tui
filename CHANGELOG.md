@@ -4,6 +4,14 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.35.0] - 2026-09-10
+
+### Changed
+- **Parallel rows now show what each subagent is doing right now**: a running task's row reads `≫ <title>: <tool> <clock> <price> <tokens>`, with the live tool name coloured like the same tool in the transcript. Relies on nacelle v0.17.0's live tool-call reporting. A row whose title hasn't landed yet shows a 7-word-capped summary instead of the full delegate prompt, so the fan-out never dumps the whole task text under the prompt.
+- **The input prompt's prefix, placeholder and start message are configurable** (`prompt_prefix`, `prompt_placeholder`, `start_message` in `~/.nacelle.yml`). An empty `prompt_prefix` draws no prefix and no continuation indent; `start_message` is a multiline block printed above the version banner. Both follow the default > config precedence of the other UI settings.
+- **The system prompt now tells the model a dispatched `parallel_subagent` is the point to end its turn**, so a non-blocking fan-out doesn't hold the main thread open.
+- **nacelle bumped to v0.17.0** for the live tool-call hook that drives the per-task tool column.
+
 ## [0.34.0] - 2026-09-10
 
 ### Changed
