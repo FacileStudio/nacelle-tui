@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.38.0] - 2026-09-10
+
+### Added
+- **MCP servers configured inline in `~/.nacelle.yml`** — `mcp:` now takes a map of server name to definition (`command`/`args`, `type`/`url`, `env`, `cwd`, `headers`, `disabled`) instead of a list of `.mcp.json` file paths, so a server needs no second file. `-mcp <file>` still loads another client's `.mcp.json` and merges its servers in by name, the flag's winning; the `mcpServers` format keys are the `ServerDef` shape nacelle v0.19.0 exports, which is how the map decodes straight out of YAML.
+
 ## [0.37.0] - 2026-09-10
 
 ### Changed
