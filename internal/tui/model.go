@@ -3,7 +3,6 @@ package tui
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,7 +33,7 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConf
 	byName := bySkillName(skills)
 
 	m := &Model{
-		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume, herdrClient: herdr.NewFromEnv()},
+		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume, resumePath: c.Resume, herdrClient: herdr.NewFromEnv()},
 		transcript: transcript{compactAt: c.CompactAt},
 		composer:   composer{prompt: newPrompt(c.PromptPrefix, c.PromptPlaceholder), hist: history.New()},
 		look: look{
@@ -76,22 +75,11 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConf
 // terminal's, positioned by View, and a blink tick for a cursor nobody renders
 // is a timer that wakes the program up to change nothing.
 func (m *Model) Init() tea.Cmd {
-	if m.autoResume {
-		projectRoot := m.run.root
-		if projectRoot == "" {
-			projectRoot = "."
-		}
-
-		sessionFiles := listSessionFiles(projectRoot)
-		if len(sessionFiles) > 0 {
-			mostRecent := sessionFiles[0]
-			conversation := loadSession(mostRecent)
-			if conversation != nil {
-				m.conversation = conversation
-				m.say(fromClient, fmt.Sprintf("resumed session from %s (%d messages)",
-					filepath.Base(mostRecent), len(conversation)))
-			}
-		}
+	if convo, name, err := restoreAtLaunch(m.resumePath, m.run.root, m.autoResume); convo != nil {
+		m.conversation = convo
+		m.say(fromClient, fmt.Sprintf("resumed session from %s (%d messages)", name, len(convo)))
+	} else if err != "" {
+		m.say(fromClient, err)
 	}
 	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchDetached(), watchUpdates())
 }

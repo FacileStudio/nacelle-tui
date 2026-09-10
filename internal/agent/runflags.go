@@ -84,6 +84,7 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 			ShowThinking:      *p.config.ShowThinking,
 			CompactAt:         resolveCompactAt(*p.config.CompactAt, get.backend),
 			AutoResume:        *p.config.Continue,
+			Resume:            *p.config.Resume,
 			PromptPrefix:      *p.config.PromptPrefix,
 			PromptPlaceholder: *p.config.PromptPlaceholder,
 			StartMessage:      *p.config.StartMessage,

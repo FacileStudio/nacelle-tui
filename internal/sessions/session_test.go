@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -80,5 +81,60 @@ func TestListSessionFilesFallback(t *testing.T) {
 	files := ListSessionFiles("/nonexistent/project/dir")
 	if len(files) == 0 {
 		t.Fatal("expected fallback to base sessions directory")
+	}
+}
+
+func TestResolveSessionByIdAndPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
+	if log == nil {
+		t.Fatal("expected non-nil log")
+	}
+	path := log.Path()
+
+	if resolved := ResolveSession(path); resolved != path {
+		t.Errorf("resolved %q by path, want %q", resolved, path)
+	}
+	if resolved := ResolveSession(filepath.Base(path)); resolved != path {
+		t.Errorf("resolved %q by id, want %q", resolved, path)
+	}
+	if resolved := ResolveSession(filepath.Base(path) + ".jsonl"); resolved != path {
+		t.Errorf("resolved %q by id with suffix, want %q", resolved, path)
+	}
+	if resolved := ResolveSession("no-such-session"); resolved != "" {
+		t.Errorf("resolved %q for a missing id, want empty", resolved)
+	}
+	if resolved := ResolveSession(""); resolved != "" {
+		t.Errorf("resolved %q for empty, want empty", resolved)
+	}
+}
+
+func TestRestoreAtLaunch(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	convo, name, err := RestoreAtLaunch("", "/repo", false)
+	if convo != nil || name != "" || err != "" {
+		t.Errorf("no-op restore = %v/%q/%q, want nil/empty/empty", convo, name, err)
+	}
+
+	convo, name, err = RestoreAtLaunch("no-such-session", "/repo", false)
+	if convo != nil || name != "" || err == "" {
+		t.Errorf("missing resume = %v/%q/%q, want nil and an error", convo, name, err)
+	}
+
+	log := newSessionLog("anthropic", "claude-opus-5", "/repo")
+	log.Line(fromReader, "hi")
+
+	convo, name, err = RestoreAtLaunch(filepath.Base(log.Path()), "/repo", false)
+	if convo == nil || len(convo) != 1 || name == "" || err != "" {
+		t.Errorf("explicit resume = %v/%q/%q, want one message and no error", convo, name, err)
+	}
+
+	convo, name, err = RestoreAtLaunch("", "/repo", true)
+	if convo == nil || len(convo) != 1 || name == "" || err != "" {
+		t.Errorf("auto resume = %v/%q/%q, want the newest session and no error", convo, name, err)
 	}
 }

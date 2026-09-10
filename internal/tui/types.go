@@ -59,6 +59,7 @@ type core struct {
 	agent       *nacelle.Agent
 	banner      string
 	autoResume  bool
+	resumePath  string
 	delegate    nacelle.Config
 	herdrClient *herdr.Client
 }

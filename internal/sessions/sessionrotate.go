@@ -6,7 +6,35 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/FacileStudio/nacelle"
 )
+
+// RestoreAtLaunch returns the conversation to restore when the client starts:
+// the session named by resume (an id or a file path) when one is given, else
+// the newest session for root when auto is on. It returns the conversation,
+// the display name of the session it came from, and a message to show when an
+// explicit resume names nothing. A missing resume target surfaces as (nil, nil,
+// message); a present-but-unloadable session returns as (nil, name, "").
+func RestoreAtLaunch(resume, root string, auto bool) ([]nacelle.Message, string, string) {
+	if resume != "" {
+		path := ResolveSession(resume)
+		if path == "" {
+			return nil, "", "no session found for \"" + resume + "\""
+		}
+		return LoadSession(path), filepath.Base(path), ""
+	}
+	if auto {
+		if root == "" {
+			root = "."
+		}
+		files := ListSessionFiles(root)
+		if len(files) > 0 {
+			return LoadSession(files[0]), filepath.Base(files[0]), ""
+		}
+	}
+	return nil, "", ""
+}
 
 func cleanup(f *os.File, path string) {
 	if f != nil {

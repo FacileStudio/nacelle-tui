@@ -31,6 +31,7 @@ type SessionConfig struct {
 	ShowThinking      bool
 	CompactAt         int64
 	AutoResume        bool
+	Resume            string
 	PromptPrefix      string
 	PromptPlaceholder string
 	StartMessage      string
@@ -57,6 +58,7 @@ func Launch(c UISession) error {
 	opened.delegate = c.DelegateConfig
 	opened.sink = usage.NewSink(c.Root, c.Model)
 	opened.session = sessions.OpenSession(c.Backend, c.Model, c.Root)
+	herdr.SetSession(opened.herdrClient, opened.session.Path())
 	if c.HookNotice != "" {
 		opened.say(fromClient, c.HookNotice)
 	}

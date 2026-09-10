@@ -51,6 +51,7 @@ type Config = settings.Config
 var listSessionFiles = sessions.ListSessionFiles
 var loadSession = sessions.LoadSession
 var formatSessionEntry = sessions.FormatSessionEntry
+var restoreAtLaunch = sessions.RestoreAtLaunch
 
 var priorContents = diff.PriorContents
 var renderDiff = diff.RenderDiff

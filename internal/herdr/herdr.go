@@ -32,6 +32,21 @@ type Client struct {
 	state string
 	mu    sync.Mutex
 	spawn func(args []string) error
+	// session is the on-disk path of this run's transcript, reported on every
+	// transition so herdr holds the pane's session identity — the same the
+	// built-in Crush and Prime integrations report. It is set once the session
+	// opens, so the startup idle report (issued before Launch opens one) goes
+	// out without it and the first working report carries it.
+	session string
+}
+
+// SetSession records the transcript path this run writes, so later reports
+// carry a session reference herdr can store on the pane.
+func SetSession(h *Client, path string) {
+	if h == nil || path == "" {
+		return
+	}
+	h.session = path
 }
 
 // NewFromEnv builds a client from the environment herdr injects into every
@@ -75,10 +90,14 @@ func Report(h *Client, state string) {
 	if h.state == state {
 		return
 	}
-	if err := h.spawn([]string{
+	args := []string{
 		h.bin, "pane", "report-agent", h.pane,
 		"--source", source, "--agent", source, "--state", state,
-	}); err != nil {
+	}
+	if h.session != "" {
+		args = append(args, "--agent-session-path", h.session)
+	}
+	if err := h.spawn(args); err != nil {
 		return
 	}
 	h.state = state

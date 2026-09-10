@@ -101,11 +101,11 @@ type Toggles struct {
 // by default; a wrapped question hangs its later rows under a matching indent.
 // A single space of margin always follows the prefix, so the input never touches
 // the left edge — an empty prefix still leaves one leading space.
-// PromptPlaceholder is the ghost text the prompt shows while it is empty. StartMessage is printed as the first thing on
-// launch, above the banner; it is a string that may span lines, so a welcome
-// block or an ascii banner can sit there. Empty prints nothing.
+// PromptPlaceholder is the ghost text the prompt shows while it is empty.
+// StartMessage is printed as the first thing on launch, above the banner, and may span lines. Empty prints nothing.
 type UI struct {
 	Continue          *bool   `yaml:"continue"`
+	Resume            *string `yaml:"resume"`
 	GroupTools        *bool   `yaml:"group_tools"`
 	ShowThinking      *bool   `yaml:"show_thinking"`
 	PromptPrefix      *string `yaml:"prompt_prefix"`
@@ -176,7 +176,7 @@ func Defaults(system string) Config {
 	compactAt := int64(75000)
 	fetch := true
 	groupTools, showThinking := true, true
-	cont := false
+	cont, resume := false, ""
 	promptPrefix := "| "
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
@@ -194,7 +194,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Continue: &cont, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage},
+		UI: UI{Continue: &cont, Resume: &resume, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage},
 	}
 }
 

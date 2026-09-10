@@ -75,6 +75,25 @@ func TestReportSendsWorkingAndTransitions(t *testing.T) {
 	}
 }
 
+func TestReportCarriesTheSessionPathOnceSet(t *testing.T) {
+	h, calls := recording()
+	Report(h, Working)
+	if len(calls()) != 1 || strings.Contains(calls()[0], "--agent-session-path") {
+		t.Errorf("pre-session report = %+v, want no session reference yet", calls())
+	}
+
+	SetSession(h, "/home/me/.nacelle/sessions/2026-09-10T14-000Z.jsonl")
+	Report(h, Blocked)
+	if len(calls()) != 2 {
+		t.Fatalf("two distinct states fired %d command(s), want 2", len(calls()))
+	}
+	expected := "/bin/herdr pane report-agent w1:p1 --source nacelle --agent nacelle --state blocked " +
+		"--agent-session-path /home/me/.nacelle/sessions/2026-09-10T14-000Z.jsonl"
+	if calls()[1] != expected {
+		t.Errorf("session-bearing report = %q\nwant = %q", calls()[1], expected)
+	}
+}
+
 func TestReleaseSendsReleaseAndIsNilSafe(t *testing.T) {
 	h, calls := recording()
 	Release(h)
