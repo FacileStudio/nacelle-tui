@@ -18,6 +18,16 @@ import (
 // decides what the settings are, and this turns them into the thing that
 // answers. Nothing here reads a flag or touches the terminal.
 
+// built is what build assembles: the agent, the backend it answers on, and the
+// nacelle.Config it was built from. Grouped so build returns two values instead
+// of four — the config is only there so /parallel can clone it for its own
+// detached fan-out; callers that do not delegate ignore it.
+type built struct {
+	agent   *nacelle.Agent
+	backend nacelle.Backend
+	config  nacelle.Config
+}
+
 // build assembles the agent the settings describe, and hands the backend back
 // so the caller can say which one answered. approve is nil unless
 // -approve-tools was asked for — see nacelle.Approve's own doc comment for
@@ -27,20 +37,24 @@ import (
 // one rename in that fold is worth knowing about: this client's -thinking
 // becomes Show, which decides what the transcript displays and nothing else:
 // the model reasons, is billed, and replays its reasoning either way.
-func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve, hooks map[nacelle.HookPoint][]nacelle.Hook) (*nacelle.Agent, nacelle.Backend, error) {
+//
+// built.config is the nacelle.Config the agent was built from, kept so a
+// /parallel fan-out runs its own agents from the same tools, system prompt and
+// iteration ceiling instead of a hand-built subset.
+func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve, hooks map[nacelle.HookPoint][]nacelle.Hook) (built, error) {
 	backend, err := chosen(config)
 	if err != nil {
-		return nil, nil, err
+		return built{}, err
 	}
 
 	retrying := nacelle.Retry(backend, nacelle.RetryOptions{})
 	local, err = withSubagents(config, retrying, local, approve)
 	if err != nil {
-		return nil, nil, err
+		return built{}, err
 	}
 	local = withTasks(config, local)
 
-	agent, err := nacelle.New(nacelle.Config{
+	cfg := nacelle.Config{
 		Backend: retrying,
 		System:  config.System,
 		Thinking: nacelle.Thinking{
@@ -52,11 +66,12 @@ func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve
 		MaxIterations: *config.MaxIterations,
 		Approve:       approve,
 		Hooks:         hooks,
-	})
-	if err != nil {
-		return nil, nil, err
 	}
-	return agent, backend, nil
+	agent, err := nacelle.New(cfg)
+	if err != nil {
+		return built{}, err
+	}
+	return built{agent: agent, backend: backend, config: cfg}, nil
 }
 
 // chosen builds the backend the settings ask for.

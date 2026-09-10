@@ -58,11 +58,11 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 
 // Init asks the terminal what colour it is, and opens the watches that
 // carry work in from goroutines this loop does not own — a delegated run's
-// spend, the plan the task tool reports, and the titles the task-row
-// summarizer returns.
+// spend, the plan the task tool reports, the titles the task-row summarizer
+// returns, and the detached subagent results a /parallel fan-out posts.
 //
-// Both have to be armed here; a watcher only re-armed by its own message
-// never sees a first run, so the feature silently does nothing.
+// All of them have to be armed here; a watcher only re-armed by its own
+// message never sees a first run, so the feature silently does nothing.
 //
 // There is no cursor-blink command because the prompt draws no cursor of its
 // own — see newPrompt's SetVirtualCursor(false); the caret on screen is the
@@ -86,7 +86,7 @@ func (m *Model) Init() tea.Cmd {
 			}
 		}
 	}
-	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles())
+	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchDetached())
 }
 
 // Update routes each message to the one place that owns it, and hands whatever
@@ -143,6 +143,8 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.settle()
 	case spentDelegation:
 		return m.recordDelegation(message)
+	case detachedResult:
+		return m.recordDetached(message)
 	case taskTitled:
 		return m.recordTitle(message)
 	case taskUpdate:

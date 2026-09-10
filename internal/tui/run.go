@@ -34,11 +34,12 @@ type SessionConfig struct {
 
 // UISession holds the complete state needed to run an interactive terminal session.
 type UISession struct {
-	Agent      *nacelle.Agent
-	Banner     string
-	Skills     []skills.Skill
-	HookNotice string
-	Gate       *Approvals
+	Agent          *nacelle.Agent
+	Banner         string
+	Skills         []skills.Skill
+	HookNotice     string
+	Gate           *Approvals
+	DelegateConfig nacelle.Config
 	SessionConfig
 }
 
@@ -49,6 +50,7 @@ func Launch(c UISession) error {
 	opened.Expanded = c.ShowThinking
 	opened.run.root = c.Root
 	opened.run.diffs = c.Diffs
+	opened.delegate = c.DelegateConfig
 	opened.sink = usage.NewSink(c.Root, c.Model)
 	opened.session = sessions.OpenSession(c.Backend, c.Model, c.Root)
 	if c.HookNotice != "" {

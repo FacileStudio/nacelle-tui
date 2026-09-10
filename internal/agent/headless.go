@@ -70,12 +70,12 @@ func buildHeadlessAgent() (*nacelle.Agent, func(), error) {
 		return nil, nil, closeOnErr(err, set, mcp.set)
 	}
 
-	agent, _, err := build(config, local, approve, hooks)
+	get, err := build(config, local, approve, hooks)
 	if err != nil {
 		return nil, nil, closeOnErr(err, set, mcp.set)
 	}
 
-	return agent, func() {
+	return get.agent, func() {
 		if err := closeAll(set, mcp.set); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}

@@ -52,10 +52,13 @@ type look struct {
 
 // core groups the agent and the startup banner so model stays under filet's
 // field cap. Embedded, so every field still reads as m.agent and m.banner.
+// delegate is the Config the main agent was built from, kept so a /parallel
+// fan-out clones it for its own nested agents.
 type core struct {
 	agent      *nacelle.Agent
 	banner     string
 	autoResume bool
+	delegate   nacelle.Config
 }
 
 // transcript groups the conversation, unprinted lines, and transcript-size
@@ -83,9 +86,13 @@ type parallelTaskInfo struct {
 // parallelState groups the parallel subagent UI state so model stays under
 // filet's field cap. A map keyed by tool ID so that overlapping
 // parallel_subagent calls do not overwrite each other — each call's tasks and
-// result are tracked independently.
+// result are tracked independently. detachedSeq numbers detached /parallel
+// batches so they get distinct keys without any shared global: the model-tool
+// path keys by nacelle's tool ID, and a model-incrementing counter keeps the
+// detached keys apart from them.
 type parallelState struct {
 	parallelTasks map[string][]parallelTaskInfo
+	detachedSeq   int
 }
 
 // composer groups the prompt's own textarea and its recall history, so model

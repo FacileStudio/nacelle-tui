@@ -63,17 +63,18 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 		return nil, err
 	}
 
-	agentInstance, backend, err := build(p.config, p.local, approve, hooks)
+	get, err := build(p.config, p.local, approve, hooks)
 	if err != nil {
 		return nil, err
 	}
 
 	return &tui.UISession{
-		Agent:      agentInstance,
-		Banner:     banner(backend, p.config, found, p.mcp, v),
-		Skills:     found.skills,
-		HookNotice: hookNotice,
-		Gate:       approvalGate,
+		Agent:          get.agent,
+		Banner:         banner(get.backend, p.config, found, p.mcp, v),
+		Skills:         found.skills,
+		HookNotice:     hookNotice,
+		Gate:           approvalGate,
+		DelegateConfig: get.config,
 		SessionConfig: tui.SessionConfig{
 			Root:         p.config.Root,
 			Model:        p.config.Model,
@@ -81,7 +82,7 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 			Diffs:        *p.config.Diffs,
 			GroupTools:   p.config.GroupTools,
 			ShowThinking: *p.config.ShowThinking,
-			CompactAt:    resolveCompactAt(*p.config.CompactAt, backend),
+			CompactAt:    resolveCompactAt(*p.config.CompactAt, get.backend),
 			AutoResume:   *p.config.Continue,
 		},
 	}, nil
