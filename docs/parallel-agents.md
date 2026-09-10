@@ -24,8 +24,9 @@ This is the implementation doc, not the original plan. The shipped design differ
 4. `m.send(prompt)` routes the message through the normal single-run path
 5. The parent agent calls `parallel_subagent` with a list of tasks
 6. nacelle fans out to N concurrent nested agents internally
-7. The parent stream receives one merged JSON result: `{"tasks":{"0":"...","1":"..."},"errors":{...}}`
-8. The TUI renders the parent's final message as ordinary conversation
+7. nacelle fans out to N concurrent nested agents internally
+8. The parent stream receives one merged JSON result: `{"tasks":{"0":"...","1":"..."},"errors":{...},"usage":{"0":{...},"1":{...}}}` — each task's own spend alongside its result
+9. The TUI renders the parent's final message as ordinary conversation, and under the prompt shows one live row per subagent: task, elapsed clock, and — once the result lands — that subagent's own token burn and cost
 
 ## How nacelle does the fan-out
 
