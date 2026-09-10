@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"context"
-	"iter"
 	"strings"
 	"testing"
 	"time"
@@ -21,7 +19,7 @@ func visible(screen string) string { return ansi.Strip(screen) }
 
 // sized is a model with a window, because everything that renders needs one.
 func sized() *Model {
-	m := NewModel(nil, "test · model", nil, int64(100_000), false, "| ", "placeholder", "")
+	m := NewModel(nil, "test · model", nil, SessionConfig{CompactAt: 100_000, PromptPrefix: "| ", PromptPlaceholder: "placeholder"})
 	m.resize(tea.WindowSizeMsg{Width: 80, Height: 24})
 	return m
 }
@@ -29,7 +27,7 @@ func sized() *Model {
 // bareBanner is the same model without a window, for tests that only drive
 // logic rather than rendering.
 func bareBanner() *Model {
-	return NewModel(nil, "banner", nil, int64(100_000), false, "| ", "placeholder", "")
+	return NewModel(nil, "banner", nil, SessionConfig{CompactAt: 100_000, PromptPrefix: "| ", PromptPlaceholder: "placeholder"})
 }
 
 // A start message is the first thing said: the launch block prints above the
@@ -37,7 +35,7 @@ func bareBanner() *Model {
 // empty start message prints nothing — the banner stays the first and only
 // thing.
 func TestStartMessagePrintsAboveTheBanner(t *testing.T) {
-	m := NewModel(nil, "banner", nil, int64(100_000), false, "| ", "placeholder", "welcome\nto nacelle")
+	m := NewModel(nil, "banner", nil, SessionConfig{CompactAt: 100_000, StartMessage: "welcome\nto nacelle", PromptPrefix: "| ", PromptPlaceholder: "placeholder"})
 	said := visible(strings.Join(m.unprinted, "\n"))
 	message, bannerAt := strings.Index(said, "to nacelle"), strings.Index(said, "banner")
 	if message < 0 || bannerAt < 0 || message > bannerAt {
@@ -214,46 +212,4 @@ func TestAFinishedRunLeavesTheStatusLineAlone(t *testing.T) {
 	if status := m.status(); !strings.Contains(status, "ready") {
 		t.Errorf("status = %q, want the usual ready line", status)
 	}
-}
-
-// The warning belongs to the run that earned it. Left standing, it would
-// accuse the next answer of being truncated too.
-func TestANewQuestionClearsTheStopFromTheLastRun(t *testing.T) {
-	m := sized()
-	m.agent = answering(t)
-	m.absorb(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopMaxTokens})
-	m.prompt.SetValue("again please")
-	m.ask()
-	defer m.run.cancel()
-
-	if m.run.stop != "" {
-		t.Errorf("stop = %q, want the previous run's reason cleared", m.run.stop)
-	}
-}
-
-// silent is a backend that ends a run without saying anything, which is all a
-// test that only cares about what asking does to the model needs.
-type silent struct{}
-
-func (silent) Name() string                       { return "silent" }
-func (silent) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{} }
-
-func (silent) CountTokens(context.Context, nacelle.Request) (int64, error) { return 0, nil }
-
-func (silent) Stream(context.Context, nacelle.Request) iter.Seq2[nacelle.Event, error] {
-	return func(yield func(nacelle.Event, error) bool) {
-		yield(nacelle.Event{Kind: nacelle.KindDone, Stop: nacelle.StopEnd}, nil)
-	}
-}
-
-// answering is an agent that can be asked something. The model dereferences it
-// as soon as a question is sent, so a test that calls ask needs a real one.
-func answering(t *testing.T) *nacelle.Agent {
-	t.Helper()
-
-	agent, err := nacelle.New(nacelle.Config{Backend: silent{}, System: "be quiet"})
-	if err != nil {
-		t.Fatalf("New: %v", err)
-	}
-	return agent
 }

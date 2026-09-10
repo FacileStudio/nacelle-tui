@@ -29,13 +29,13 @@ const forceQuit = 3 * time.Second
 // alongside the client's own commands in the dropdown menu. startMessage, when
 // non-empty, is printed as the first thing on screen — a welcome block or an
 // ascii banner — above the banner itself, each separated by a blank row.
-func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int64, autoResume bool, promptPrefix string, promptPlaceholder string, startMessage string) *Model {
+func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConfig) *Model {
 	byName := bySkillName(skills)
 
 	m := &Model{
-		core:       core{agent: agent, banner: banner, autoResume: autoResume},
-		transcript: transcript{compactAt: compactAt},
-		composer:   composer{prompt: newPrompt(promptPrefix, promptPlaceholder), hist: history.New()},
+		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume},
+		transcript: transcript{compactAt: c.CompactAt},
+		composer:   composer{prompt: newPrompt(c.PromptPrefix, c.PromptPlaceholder), hist: history.New()},
 		look: look{
 			theme: theme.Themed(true),
 			spin:  status.NewSpinner(),
@@ -54,8 +54,8 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, compactAt int
 	}
 	m.pretty = theme.Prettier(m.theme.Markdown, m.width)
 	m.promptStyles = m.prompt.Styles()
-	if startMessage != "" {
-		m.say(fromClient, strings.TrimRight(startMessage, "\n")+"\n")
+	if c.StartMessage != "" {
+		m.say(fromClient, strings.TrimRight(c.StartMessage, "\n")+"\n")
 	}
 	m.say(fromClient, banner+"\n")
 	return m
@@ -140,8 +140,7 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 	case spinner.TickMsg:
 		return m.spun(message)
 	case approvalRequest:
-		m.run.pending = &message
-		return nil
+		return m.parkApproval(message)
 	case result:
 		return m.consume(message)
 	case finished:

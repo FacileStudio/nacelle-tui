@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
@@ -186,4 +188,12 @@ func (r *inflight) isGroupComplete(id string) bool {
 func (r *inflight) clearGroups() {
 	r.groups = nil
 	r.groupIndex = nil
+}
+
+// parkApproval holds an incoming approval request until the next keypress
+// calls decide, then hands it back as nil so the loop stays awake for that
+// press.
+func (m *Model) parkApproval(req approvalRequest) tea.Cmd {
+	m.run.pending = &req
+	return nil
 }

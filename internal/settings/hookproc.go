@@ -93,8 +93,7 @@ func interpret(command string, ev nacelle.HookEvent, runErr error, out, errOut [
 
 // exitCode recovers a command's status without importing syscall for it.
 func exitCode(err error) int {
-	var exit *exec.ExitError
-	if errors.As(err, &exit) {
+	if exit, ok := errors.AsType[*exec.ExitError](err); ok {
 		return exit.ExitCode()
 	}
 	return -1

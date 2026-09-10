@@ -39,7 +39,7 @@ func continuation(prefix string) func(textarea.PromptInfo) string {
 	indent := strings.Repeat(" ", lipgloss.Width(prefix)+1)
 	return func(info textarea.PromptInfo) string {
 		if info.LineNumber == 0 {
-			return prefix+" "
+			return prefix + " "
 		}
 		return indent
 	}

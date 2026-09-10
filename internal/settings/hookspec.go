@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -55,10 +56,5 @@ func (s HookSpec) Matches(tool string) bool {
 	if len(s.Match) == 0 {
 		return true
 	}
-	for _, name := range s.Match {
-		if name == tool {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.Match, tool)
 }

@@ -48,7 +48,7 @@ type UISession struct {
 
 // Launch starts the Bubble Tea UI session loop for the given configuration.
 func Launch(c UISession) error {
-	opened := NewModel(c.Agent, c.Banner, c.Skills, c.CompactAt, c.AutoResume, c.PromptPrefix, c.PromptPlaceholder, c.StartMessage)
+	opened := NewModel(c.Agent, c.Banner, c.Skills, c.SessionConfig)
 	opened.groupTools = c.GroupTools != nil && *c.GroupTools
 	opened.Expanded = c.ShowThinking
 	opened.run.root = c.Root
