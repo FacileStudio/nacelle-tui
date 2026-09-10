@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle-tui/internal/approval"
+	"github.com/FacileStudio/nacelle-tui/internal/herdr"
 	"github.com/FacileStudio/nacelle-tui/internal/menu"
 )
 
@@ -128,6 +129,7 @@ func (m *Model) decide(press tea.KeyPressMsg) {
 	pending := m.run.pending
 	m.run.pending = nil
 	pending.Decision <- decision
+	herdr.Report(m.herdrClient, herdr.Working)
 }
 
 func (m *Model) refreshMenu() {

@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/herdr"
 	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
@@ -206,5 +207,6 @@ func (r *inflight) clearGroups() {
 // press.
 func (m *Model) parkApproval(req approvalRequest) tea.Cmd {
 	m.run.pending = &req
+	herdr.Report(m.herdrClient, herdr.Blocked)
 	return nil
 }

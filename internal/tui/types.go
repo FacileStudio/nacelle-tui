@@ -7,6 +7,7 @@ import (
 	"charm.land/glamour/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/herdr"
 	"github.com/FacileStudio/nacelle-tui/internal/history"
 	"github.com/FacileStudio/nacelle-tui/internal/menu"
 	"github.com/FacileStudio/nacelle-tui/internal/queue"
@@ -55,10 +56,11 @@ type look struct {
 // delegate is the Config the main agent was built from, kept so a /parallel
 // fan-out clones it for its own nested agents.
 type core struct {
-	agent      *nacelle.Agent
-	banner     string
-	autoResume bool
-	delegate   nacelle.Config
+	agent       *nacelle.Agent
+	banner      string
+	autoResume  bool
+	delegate    nacelle.Config
+	herdrClient *herdr.Client
 }
 
 // transcript groups the conversation, unprinted lines, and transcript-size

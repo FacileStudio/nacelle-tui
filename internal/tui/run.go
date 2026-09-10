@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/herdr"
 	"github.com/FacileStudio/nacelle-tui/internal/sessions"
 	"github.com/FacileStudio/nacelle-tui/internal/skills"
 	"github.com/FacileStudio/nacelle-tui/internal/usage"
@@ -71,6 +72,7 @@ func Launch(c UISession) error {
 	final, err := program.Run()
 
 	if done, ok := final.(*Model); ok {
+		herdr.Release(done.herdrClient)
 		if recap := done.recap(); recap != "" {
 			fmt.Println(recap)
 		}
@@ -94,6 +96,8 @@ func (m *Model) send(text string) tea.Cmd {
 	m.run.cancel = cancel
 	m.run.bgCtx = ctx
 	m.run.busy = true
+
+	herdr.Report(m.herdrClient, herdr.Working)
 
 	if count, err := m.agent.CountTokens(ctx, m.conversation); err == nil && m.compactAt > 0 && count > m.compactAt+compactSlack {
 		m.size = count

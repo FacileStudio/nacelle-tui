@@ -7,6 +7,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/herdr"
 )
 
 // This file is how a run ends: the state left behind is tidied, what streamed
@@ -39,6 +40,8 @@ func (m *Model) settle() tea.Cmd {
 	m.run.cancel()
 	m.run.busy = false
 	m.run.pending = nil
+
+	herdr.Report(m.herdrClient, herdr.Idle)
 
 	m.closeResults()
 	m.dropUnanswered()

@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/herdr"
 	"github.com/FacileStudio/nacelle-tui/internal/history"
 	"github.com/FacileStudio/nacelle-tui/internal/menu"
 	"github.com/FacileStudio/nacelle-tui/internal/status"
@@ -33,7 +34,7 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConf
 	byName := bySkillName(skills)
 
 	m := &Model{
-		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume},
+		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume, herdrClient: herdr.NewFromEnv()},
 		transcript: transcript{compactAt: c.CompactAt},
 		composer:   composer{prompt: newPrompt(c.PromptPrefix, c.PromptPlaceholder), hist: history.New()},
 		look: look{
@@ -58,6 +59,7 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConf
 		m.say(fromClient, strings.TrimRight(c.StartMessage, "\n")+"\n")
 	}
 	m.say(fromClient, banner+"\n")
+	herdr.Report(m.herdrClient, herdr.Idle)
 	return m
 }
 
