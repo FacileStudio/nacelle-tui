@@ -82,6 +82,11 @@ type parallelTaskInfo struct {
 	Began  time.Time
 	End    time.Time
 	Active bool
+	// Cleared marks a finished task hidden by a /clear. It stays in the batch so
+	// running siblings keep their original slice indices — the live-update and
+	// result paths address tasks by that position — but the view, the layout
+	// row count, and the completion review all skip cleared tasks.
+	Cleared bool
 }
 
 // parallelState groups the parallel subagent UI state so model stays under

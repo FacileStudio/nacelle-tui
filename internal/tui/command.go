@@ -72,6 +72,7 @@ func (m *Model) clear() tea.Cmd {
 	m.size, m.trimmed = 0, 0
 	m.tasks = nil
 	tasks.SetCurrentPlan(nil)
+	m.clearFinishedParallel()
 	m.layout(m.windowHeight)
 	m.Forget()
 	echoed := m.prints()

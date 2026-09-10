@@ -107,11 +107,15 @@ func (m *Model) nextDetachID() string {
 
 // recordDetached applies one detached subagent result and re-arms the watch.
 // A task's own spend joins the session total so the footer does not lie about
-// work that ran outside any parent run.
+// work that ran outside any parent run. When the last task lands and the main
+// run is idle, it wakes the main agent to review the completed fan-out.
 func (m *Model) recordDetached(r detachedResult) tea.Cmd {
 	if tasks, ok := m.parallelTasks[r.batch]; ok {
 		m.applyDetached(tasks, r)
 		m.layout(m.windowHeight)
+	}
+	if m.parallelReview() {
+		return tea.Batch(watchDetached(), m.send(m.reviewText()))
 	}
 	return watchDetached()
 }

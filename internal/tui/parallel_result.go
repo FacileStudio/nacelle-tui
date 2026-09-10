@@ -75,6 +75,27 @@ func (m *Model) dropFinishedParallel() {
 	}
 }
 
+// clearFinishedParallel is /clear's own cut at the parallel rows: every finished
+// task is hidden, while still-running ones are left untouched. The finished
+// tasks stay in place — Cleared, not deleted — so the running siblings keep the
+// slice indices the live-update and result paths address; a batch left with no
+// running task is dropped outright.
+func (m *Model) clearFinishedParallel() {
+	for batch, tasks := range m.parallelTasks {
+		live := 0
+		for i := range tasks {
+			if tasks[i].Active {
+				live++
+				continue
+			}
+			tasks[i].Cleared = true
+		}
+		if live == 0 {
+			delete(m.parallelTasks, batch)
+		}
+	}
+}
+
 // taskTitle is the title a running task row shows: the short description the
 // summarizer generated when one has landed, else the task's prompt collapsed
 // onto one line. Either way the row reads as an action, not a pasted block —
@@ -87,11 +108,17 @@ func taskTitle(pt parallelTaskInfo) string {
 	return shortTitle(strings.Join(strings.Fields(pt.Task), " "))
 }
 
-// parallelTaskRows returns the row count for a map of parallel fan-outs.
+// parallelTaskRows returns the visible row count for a map of parallel
+// fan-outs, matching the view — cleared tasks are not drawn and do not reserve
+// a row.
 func parallelTaskRows(tasks map[string][]parallelTaskInfo) int {
 	rows := 0
 	for _, call := range tasks {
-		rows += len(call)
+		for _, pt := range call {
+			if !pt.Cleared {
+				rows++
+			}
+		}
 	}
 	return rows
 }

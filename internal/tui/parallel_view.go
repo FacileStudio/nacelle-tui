@@ -17,7 +17,8 @@ import (
 // task. A running task shows its title, the tool it is running right now, and
 // an elapsed clock that the spinner tick redraws; a finished one shows its own
 // spend from the result's usage map and the duration it took, so the per-subagent
-// cost is visible rather than a single total copy-pasted onto every row.
+// cost is visible rather than a single total copy-pasted onto every row. Tasks
+// a /clear hid are not drawn.
 func (m *Model) parallelTasksView() string {
 	if len(m.parallelTasks) == 0 {
 		return ""
@@ -25,6 +26,9 @@ func (m *Model) parallelTasksView() string {
 	var lines []string
 	for _, tasks := range m.parallelTasks {
 		for _, pt := range tasks {
+			if pt.Cleared {
+				continue
+			}
 			lines = append(lines, m.taskRow(pt))
 		}
 	}

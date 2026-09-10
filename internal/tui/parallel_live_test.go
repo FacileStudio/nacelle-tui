@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"charm.land/bubbles/v2/spinner"
@@ -103,5 +104,59 @@ func TestSpunKeepsTickingUntilNoLiveParallels(t *testing.T) {
 	m.parallelTasks["d0"][0].Active = false
 	if cmd := m.spun(msg); cmd != nil {
 		t.Error("spun kept ticking after every task finished")
+	}
+}
+
+// /clear hides finished subagent rows while leaving still-running ones in
+// place — and because a running sibling's live updates and result address its
+// slice position, the finished task stays in that slice (Cleared) rather than
+// being cut out from under it.
+func TestClearFinishedParallelKeepsRunningTasks(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["d0"] = []parallelTaskInfo{
+		{Task: "one", Active: true},
+		{Task: "two", Active: false, Result: "done"},
+	}
+	m.parallelTasks["gone"] = []parallelTaskInfo{
+		{Task: "x", Active: false, Result: "done"},
+	}
+
+	m.clearFinishedParallel()
+
+	if _, ok := m.parallelTasks["gone"]; ok {
+		t.Error("a batch left with no running task survived /clear")
+	}
+	d0, ok := m.parallelTasks["d0"]
+	if !ok {
+		t.Fatal("a batch with a running task was forgotten by /clear")
+	}
+	if d0[0].Active == false || d0[0].Cleared {
+		t.Errorf("running task disturbed by /clear: active=%v cleared=%v", d0[0].Active, d0[0].Cleared)
+	}
+	if d0[1].Active != false || d0[1].Cleared == false {
+		t.Errorf("finished task not hidden by /clear: active=%v cleared=%v", d0[1].Active, d0[1].Cleared)
+	}
+	if len(d0) != 2 {
+		t.Errorf("slice compacted by /clear (len %d), breaking live-update indices", len(d0))
+	}
+}
+
+// A cleared task does not draw a row and does not reserve layout space, so the
+// rows under the prompt match what the view reserves.
+func TestClearedTasksAreNotDrawn(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["d0"] = []parallelTaskInfo{
+		{Task: "hidden", Cleared: true},
+		{Task: "visible", Active: true},
+	}
+
+	got := visible(m.parallelTasksView())
+	if strings.Contains(got, "hidden") || !strings.Contains(got, "visible") {
+		t.Errorf("view = %q, want only the running task drawn", got)
+	}
+	if rows := parallelTaskRows(m.parallelTasks); rows != 1 {
+		t.Errorf("parallelTaskRows = %d, want 1 (cleared tasks don't reserve a row)", rows)
 	}
 }
