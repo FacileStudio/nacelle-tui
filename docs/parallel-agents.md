@@ -11,10 +11,13 @@ This is the implementation doc, not the original plan. The shipped design differ
 
 ## What the TUI does NOT do
 
-- No `Model.agents` map. No `activeAgent`.
-- No `parallel_view.go`. No tabbed layout.
-- No per-agent event routing. No `AgentID` envelope field.
-- The single `Model.run inflight` is unchanged.
+- No `Model.agents` map for the fan-out. No tabbed layout.
+- No per-agent event routing for the parallel children. No `AgentID` envelope field.
+- The single `Model.run inflight` (the parent's own run) is unchanged.
+
+It does, however, run **side runs**: a question typed while the parent is busy
+gets its own fresh agent, streaming into the transcript concurrently, isolated
+from the parent's conversation. See the Conventions section.
 
 ## How it works
 
@@ -24,9 +27,12 @@ This is the implementation doc, not the original plan. The shipped design differ
 4. `m.send(prompt)` routes the message through the normal single-run path
 5. The parent agent calls `parallel_subagent` with a list of tasks
 6. nacelle fans out to N concurrent nested agents internally
-7. nacelle fans out to N concurrent nested agents internally
+7. A parallel_subagent **tool result** is drawn as one row per task: a 6-7 word
+   summary (one extra no-tool summarizer call per fan-out, `parallel_titles.go`)
+   and each task's own elapsed clock and token spend
 8. The parent stream receives one merged JSON result: `{"tasks":{"0":"...","1":"..."},"errors":{...},"usage":{"0":{...},"1":{...}}}` — each task's own spend alongside its result
-9. The TUI renders the parent's final message as ordinary conversation, and under the prompt shows one live row per subagent: task, elapsed clock, and — once the result lands — that subagent's own token burn and cost
+9. The TUI renders the parent's final message as ordinary conversation; finished
+   rows stay under the prompt until the next send or run end
 
 ## How nacelle does the fan-out
 
@@ -49,6 +55,8 @@ This is the implementation doc, not the original plan. The shipped design differ
 |---|---|
 | `internal/tui/parallel_cmd.go` | `/parallel` parser + prompt |
 | `internal/agent/delegate.go:18` | wires `NewParallelSubAgentTool` |
+| `internal/tui/parallel_titles.go` | one no-tool summarizer call turning a fan-out into 6-7 word task titles |
+| `internal/tui/side.go` | concurrent side runs — question answered while the parent is busy |
 | `internal/tasks/taskplan.go` | task-plan tooling |
 
 ## Conventions
@@ -57,3 +65,8 @@ This is the implementation doc, not the original plan. The shipped design differ
 - `[filet]`: `filet check .` passes; `filet test` passes
 - `[events]`: no change — nacelle collapses parallel results into a single tool result, no new envelope fields
 - `[migrations/auth/muse/distribute]`: N/A
+- **Side runs are reader-only.** A message answered while the main run is busy
+  streams into the transcript but never writes to `m.conversation`: it cannot
+  corrupt the parent's context or the session's ordering, and its answer is not
+  remembered by a later turn. Commands still queue; only plain messages get a
+  side run.

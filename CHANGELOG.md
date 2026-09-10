@@ -4,6 +4,12 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.30.0] - 2026-09-10
+
+### Added
+- **Parallel task rows are titled, not pasted**: each `parallel_subagent` row now shows a short 6-7 word description of the task instead of dumping the full delegate prompt. One extra summarizer call per fan-out (the same backend, no tools) condenses the tasks into titles; a row falls back to its collapsed prompt if the summarizer errors or returns nothing.
+- **Messages no longer queue behind a running fan-out**: a question typed while the main run is busy is answered on a fresh side agent that runs concurrently and streams its reply into the transcript, shown under the prompt as a `⇄` row with a live clock. The side run is isolated from the main conversation — it can never corrupt the parent's context or the session's ordering — so the prompt stays usable instead of pinning every keystroke until the fan-out finishes. A command (like `/quit`) still queues as before.
+
 ## [0.29.0] - 2026-09-10
 
 ### Changed
