@@ -213,5 +213,4 @@ func (m *Model) stranded() {
 	m.run.clearGroups()
 	m.run.edits = map[string]editChange{}
 	m.dropFinishedParallel()
-	m.dropFinishedSides()
 }

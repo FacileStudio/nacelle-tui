@@ -88,14 +88,6 @@ type parallelState struct {
 	parallelTasks map[string][]parallelTaskInfo
 }
 
-// sideState groups the side-run list and the system prompt they launch with,
-// so model stays under filet's field cap. Embedded, so every field still reads
-// as m.sides and m.system.
-type sideState struct {
-	sides  []sideRun
-	system string
-}
-
 // composer groups the prompt's own textarea and its recall history, so model
 // stays under filet's field cap. Embedded, so every field still reads as
 // m.prompt and m.hist.
@@ -121,5 +113,4 @@ type Model struct {
 
 	parallelState
 	run inflight
-	sideState
 }

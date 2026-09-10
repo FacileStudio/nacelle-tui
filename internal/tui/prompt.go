@@ -45,11 +45,6 @@ func (m *Model) ask() tea.Cmd {
 		return m.dispatch(question)
 	}
 
-	if _, isCommand := m.parseCommand(question); !isCommand {
-		m.startSide(question)
-		return nil
-	}
-
 	held := m.hist.Requeue(m.Items(), question)
 	if !held {
 		m.Add(question)

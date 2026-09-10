@@ -36,7 +36,6 @@ type SessionConfig struct {
 type UISession struct {
 	Agent      *nacelle.Agent
 	Banner     string
-	System     string
 	Skills     []skills.Skill
 	HookNotice string
 	Gate       *Approvals
@@ -50,7 +49,6 @@ func Launch(c UISession) error {
 	opened.Expanded = c.ShowThinking
 	opened.run.root = c.Root
 	opened.run.diffs = c.Diffs
-	opened.system = c.System
 	opened.sink = usage.NewSink(c.Root, c.Model)
 	opened.session = sessions.OpenSession(c.Backend, c.Model, c.Root)
 	if c.HookNotice != "" {
