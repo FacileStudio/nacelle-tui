@@ -4,10 +4,13 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.29.0] - 2026-09-10
 
 ### Changed
 - **Per-subagent spend instead of one shared total**: a `parallel_subagent` fan-out now reports each task's own token burn (`↑in ↓out`, plus cost) and an elapsed clock on its row, drawn from the per-task `usage` map the result carries (nacelle v0.14.0). The running rows no longer copy the session's combined spend onto every line. Completed rows stay visible under the prompt — showing what each subagent cost and how long it took — until the next send or run end clears them.
+
+### Fixed
+- **One compaction cut, not three**: the pass's `evictCut` (how many messages sit in the evicted middle) is computed once in `beginCompaction` and threaded through the pass outcome to `settleCompaction`, `compactApply`, and `applyMaskFallback`. It was being recomputed from the live conversation at settle time, which could disagree with the cut the summarizer summarized across — a latent divergence that a conversation change mid-pass would have turned into a real mask/apply misalignment.
 
 ## [0.28.0] - 2026-09-10
 
