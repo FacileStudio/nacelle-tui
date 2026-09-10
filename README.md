@@ -78,6 +78,7 @@ environment variables, then flags. The useful ones:
 | `-root` | `NACELLE_ROOT` | directory the file tools may reach |
 | `-bash` | `NACELLE_BASH` | let the model run commands (off by default) |
 | `-continue` | — | auto-resume the newest session for the current project |
+| `-resume` | — | resume a specific session by id or file path |
 | `-tasks` | `NACELLE_TASKS` | task planning tool (on by default) |
 | `-approve-tools` | `NACELLE_APPROVE_TOOLS` | ask before every tool call runs |
 | `-subagents` | `NACELLE_SUBAGENTS` | give the model the parallel delegate tool (on by default) |

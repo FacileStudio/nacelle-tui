@@ -45,6 +45,40 @@ func TestDiffsDefaultOnAndTurnableOff(t *testing.T) {
 	}
 }
 
+// Resume is a string that defaults empty and only names a session when a
+// layer says so. This proves the default and that the `resume:` key decodes
+// without tripping KnownFields(true), so a config that carries it keeps
+// loading rather than becoming a startup error.
+func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
+	fallback := defaults()
+	if *fallback.Resume != "" {
+		t.Errorf("resume = %q, want the empty default", *fallback.Resume)
+	}
+	written(t, "resume: 2026-09-10T14-000Z.jsonl\n")
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings with resume: %v", err)
+	}
+	if *config.Resume != "2026-09-10T14-000Z.jsonl" {
+		t.Errorf("resume = %q, want the file's session id", *config.Resume)
+	}
+}
+
+// Continue is a UI *bool like the group_tools and show_thinking toggles. It
+// was silently dropped by mergeUI for a long time — a layer that set it never
+// reached the resolved config — so this pins the merge that keeps auto-resume
+// switchable.
+func TestContinueFromTheFile(t *testing.T) {
+	written(t, "continue: true\n")
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings with continue: %v", err)
+	}
+	if !*config.Continue {
+		t.Error("continue = false, want the file's true to win")
+	}
+}
+
 // SkillDirs is the one setting that is a slice rather than a string or a
 // *bool, so it needed its own line in merge() — this proves that line
 // actually runs, the same way TestTheFileBeatsTheDefaults proves it for a
