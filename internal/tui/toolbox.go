@@ -16,13 +16,16 @@ import (
 const commandLineCap = 200
 
 // boxBorder is the left-spine colour of a finished edit or command box: green
-// for a call that worked, red for one that failed. A still-running box wears
-// the tool's own colour via toolview.ToolBorder instead.
+// for a call that worked, red for one that failed. The codes are the basic
+// palette lipgloss reads as those hues — the raw SGR 32/31 escapes the tool
+// lines already wear would land in the ANSI256 range and render as desaturated
+// teals. A still-running box wears the tool's own colour via toolview.ToolBorder
+// instead.
 func boxBorder(ok bool) string {
 	if ok {
-		return "32"
+		return "2"
 	}
-	return "31"
+	return "1"
 }
 
 // finishEdit renders the boxed detail of one finished call — its file diff,

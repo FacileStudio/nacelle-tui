@@ -51,12 +51,32 @@ func ToolSourceColor(name string, source nacelle.Source, ok bool) string {
 	return "31"
 }
 
-// ToolBorder returns the ANSI colour a tool's result box wears on its left
-// border while the tool is still running: the tool's own glyph colour, orange
-// for an MCP tool. A finished box trades this for green or red via the caller.
+// toolBorderMap pairs each built-in glyph with the lipgloss colour code its
+// running box's left border wears: the basic-palette twin of the raw-escape
+// code toolANSI keeps (34→4, 35→5, 36→6, 33→3). lipgloss.Color reads a bare
+// number as an ANSI256 index, so an SGR code like "35" would render green
+// where the glyph is magenta; the basic-palette form renders the exact hue the
+// raw escape does. mcpANSI is a genuine ANSI256 code and needs no twin.
+var toolBorderMap = map[string]string{
+	"☰": "4",
+	"◎": "4",
+	"$": "5",
+	"✎": "5",
+	"✚": "5",
+	"↧": "6",
+	"≫": "3",
+}
+
+// ToolBorder returns the lipgloss colour code a tool's result box wears on its
+// left border while the tool is still running: the tool's own glyph colour,
+// orange (208) for an MCP tool. A finished box trades this for green or red
+// via the caller.
 func ToolBorder(name string, source nacelle.Source) string {
 	if source == nacelle.ToolSourceMCP {
 		return mcpANSI
 	}
-	return ToolRestore(name)
+	if code, ok := toolBorderMap[ToolGlyph(name)]; ok {
+		return code
+	}
+	return "4"
 }
