@@ -77,6 +77,16 @@ func TestEnvironmentTeachesBatchingIndependentToolCalls(t *testing.T) {
 	}
 }
 
+func TestEnvironmentSaysAParallelFanOutEndsTheTurn(t *testing.T) {
+	got := environment(withApproval(false), time.Now())
+
+	for _, want := range []string{"non-blocking", "wrap up"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("environment() = %q, want it to tell the model a dispatched fan-out is the point to stop, with %q", got, want)
+		}
+	}
+}
+
 func TestEnvironmentWarnsAboutIrreversibleCommandsOnlyWithBash(t *testing.T) {
 	if got := environment(withApproval(false), time.Now()); !strings.Contains(got, "git reset --hard") {
 		t.Errorf("environment() = %q, want the irreversible commands named when the shell is on", got)

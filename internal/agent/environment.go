@@ -80,7 +80,7 @@ func DefaultSystemPrompt() string {
 }
 
 func environment(config Config, now time.Time) string {
-	return sessionBlock(config) + sessionMeta(now) + approvalNote(config) + bashRules(config) + tasksNote()
+	return sessionBlock(config) + sessionMeta(now) + approvalNote(config) + bashRules(config) + tasksNote() + parallelNote()
 }
 
 func sessionBlock(config Config) string {
@@ -138,6 +138,18 @@ func tasksNote() string {
 	return "\nWhen you lay out work with the tasks tool, keep the plan current as you " +
 		"go: mark each step completed, blocked or failed when it reaches that state. " +
 		"The step_update call is lighter than sending the whole list every turn.\n"
+}
+
+// parallelNote tells the model that a parallel fan-out is fire-and-forget from
+// the turn's point of view. The subagents keep running after the answer ends,
+// so dispatching is the moment to stop: the turn closes, the prompt frees up,
+// and the results land as they finish. A model that keeps planning and issuing
+// more calls after the stub is one that holds the main thread open for nothing.
+func parallelNote() string {
+	return "\nparallel_subagent is non-blocking: it returns a stub and the subagents " +
+		"keep running after your answer ends. Dispatch what you need, then wrap up " +
+		"your turn — do not keep planning or issuing further work after the fan-out " +
+		"has started unless the user asked you to.\n"
 }
 
 func bashRules(config Config) string {

@@ -14,9 +14,10 @@ import (
 // launches the fan-out. It does not go through the parent model: the work runs
 // in detached nested agents cloned from the main agent's own Config, and the
 // main thread stays free — the point of /parallel is that you keep chatting
-// while the subagents grind. This is unlike the `parallel_subagent` tool the
-// model can still call mid-turn, which blocks the parent until its fan-out
-// returns.
+// while the subagents grind. The model's own `parallel_subagent` tool is the
+// same detached deal: it returns a stub immediately and the fan-out streams
+// back through the Results hook, so neither path pins the main thread to the
+// fan-out's duration.
 //
 // Tasks are split on `,`, trimmed, and empty entries dropped. A single task
 // still routes through the parallel machinery — its input is a task list, so a
