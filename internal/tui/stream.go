@@ -75,6 +75,10 @@ func (m *Model) absorb(event nacelle.Event) {
 
 	case nacelle.KindToolCall:
 		m.absorbToolCall(*event.Tool)
+	case nacelle.KindToolOutput:
+		if event.Tool != nil {
+			m.absorbToolOutput(*event.Tool, event.Text)
+		}
 	case nacelle.KindToolResult:
 		m.absorbToolResult(*event.Tool, event.Tool.Result)
 	case nacelle.KindTurn:
@@ -94,6 +98,20 @@ func (m *Model) absorb(event nacelle.Event) {
 // turn ends.
 func (m *Model) tickLiveOut(delta string) {
 	m.run.liveOut += int64(utf8.RuneCountInString(delta)) / 4
+}
+
+// absorbToolOutput accumulates a streamed fragment of a call's output onto the
+// call's box buffer, so a running command's live region can fill as its
+// output arrives. The final KindToolResult still carries the whole output; a
+// backend that streams it here first lets the running box show progress.
+func (m *Model) absorbToolOutput(tool nacelle.ToolEvent, text string) {
+	if text == "" {
+		return
+	}
+	if m.run.outputs == nil {
+		m.run.outputs = make(map[string]string)
+	}
+	m.run.outputs[tool.ID] += text
 }
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {

@@ -48,7 +48,9 @@ func (m *Model) finished(tool *nacelle.ToolEvent) {
 	if m.run.outputs == nil {
 		m.run.outputs = make(map[string]string)
 	}
-	m.run.outputs[tool.ID] = tool.Result
+	if _, ok := m.run.outputs[tool.ID]; !ok {
+		m.run.outputs[tool.ID] = tool.Result
+	}
 
 	line, held := m.run.heldLine(tool.ID, m.width)
 	if !held {
@@ -212,3 +214,4 @@ func (m *Model) stranded() {
 	m.run.outputs = map[string]string{}
 	m.dropFinishedParallel()
 }
+

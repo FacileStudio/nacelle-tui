@@ -84,19 +84,50 @@ func (m *Model) boxedGroupRow(g toolGroup) string {
 
 // inFlightGroup draws one running tool's live row — boxed for an edit or
 // command with the tool's own colour on the left border while it runs, and as
-// the ordinary held line for every other tool.
+// the ordinary held line for every other tool. A running command's streamed
+// output fills the box beneath its line as the lines arrive.
 func (m *Model) inFlightGroup(g toolGroup) string {
-	if diff.IsEditTool(g.Name) {
-		if row := m.boxedGroupRow(g); row != "" {
-			return toolview.Box([]string{row}, toolview.ToolBorder(g.Name, g.Tool.Source))
+	if !diff.IsEditTool(g.Name) {
+		line := g.InFlightLine(m.width)
+		if line == "" {
+			return ""
 		}
+		return toolview.ToolLinePainted(line)
+	}
+	var rows []string
+	if row := m.boxedGroupRow(g); row != "" {
+		rows = append(rows, row)
+	}
+	rows = append(rows, m.liveOutputRows(g)...)
+	if len(rows) == 0 {
 		return ""
 	}
-	line := g.InFlightLine(m.width)
-	if line == "" {
-		return ""
+	return toolview.Box(rows, toolview.ToolBorder(g.Name, g.Tool.Source))
+}
+
+// liveOutputRows are the streamed output lines of a running run_command, ready
+// to sit in the box under its held line. They only apply to a single call (a
+// batched group has no one output to name), and read the buffer absorbToolOutput
+// fills, so a backend that streams lets the box grow while the command runs.
+func (m *Model) liveOutputRows(g toolGroup) []string {
+	if g.Name != "run_command" || g.Count != 1 {
+		return nil
 	}
-	return toolview.ToolLinePainted(line)
+	text := m.run.outputs[g.Tool.ID]
+	if text == "" {
+		return nil
+	}
+	content := max(m.width-1, 10)
+	base := m.theme.Muted.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
+	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
+	rows := make([]string, 0, min(len(lines), commandLineCap))
+	for i, ln := range lines {
+		if i >= commandLineCap {
+			break
+		}
+		rows = append(rows, base.Render("  "+truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-2)))
+	}
+	return rows
 }
 
 // outputBox renders a run_command's raw output as a full-width box sharing the

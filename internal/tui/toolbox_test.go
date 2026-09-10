@@ -111,3 +111,37 @@ func TestARunCommandWithNoOutputRendersNoBox(t *testing.T) {
 		t.Error("a command with no output still drew a box")
 	}
 }
+
+// Streamed output from a running command fills the box live, made visible in
+// the running tool's live region under the held line.
+func TestAStreamingCommandFillsTheLiveBox(t *testing.T) {
+	m := sized()
+	m.run.busy = true
+	m.absorb(called("s", "run_command", `{"command":"make"}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "s", Name: "run_command"}, Text: "compling...\n"})
+
+	view := m.View().Content
+	if !strings.Contains(visible(view), "compling...") {
+		t.Errorf("view = %q, want the streamed line in the running box", visible(view))
+	}
+}
+
+// Streamed output that filled the box wins over the result's copy of the same
+// output, so a backend that streams never doubles the box when the result
+// arrives carrying the whole output again.
+func TestStreamedOutputIsNotDuplicatedAtResult(t *testing.T) {
+	m := sized()
+	m.absorb(called("d", "run_command", `{"command":"make"}`))
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolOutput, Tool: &nacelle.ToolEvent{ID: "d", Name: "run_command"}, Text: "go build\n"})
+	m.absorb(nacelle.Event{Kind: nacelle.KindToolResult, Tool: &nacelle.ToolEvent{
+		ID: "d", Name: "run_command", Input: `{"command":"make"}`, Result: "go build\n",
+	}})
+
+	said := visible(strings.Join(m.unprinted, "\n"))
+	if !strings.Contains(said, "go build") {
+		t.Errorf("output = %q, want the streamed line in the committed box", said)
+	}
+	if strings.Count(said, "go build") != 1 {
+		t.Errorf("output = %q, want the streamed line once, not duplicated by the result", said)
+	}
+}
