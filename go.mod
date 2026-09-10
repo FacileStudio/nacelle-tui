@@ -7,14 +7,10 @@ require (
 	charm.land/bubbletea/v2 v2.0.9
 	charm.land/glamour/v2 v2.0.1
 	charm.land/lipgloss/v2 v2.0.5
-	github.com/FacileStudio/nacelle v0.19.0
+	github.com/FacileStudio/nacelle v0.20.0
 	github.com/charmbracelet/x/ansi v0.11.8
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 )
-
-// Local override while developing against an unreleased nacelle. Removed and
-// set to the released version when the SDK cuts its next tag.
-replace github.com/FacileStudio/nacelle => ../nacelle
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
