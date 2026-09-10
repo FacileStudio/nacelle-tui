@@ -5,20 +5,22 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
-	"charm.land/lipgloss/v2"
-
-	"github.com/FacileStudio/nacelle-tui/internal/layout"
+	"github.com/FacileStudio/nacelle"
 )
 
 // parallelResult mirrors the JSON returned by parallel_subagent.
 type parallelResult struct {
-	Tasks  map[string]string `json:"tasks,omitempty"`
-	Errors map[string]string `json:"errors,omitempty"`
+	Tasks  map[string]string        `json:"tasks,omitempty"`
+	Errors map[string]string        `json:"errors,omitempty"`
+	Usage  map[string]nacelle.Usage `json:"usage,omitempty"`
 }
 
 // handleParallelResult merges the fan-out result into the tracked tasks for
-// this call, then removes the call's entry so it does not sit in memory.
+// this call. The call's rows are kept once done so each subagent's final spend
+// stays visible under the prompt while the parent narrates; stranded() clears
+// calls whose tasks have all finished at the next send or run end.
 func (m *Model) handleParallelResult(rawResult string, toolID string, tasks []parallelTaskInfo) {
 	var result parallelResult
 	if err := json.Unmarshal([]byte(rawResult), &result); err != nil {
@@ -28,7 +30,6 @@ func (m *Model) handleParallelResult(rawResult string, toolID string, tasks []pa
 	for i := range tasks {
 		m.applyParallelResult(i, result, tasks)
 	}
-	delete(m.parallelTasks, toolID)
 }
 
 func (m *Model) applyParallelResult(i int, result parallelResult, tasks []parallelTaskInfo) {
@@ -39,40 +40,45 @@ func (m *Model) applyParallelResult(i int, result parallelResult, tasks []parall
 	} else if res, ok := result.Tasks[idx]; ok {
 		pt.Result = res
 	}
+	if u, ok := result.Usage[idx]; ok {
+		pt.Usage = u
+	}
+	pt.End = time.Now()
 	pt.Active = false
 }
 
 func (m *Model) parallelResultError(toolID string, tasks []parallelTaskInfo, err error) {
 	for i := range tasks {
 		tasks[i].Err = fmt.Sprintf("failed to parse result: %v", err)
+		tasks[i].End = time.Now()
 		tasks[i].Active = false
 	}
 	delete(m.parallelTasks, toolID)
+}
+
+// dropFinishedParallel forgets every parallel call whose tasks have all ended,
+// so a completed fan-out's rows leave at the next send or run end rather than
+// sitting under the prompt forever. Run from stranded(), which both send and
+// settle reach.
+func (m *Model) dropFinishedParallel() {
+	for toolID, tasks := range m.parallelTasks {
+		done := true
+		for _, pt := range tasks {
+			if pt.Active {
+				done = false
+				break
+			}
+		}
+		if done {
+			delete(m.parallelTasks, toolID)
+		}
+	}
 }
 
 // taskTitle collapses a task's prompt onto one line, so the running task row
 // reads as an action instead of a pasted paragraph.
 func taskTitle(pt parallelTaskInfo) string {
 	return strings.Join(strings.Fields(pt.Task), " ")
-}
-
-// callLines returns one rendered line per parallel task: the task's shortened
-// title in yellow on the left, and the run's combined spend against the right
-// margin. Results and errors arrive all at once and drop the call from the map
-// (see handleParallelResult), so this only ever shows tasks still running.
-func callLines(tasks []parallelTaskInfo, width int, spend string) []string {
-	const gap = 3
-	yellow := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	var lines []string
-	for _, pt := range tasks {
-		sWidth := lipgloss.Width(spend)
-		room := width - sWidth - gap
-		title := layout.Truncate(taskTitle(pt), room)
-		left := yellow.Render("≫ " + title)
-		pad := max(width-sWidth-lipgloss.Width(left), 0)
-		lines = append(lines, left+strings.Repeat(" ", pad)+spend)
-	}
-	return lines
 }
 
 // parallelTaskRows returns the row count for a map of parallel_subagent calls.

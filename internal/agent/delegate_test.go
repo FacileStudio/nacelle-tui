@@ -51,17 +51,12 @@ func TestSubagentsMountsOnlyTheParallelTool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("withSubagents: %v", err)
 	}
-	parallel := false
 	for _, tool := range tools {
-		name := tool.Name()
-		if name == nacelle.SubAgentToolName {
-			t.Error("the single subagent tool is still mounted")
-		}
-		if name == nacelle.ParallelSubAgentToolName {
-			parallel = true
+		if tool.Name() != nacelle.ParallelSubAgentToolName {
+			t.Errorf("mounted %q, want only the parallel_subagent tool", tool.Name())
 		}
 	}
-	if !parallel {
-		t.Error("the parallel_subagent tool is not mounted")
+	if len(tools) == 0 {
+		t.Error("no delegate tool mounted")
 	}
 }

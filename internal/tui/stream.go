@@ -113,7 +113,7 @@ func (m *Model) handleParallelCall(tool nacelle.ToolEvent) {
 		}
 		list := make([]parallelTaskInfo, len(input.Tasks))
 		for i, t := range input.Tasks {
-			list[i] = parallelTaskInfo{Task: t, Active: true}
+			list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
 		}
 		m.parallelTasks[tool.ID] = list
 	}

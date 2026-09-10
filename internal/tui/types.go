@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	"charm.land/bubbles/v2/textarea"
 	"charm.land/glamour/v2"
 
@@ -71,6 +73,9 @@ type parallelTaskInfo struct {
 	Task   string
 	Result string
 	Err    string
+	Usage  nacelle.Usage
+	Began  time.Time
+	End    time.Time
 	Active bool
 }
 

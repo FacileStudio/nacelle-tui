@@ -3,21 +3,21 @@ package tui
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/FacileStudio/nacelle"
 )
 
 // The parallel list under the input prompt shows one compact line per running
-// subagent: a ≫ glyph and the task's first line collapsed, with the run's
-// combined spend pushed to the right margin. A pasted multi-line task prompt
-// must not spill across rows.
+// subagent: a ≫ glyph, the task's first line collapsed, and a live elapsed
+// clock. A pasted multi-line task prompt must not spill across rows.
 func TestParallelTasksViewRendersOneCompactLinePerTask(t *testing.T) {
 	m := sized()
 	m.parallelTasks = make(map[string][]parallelTaskInfo)
 	m.parallelTasks["t0"] = make([]parallelTaskInfo, 2)
-	m.parallelTasks["t0"][0] = parallelTaskInfo{Task: "analyze http://x.dev\nfor TODO comments", Active: true}
-	m.parallelTasks["t0"][1] = parallelTaskInfo{Task: "summarize the findings", Active: true}
-	m.run.usage = nacelle.Usage{InputTokens: 128, OutputTokens: 42, Cost: 0.01}
+	began := time.Now()
+	m.parallelTasks["t0"][0] = parallelTaskInfo{Task: "analyze http://x.dev\nfor TODO comments", Began: began, Active: true}
+	m.parallelTasks["t0"][1] = parallelTaskInfo{Task: "summarize the findings", Began: began, Active: true}
 
 	raw := m.parallelTasksView()
 	got := visible(raw)
@@ -30,12 +30,35 @@ func TestParallelTasksViewRendersOneCompactLinePerTask(t *testing.T) {
 		if !strings.Contains(line, "≫") {
 			t.Errorf("line %q missing the ≫ glyph", line)
 		}
-		if !strings.Contains(line, "↑128") || !strings.Contains(line, "↓42") || !strings.Contains(line, "$0.0100") {
-			t.Errorf("line %q missing the spend", line)
-		}
 	}
 	if !strings.Contains(raw, "\x1b[33m≫") {
 		t.Errorf("glyph not styled yellow: %q", raw)
+	}
+}
+
+// A finished task reports its own spend from the result's per-task usage map
+// instead of a single global total copied onto every row — the per-subagent
+// cost the old view hid.
+func TestParallelTasksViewShowsPerTaskSpendOnCompletion(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["t0"] = make([]parallelTaskInfo, 1)
+	pt := &m.parallelTasks["t0"][0]
+	*pt = parallelTaskInfo{
+		Task:   "scrape the pricing page",
+		Began:  time.Now(),
+		End:    time.Now(),
+		Usage:  nacelle.Usage{InputTokens: 2048, OutputTokens: 300, Cost: 0.02},
+		Active: false,
+	}
+
+	got := visible(m.parallelTasksView())
+
+	if !strings.Contains(got, "↑2.0k") || !strings.Contains(got, "↓300") || !strings.Contains(got, "$0.0200") {
+		t.Errorf("completed row missing the per-task spend, got %q", got)
+	}
+	if !strings.Contains(got, "s") {
+		t.Errorf("completed row missing the frozen duration clock, got %q", got)
 	}
 }
 
@@ -51,5 +74,26 @@ func TestParallelTaskRowsCountsTasks(t *testing.T) {
 	tasks["b"] = make([]parallelTaskInfo, 1)
 	if got := parallelTaskRows(tasks); got != 3 {
 		t.Errorf("parallelTaskRows = %d, want 3", got)
+	}
+}
+
+// A completed fan-out's rows persist so the per-subagent cost stays visible,
+// but dropFinishedParallel forgets any call whose tasks have all ended — the
+// next send or run end clears them rather than leaving them stacked forever.
+func TestDropFinishedParallelForgetsCompletedCalls(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["done"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["done"][0] = parallelTaskInfo{Began: time.Now(), End: time.Now(), Active: false}
+	m.parallelTasks["live"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["live"][0] = parallelTaskInfo{Began: time.Now(), Active: true}
+
+	m.dropFinishedParallel()
+
+	if _, ok := m.parallelTasks["done"]; ok {
+		t.Error("a fully-completed call was not forgotten")
+	}
+	if _, ok := m.parallelTasks["live"]; !ok {
+		t.Error("a call with a running task was forgotten")
 	}
 }
