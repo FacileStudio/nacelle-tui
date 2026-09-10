@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.31.0] - 2026-09-10
+
+### Removed
+- **No more side runs**: a message typed while the main run is busy queues again instead of being answered by a fresh concurrent agent. The `⇄` side-run feature (v0.30.0) is removed entirely — when the run is busy every message waits and sends when the run settles, matching the behaviour before v0.30.0.
+
 ## [0.30.2] - 2026-09-10
 
 ### Changed
