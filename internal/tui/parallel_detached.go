@@ -52,6 +52,9 @@ func (m *Model) launchDetached(tasks []string) tea.Cmd {
 	go func() {
 		results, err := nacelle.DelegateParallel(context.Background(), cfg, tasks, nacelle.ParallelSubAgentOptions{
 			Approve: delegateApprove(cfg),
+			Tool: func(batch string, idx int, tool string) {
+				subagentTools <- subagentTool{batch: id, idx: idx, tool: tool}
+			},
 		})
 		if err != nil {
 			detached <- detachedResult{batch: id, idx: -1, err: err.Error()}
@@ -127,6 +130,7 @@ func (m *Model) finishDetached(pt *parallelTaskInfo, r detachedResult) {
 	pt.Usage = r.usage
 	pt.End = time.Now()
 	pt.Active = false
+	pt.Tool = ""
 	if r.usage.Total() > 0 {
 		m.spent = m.spent.Add(r.usage)
 	}

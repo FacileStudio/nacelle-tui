@@ -29,6 +29,7 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 		Usage:   tui.DelegateUsage,
 		Detach:  true,
 		Results: tui.PostDetached,
+		Tool:    tui.ReportSubagentTool,
 	})
 	if err != nil {
 		return nil, err

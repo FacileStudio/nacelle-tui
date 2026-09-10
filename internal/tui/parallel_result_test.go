@@ -109,11 +109,21 @@ func TestTaskTitlePrefersTheGeneratedTitle(t *testing.T) {
 }
 
 // Without a title the row falls back to the task prompt collapsed onto one
-// line, preserving the pre-title behaviour.
+// line, capped short so a fan-out whose summarizer has not landed never reads
+// as the full prompt.
 func TestTaskTitleFallsBackToCollapsedTask(t *testing.T) {
 	pt := parallelTaskInfo{Task: "analyze http://x.dev\nfor TODO comments", Active: true}
 	if got := taskTitle(pt); got != "analyze http://x.dev for TODO comments" {
 		t.Errorf("taskTitle = %q, want the collapsed task", got)
+	}
+}
+
+// The fallback is shortTitle-capped at seven words just like a generated title,
+// so a long prompt without a summarizer result still stays one line.
+func TestTaskTitleFallbackIsCappedShort(t *testing.T) {
+	pt := parallelTaskInfo{Task: "do a b c d e f g h i j k l m n o p q r s t u v w x y z now", Active: true}
+	if got := taskTitle(pt); got != "do a b c d e f" {
+		t.Errorf("taskTitle = %q, want the fallback capped at seven words", got)
 	}
 }
 
@@ -149,5 +159,88 @@ func TestRecordTitleAppliesToTheRightTask(t *testing.T) {
 	m.recordTitle(taskTitled{Call: "missing", Index: 0, Title: "ghost"})
 	if _, ok := m.parallelTasks["missing"]; ok {
 		t.Error("a title to an unknown call created state")
+	}
+}
+
+// recordTool applies a nested task's live tool call to its row and re-arms the
+// watch, so the row shows what the subagent is running while it grinds.
+func TestRecordToolAppliesTheRunningTool(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["d0"] = make([]parallelTaskInfo, 2)
+	m.parallelTasks["d0"][0] = parallelTaskInfo{Task: "one", Active: true}
+	m.parallelTasks["d0"][1] = parallelTaskInfo{Task: "two", Active: true}
+
+	m.recordTool(subagentTool{batch: "d0", idx: 1, tool: "read_file"})
+
+	if m.parallelTasks["d0"][1].Tool != "read_file" {
+		t.Errorf("running tool not applied to task 1")
+	}
+	if m.parallelTasks["d0"][0].Tool != "" {
+		t.Errorf("running tool leaked onto task 0")
+	}
+
+	m.recordTool(subagentTool{batch: "ghost", idx: 0, tool: "run_command"})
+	if _, ok := m.parallelTasks["ghost"]; ok {
+		t.Error("a tool call to an unknown batch created state")
+	}
+}
+
+// A tool event that trails a finished result does not resurrect a row:
+// recordTool only touches still-running tasks.
+func TestRecordToolIgnoresFinishedTasks(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["d0"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["d0"][0] = parallelTaskInfo{Task: "one", Active: false, Tool: ""}
+
+	m.recordTool(subagentTool{batch: "d0", idx: 0, tool: "edit_file"})
+
+	if m.parallelTasks["d0"][0].Tool != "" {
+		t.Errorf("a late tool call reset a finished task's row")
+	}
+}
+
+// The row shows the subagent's currently-running tool after the title's colon,
+// coloured by the tool's own rules, with the short summary as the title.
+func TestParallelTaskRowShowsTheRunningTool(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["t0"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["t0"][0] = parallelTaskInfo{
+		Task:   "analyze the codebase for todos",
+		Title:  "scan site for todos",
+		Tool:   "run_command",
+		Began:  time.Now(),
+		Active: true,
+	}
+
+	raw := m.taskRow(m.parallelTasks["t0"][0])
+	got := visible(raw)
+
+	if !strings.Contains(got, "≫ scan site for todos:") {
+		t.Errorf("row = %q, want the short title followed by a colon", got)
+	}
+	if !strings.Contains(got, "run_command") {
+		t.Errorf("row = %q, want the running tool name", got)
+	}
+	if !strings.Contains(raw, "\x1b[35mrun_command") {
+		t.Errorf("running tool not coloured with its tool tone: %q", raw)
+	}
+}
+
+// finishDetached clears the tool column, so a completed row reads as done
+// rather than still running whatever it was doing when it finished.
+func TestFinishDetachedDropsTheRunningTool(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["d0"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["d0"][0] = parallelTaskInfo{Task: "one", Tool: "read_file", Active: true}
+
+	m.finishDetached(&m.parallelTasks["d0"][0], detachedResult{batch: "d0", idx: 0, result: "r"})
+
+	pt := &m.parallelTasks["d0"][0]
+	if pt.Tool != "" || pt.Active {
+		t.Errorf("finished task still shows tool=%q active=%v", pt.Tool, pt.Active)
 	}
 }

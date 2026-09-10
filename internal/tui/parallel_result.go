@@ -77,12 +77,14 @@ func (m *Model) dropFinishedParallel() {
 
 // taskTitle is the title a running task row shows: the short description the
 // summarizer generated when one has landed, else the task's prompt collapsed
-// onto one line. Either way the row reads as an action, not a pasted block.
+// onto one line. Either way the row reads as an action, not a pasted block —
+// the fallback is shortTitle-capped, so a fan-out whose summarizer has not
+// landed yet never reads as the full prompt.
 func taskTitle(pt parallelTaskInfo) string {
 	if pt.Title != "" {
 		return pt.Title
 	}
-	return strings.Join(strings.Fields(pt.Task), " ")
+	return shortTitle(strings.Join(strings.Fields(pt.Task), " "))
 }
 
 // parallelTaskRows returns the row count for a map of parallel fan-outs.

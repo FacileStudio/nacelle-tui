@@ -10,13 +10,14 @@ import (
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/layout"
 	"github.com/FacileStudio/nacelle-tui/internal/status"
+	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
 // parallelTasksView returns a view of the parallel subagent tasks, one line per
-// task. A running task shows its title and an elapsed clock that the spinner
-// tick redraws; a finished one shows its own spend from the result's usage map
-// and the duration it took, so the per-subagent cost is visible rather than a
-// single total copy-pasted onto every row.
+// task. A running task shows its title, the tool it is running right now, and
+// an elapsed clock that the spinner tick redraws; a finished one shows its own
+// spend from the result's usage map and the duration it took, so the per-subagent
+// cost is visible rather than a single total copy-pasted onto every row.
 func (m *Model) parallelTasksView() string {
 	if len(m.parallelTasks) == 0 {
 		return ""
@@ -30,15 +31,27 @@ func (m *Model) parallelTasksView() string {
 	return strings.Join(lines, "\n")
 }
 
+// whiteClock is the running task's elapsed-clock white, split from the muted
+// stats so the timer reads at a glance while it ticks.
+var whiteClock = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
+
 func (m *Model) taskRow(pt parallelTaskInfo) string {
 	const gap = 3
-	clock := taskClock(pt)
-	spend := taskSpend(pt.Usage)
+	tool := ""
+	if pt.Tool != "" {
+		tool = " " + toolview.ToolTone(pt.Tool).Render(pt.Tool)
+	}
+	clock := whiteClock.Render(taskClock(pt))
+	spend := ""
+	if s := taskSpend(pt.Usage); s != "" {
+		spend = " " + m.theme.Muted.Render(s)
+	}
 	tail := strings.TrimSpace(clock + " " + spend)
-	room := max(m.width-lipgloss.Width(tail)-gap, 0)
-	left := taskTone(pt).Render("≫ " + layout.Truncate(taskTitle(pt), room))
-	pad := max(m.width-lipgloss.Width(left)-lipgloss.Width(tail), 0)
-	return left + strings.Repeat(" ", pad) + tail
+	room := max(m.width-lipgloss.Width(tool)-lipgloss.Width(tail)-gap, 0)
+	title := layout.Truncate(taskTitle(pt), max(room-3, 0))
+	left := taskTone(pt).Render("≫ " + title + ":")
+	pad := max(m.width-lipgloss.Width(left)-lipgloss.Width(tool)-lipgloss.Width(tail), 0)
+	return left + tool + strings.Repeat(" ", pad) + tail
 }
 
 func taskTone(pt parallelTaskInfo) lipgloss.Style {
