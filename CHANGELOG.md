@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.33.0] - 2026-09-10
+
+### Changed
+- **The model's own `parallel_subagent` call no longer blocks**: the tool runs detached (nacelle v0.16.0 `Detach` mode). When the model calls it, the tool returns a stub immediately and the fan-out grinds in the background, so the parent's turn — and your main thread — stay free. The call reads as a "started N parallel agents" message, the tool row completes at once instead of sitting "running", and each subagent's result still lands as a titled row under the prompt with its own spend. You can keep chatting while subagents work, whether the fan-out came from `/parallel` or from the model choosing the tool itself.
+
 ## [0.32.0] - 2026-09-10
 
 ### Changed
