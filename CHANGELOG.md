@@ -4,6 +4,12 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.37.0] - 2026-09-10
+
+### Changed
+- **A completed detached fan-out wakes the main agent to review the work**: when the last subagent finishes while the main run is idle (and at least one task returned a real result), the client sends the results back as a user message and starts a run — each subagent's title and outcome inlined — so the main agent folds the work into its answer instead of leaving it sitting in rows under the prompt. A fan-out that error'd everywhere, or a busy main run, skips the wake-up.
+- **`/clear` now drops finished subagent rows while leaving still-running agents untouched**: finished tasks are hidden and a batch is removed once nothing in it runs any more, so a `/clear` starts your session fresh without killing fan-outs that are still grinding.
+
 ## [0.36.0] - 2026-09-10
 
 ### Changed
