@@ -7,8 +7,8 @@ import (
 )
 
 func TestMCPSourceGlyph(t *testing.T) {
-	if got := ToolSourceGlyph("whatever_mcp_tool", nacelle.ToolSourceMCP); got != "❋" {
-		t.Errorf("ToolSourceGlyph(MCP) = %q, want ❋", got)
+	if got := ToolSourceGlyph("whatever_mcp_tool", nacelle.ToolSourceMCP); got != "✻" {
+		t.Errorf("ToolSourceGlyph(MCP) = %q, want ✻", got)
 	}
 	if got := ToolSourceGlyph("run_command", nacelle.ToolSourceLocal); got != "$" {
 		t.Errorf("ToolSourceGlyph(local) = %q, want $", got)

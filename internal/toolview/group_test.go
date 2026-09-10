@@ -44,11 +44,11 @@ func TestGroupLineBatchMCP(t *testing.T) {
 		Tool:      nacelle.ToolEvent{Source: nacelle.ToolSourceMCP},
 	}
 	line := g.GroupLine(80)
-	if !strings.Contains(line, "❋ 3 mcps") {
-		t.Errorf("GroupLine = %q, want '❋ 3 mcps'", line)
+	if !strings.Contains(line, "✻ 3 mcps") {
+		t.Errorf("GroupLine = %q, want '✻ 3 mcps'", line)
 	}
-	if glyph := g.GroupGlyph(); glyph != "❋" {
-		t.Errorf("GroupGlyph = %q, want ❋", glyph)
+	if glyph := g.GroupGlyph(); glyph != "✻" {
+		t.Errorf("GroupGlyph = %q, want ✻", glyph)
 	}
 }
 

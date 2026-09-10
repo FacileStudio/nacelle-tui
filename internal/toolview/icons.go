@@ -32,7 +32,7 @@ var toolStyles = map[string]lipgloss.Style{
 	"✚": lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	"↧": lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
 	"≫": lipgloss.NewStyle().Foreground(lipgloss.Color("3")),
-	"❋": lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
+	"✻": lipgloss.NewStyle().Foreground(lipgloss.Color("208")),
 }
 
 var toolANSI = map[string]string{
@@ -43,7 +43,7 @@ var toolANSI = map[string]string{
 	"✚": "35",
 	"↧": "36",
 	"≫": "33",
-	"❋": "208",
+	"✻": "208",
 }
 
 // ToolKind categorizes a tool by its operation group for batching.
@@ -78,7 +78,7 @@ func ToolKindGlyph(kind string) string {
 	case "delegate":
 		return "≫"
 	case "mcp":
-		return "❋"
+		return "✻"
 	default:
 		return "•"
 	}

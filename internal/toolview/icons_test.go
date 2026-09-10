@@ -41,7 +41,7 @@ func TestToolKindGlyph(t *testing.T) {
 		{"write", "$"},
 		{"network", "↧"},
 		{"delegate", "≫"},
-		{"mcp", "❋"},
+		{"mcp", "✻"},
 		{"other", "•"},
 	}
 

@@ -4,6 +4,11 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.30.2] - 2026-09-10
+
+### Changed
+- **MCP glyph is now a four-pointed star**: the orange MCP marker changed from `❋` to `✻`. The glyph keeps the `mcp` grouping kind and the ANSI 208 orange — an MCP call still never collapses into a write batch — but reads as a star rather than a snowflake.
+
 ## [0.30.1] - 2026-09-10
 
 ### Fixed

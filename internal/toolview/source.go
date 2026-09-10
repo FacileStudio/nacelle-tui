@@ -6,18 +6,18 @@ import (
 	"github.com/FacileStudio/nacelle"
 )
 
-// MCP tools get their own look: a ❋ glyph in orange, distinct from every
+// MCP tools get their own look: a ✻ glyph in orange, distinct from every
 // built-in kind so a server's tools stand out in the transcript. The ANSI
 // code and the ANSI-escape restore share the same value so the whole line
 // reads orange, glyph and name together.
 const mcpANSI = "208"
 
 // ToolSourceGlyph returns the marker icon for a tool by its nacelle source.
-// It is source-first: MCP tools get ❋ regardless of name. Everything else
+// It is source-first: MCP tools get ✻ regardless of name. Everything else
 // falls back to the normal name-based glyph.
 func ToolSourceGlyph(name string, source nacelle.Source) string {
 	if source == nacelle.ToolSourceMCP {
-		return "❋"
+		return "✻"
 	}
 	return ToolGlyph(name)
 }
