@@ -4,6 +4,13 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.36.0] - 2026-09-10
+
+### Changed
+- **Parallel rows lead with the spend and end with the timer**: a running task reads `≫ <title>: <tool> <price> <tokens> <clock>`, putting the timer last so the stats line up across the rows. The clock and the token counter now both tick live while a fan-out grinds — the clock for a run launched from an idle prompt too, not just when you type — instead of only at the end.
+- **A running subagent's cost shows as it is spent**, not only when it finishes. Relies on nacelle v0.18.0's `LiveUsage` hook, which streams each nested turn's spend per task while the fan-out runs.
+- **A task title is always a plain 6-7 word description**: the summarizer is told to never include file paths, URLs or directory names, and both generated and fallback titles strip path- and URL-shaped tokens defensively.
+
 ## [0.35.1] - 2026-09-10
 
 ### Fixed
