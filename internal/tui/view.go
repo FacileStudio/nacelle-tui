@@ -54,13 +54,17 @@ func (m *Model) aboveContent() []string {
 }
 
 // belowContent is everything rendered beneath the prompt: the running parallel
-// subagents and the slash-command suggestions. Both live here so they never
-// fight for the same rows, and so the menu's own blank-line separator applies
-// to the whole block rather than doubling between them.
+// subagents, the side-run quick answers, and the slash-command suggestions.
+// They sit here together so none fights for the same rows, and so the menu's
+// own blank-line separator applies to the whole block rather than doubling
+// between them.
 func (m *Model) belowContent() string {
 	var below []string
 	if len(m.parallelTasks) > 0 {
 		below = append(below, m.parallelTasksView())
+	}
+	if len(m.sides) > 0 {
+		below = append(below, m.sideView())
 	}
 	if menu := m.viewMenu(); menu != "" {
 		below = append(below, menu)
@@ -87,7 +91,7 @@ func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
 }
 
 func (m *Model) layout(height int) {
-	taken := 3 + m.prompt.Height() + m.menu.Height() + m.Height(m.hist.Editing(m.Len())) + m.tasks.Rows() + m.parallelTasksRows()
+	taken := 3 + m.prompt.Height() + m.menu.Height() + m.Height(m.hist.Editing(m.Len())) + m.tasks.Rows() + m.parallelTasksRows() + len(m.sides)
 	m.liveRows = layout.LiveRows(height, taken)
 }
 

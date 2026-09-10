@@ -105,5 +105,7 @@ type Model struct {
 	hist *history.History
 
 	parallelState
-	run inflight
+	run    inflight
+	sides  []sideRun
+	system string
 }

@@ -87,7 +87,7 @@ func (m *Model) Init() tea.Cmd {
 			}
 		}
 	}
-	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles())
+	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchSides())
 }
 
 // Update routes each message to the one place that owns it, and hands whatever
@@ -148,6 +148,8 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.recordDelegation(message)
 	case taskTitled:
 		return m.recordTitle(message)
+	case sideResult:
+		return m.recordSide(message)
 	case taskUpdate:
 		return m.recordTasks(message)
 	case compactOutcome:

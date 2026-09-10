@@ -71,6 +71,7 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 	return &tui.UISession{
 		Agent:      agentInstance,
 		Banner:     banner(backend, p.config, found, p.mcp, v),
+		System:     p.config.System,
 		Skills:     found.skills,
 		HookNotice: hookNotice,
 		Gate:       approvalGate,
