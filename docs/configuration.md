@@ -95,7 +95,7 @@ could tell apart.
 | Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence |
 | Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: []`, `approve_tools: false`, `diffs: true`, `max_iterations: 0` (no cap), `compact_at: 100000` (absolute tokens), `fetch: true`, `tasks: true` |
+| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: {}`, `approve_tools: false`, `diffs: true`, `max_iterations: 0` (no cap), `compact_at: 100000` (absolute tokens), `fetch: true`, `tasks: true` |
 
 `project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
 there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
@@ -129,7 +129,9 @@ trust_skills: false
 skill_dirs:
   - ~/.claude/skills
 mcp:
-  - ~/.claude/.mcp.json
+  mycelium:
+    command: mycelium
+    args: [mcp]
 approve_tools: false
 diffs: true
 max_iterations: 0
@@ -255,20 +257,27 @@ every project-local `.agents/skills/` found on that run and remembers the decisi
 `~/.nacelle/trust.json`, keyed by canonical directory — run it once per project, not on every
 launch.
 
-**MCP servers** (`-mcp`, `mcp.go`). Each `-mcp` names a file in the `mcpServers` format —
-`.mcp.json` and its siblings — whose servers are started at launch, their tools handed to the
-model like any other. It reads the file other clients already write, so pointing at
-`~/.claude/.mcp.json` works without copying anything, which is the same problem `-skill-dir`
-solves for skills. Both stdio (`command`) and HTTP (`"type": "http"`) servers work, on **either
-backend**: the tools are bridged to `nacelle.Tool`, so `-approve-tools` gates them like every
-other tool and `-backend openrouter` gets them too. `${VAR}` and `${VAR:-default}` expand, so a
-token stays in the environment rather than in the file.
+**MCP servers** (`mcp.go`). A server is written inline under `mcp:` in `~/.nacelle.yml` — nothing
+else is needed to start one:
+```yaml
+mcp:
+  mycelium:
+    command: mycelium
+    args: [mcp]
+```
+The key is the server name;the definition uses the keys the `mcpServers` format spells — `command` + `args`
+(stdio), `"type": "http"` + `url` (remote), `env`, `cwd`, `headers`, `disabled`. Both stdio and HTTP
+servers work, on **either backend**:the tools are bridged to `nacelle.Tool`, so
+`-approve-tools` gates them like every other tool and `-backend openrouter` gets them too. `${VAR}`和
+`${VAR:-default}` expand,, so a token stays in the environment rather than in `~/.nacelle.yml`. Writing
+the definition here means there is no second file to keep in step and no pointer to remember to point tor
 
-The flag is repeatable and `mcp:` in `~/.nacelle.yml` **accumulates** with it rather than being
-replaced — the one list here that does. `client.Load` merges files by server name with the later
-one winning, so a personal list plus a project's layer the way every client in this ecosystem
-layers its own scopes. Replacing would mean naming one project server silently switching off the
-nine already configured.
+For the times a server is already configured for another client, `-mcp <file>` (repeatable) names
+a `.mcp.json` in the `mcpServers` format and merges its servers in — by server name,, with the flag's
+servers winning over the inline ones,, so `-mcp ~/.claude/.mcp.json` reads what Claude Code already
+has without copying it. Replacing would mean naming one server silently switching off nine already
+configured; merging is how a personal inline list plus another client's file stack the way every client
+in this ecosystem layers its own scopes.
 
 A server that will not start **ends the run**, which is the opposite of how skills and project
 context fail. Those are discovered, so finding nothing is indistinguishable from there being

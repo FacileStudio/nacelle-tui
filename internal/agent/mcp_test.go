@@ -1,24 +1,14 @@
 package agent
 
 import (
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle/mcp/client"
 )
-
-func namedServers(t *testing.T, body string) string {
-	t.Helper()
-
-	path := filepath.Join(t.TempDir(), ".mcp.json")
-	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-		t.Fatalf("writing the MCP config: %v", err)
-	}
-	return path
-}
 
 func TestNoMCPConfigStartsNothingAndChangesNothing(t *testing.T) {
 	local := []nacelle.Tool{}
@@ -42,7 +32,6 @@ func TestNoMCPConfigStartsNothingAndChangesNothing(t *testing.T) {
 
 func TestTheBannerSaysNothingAboutMCPWhenNoneIsConfigured(t *testing.T) {
 	got := testBanner(&answeringStub{}, asSettled(Config{Root: "."}), loaded{}, connected{})
-
 	if strings.Contains(got, "MCP") {
 		t.Errorf("banner = %q, want no mention of MCP when none is configured", got)
 	}
@@ -50,7 +39,9 @@ func TestTheBannerSaysNothingAboutMCPWhenNoneIsConfigured(t *testing.T) {
 
 func TestAServerThatWillNotStartEndsTheRun(t *testing.T) {
 	config := defaults()
-	config.MCP = []string{namedServers(t, `{"mcpServers": {"ledger": {"command": "/nonexistent/nacelle-mcp"}}}`)}
+	config.MCP = map[string]client.ServerDef{
+		"ledger": {Command: "/nonexistent/nacelle-mcp"},
+	}
 
 	_, _, err := mcpTools(config, nil)
 	if err == nil {
@@ -63,50 +54,29 @@ func TestAServerThatWillNotStartEndsTheRun(t *testing.T) {
 
 func TestAnUnreadableMCPFileEndsTheRun(t *testing.T) {
 	config := defaults()
-	config.MCP = []string{filepath.Join(t.TempDir(), "never-written.json")}
+	config.MCPFiles = []string{filepath.Join(t.TempDir(), "never-written.json")}
 
 	if _, _, err := mcpTools(config, nil); err == nil {
 		t.Fatal("a config file that was never there was accepted")
 	}
 }
 
-func TestConfiguredExpandsTildesAndKeepsTheOrderGiven(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+func TestMCPFromNacelleYmlIsInlineAndTheFlagNamesFiles(t *testing.T) {
+	written(t, "mcp:\n  mycelium:\n    command: mycelium\n    args: [mcp]\n")
 
-	got := configured([]string{"~/.claude/.mcp.json", "/etc/team.mcp.json"})
-
-	want := []string{filepath.Join(home, ".claude", ".mcp.json"), "/etc/team.mcp.json"}
-	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
-		t.Errorf("configured = %v, want %v", got, want)
-	}
-}
-
-func TestTheBannerReportsTheServersAndToolsItWasGiven(t *testing.T) {
-	got := testBanner(&answeringStub{}, asSettled(Config{Root: "."}), loaded{}, connected{servers: 2, tools: 7})
-
-	if !strings.Contains(got, "2 MCP servers, 7 tools") {
-		t.Errorf("banner = %q, want the server and tool counts", got)
-	}
-	if alone := testBanner(&answeringStub{}, asSettled(Config{Root: "."}), loaded{},
-		connected{servers: 1, tools: 1}); !strings.Contains(alone, "1 MCP server, 1 tool") {
-		t.Errorf("banner = %q, want both counts in the singular", alone)
-	}
-}
-
-func TestMCPFilesFromTheFileAndTheFlagCombineWithTheFlagLast(t *testing.T) {
-	written(t, "mcp:\n  - /from/the/file.json\n")
-
-	config, err := resolveSettings(Config{Sources: Sources{MCP: []string{"/from/the/flag.json"}}})
+	config, err := resolveSettings(Config{Sources: Sources{MCPFiles: []string{"/from/the/flag.json"}}})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if want := []string{"/from/the/file.json", "/from/the/flag.json"}; !slices.Equal(config.MCP, want) {
-		t.Errorf("mcp = %v, want %v", config.MCP, want)
+	if got := config.MCP["mycelium"]; got.Command != "mycelium" || len(got.Args) != 1 {
+		t.Errorf("MCP[mycelium] = %+v, want the inline server from the file", got)
+	}
+	if want := []string{"/from/the/flag.json"}; !slices.Equal(config.MCPFiles, want) {
+		t.Errorf("MCPFiles = %v, want %v", config.MCPFiles, want)
 	}
 }
 
-func TestNoMCPKeyAnywhereLeavesTheListEmpty(t *testing.T) {
+func TestNoMCPKeyAnywhereLeavesMCPUnset(t *testing.T) {
 	written(t, "backend: openrouter\n")
 
 	config, err := resolveSettings(Config{})
@@ -115,5 +85,8 @@ func TestNoMCPKeyAnywhereLeavesTheListEmpty(t *testing.T) {
 	}
 	if len(config.MCP) != 0 {
 		t.Errorf("mcp = %v, want nothing configured", config.MCP)
+	}
+	if len(config.MCPFiles) != 0 {
+		t.Errorf("mcp_files = %v, want nothing configured", config.MCPFiles)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/FacileStudio/nacelle/mcp/client"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -135,13 +136,13 @@ type Discovery struct {
 	TrustHooks     *bool `yaml:"trust_hooks"`
 }
 
-// Sources holds the two settings that name somewhere to read from. SkillDirs
-// replaces when set, MCP accumulates — the only list that does, because
-// merging a config-file server list with a command-line server list is how
-// both are used.
+// Sources names what to read. SkillDirs replaces when set. MCP holds servers
+// written inline (the way most people configure one); MCPFiles names .mcp.json files to load as well
+// (the -mcp flag), merged by server name with them win, so ~/.claude/.mcp.json keeps working.
 type Sources struct {
-	SkillDirs []string `yaml:"skill_dirs"`
-	MCP       []string `yaml:"mcp"`
+	SkillDirs []string                    `yaml:"skill_dirs"`
+	MCP       map[string]client.ServerDef `yaml:"mcp"`
+	MCPFiles  []string                    `yaml:"-"`
 }
 
 // HookSpec is one entry under a config's `hooks:` key.
@@ -197,8 +198,7 @@ func Defaults(system string) Config {
 	}
 }
 
-// ConfigPath is where the file lives, honouring HOME so a test does not have to
-// write to the real one, and the empty string when there is no home to look in.
+// ConfigPath is where the config file lives (HOME); a test need not touch the real one.
 func ConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

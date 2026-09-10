@@ -2,12 +2,12 @@ package agent
 
 import (
 	"context"
+	"maps"
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle/mcp/client"
 
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
-	"github.com/FacileStudio/nacelle-tui/internal/skills"
 )
 
 // connected is the live session to every MCP server this launch was told
@@ -65,7 +65,17 @@ type connected struct {
 // asked anything at all. Doing it safely means that same trust gate, which is
 // a feature of its own rather than a line in this function.
 func mcpTools(config settings.Config, local []nacelle.Tool) (connected, []nacelle.Tool, error) {
-	servers, err := client.Load(configured(config.MCP)...)
+	defs := map[string]client.ServerDef{}
+	if config.MCP != nil {
+		maps.Copy(defs, config.MCP)
+	}
+	flagDefs, err := client.LoadDefs(config.MCPFiles...)
+	if err != nil {
+		return connected{}, nil, err
+	}
+	maps.Copy(defs, flagDefs)
+
+	servers, err := client.Parse(defs)
 	if err != nil {
 		return connected{}, nil, err
 	}
@@ -76,18 +86,4 @@ func mcpTools(config settings.Config, local []nacelle.Tool) (connected, []nacell
 	}
 	bridged := set.Tools()
 	return connected{set: set, servers: len(servers), tools: len(bridged)}, append(local, bridged...), nil
-}
-
-// configured is every named file with a leading "~" resolved, which is the
-// same thing extraSkills does to -skill-dir's directories and is needed here
-// for the same reason expandHome's own doc comment gives: the flag's argument
-// arrives already expanded by the shell, and ~/.nacelle.yml's goes through no
-// shell at all, so "~/.claude/.mcp.json" would otherwise work written one way
-// and silently not the other.
-func configured(paths []string) []string {
-	resolved := make([]string, 0, len(paths))
-	for _, path := range paths {
-		resolved = append(resolved, skills.ExpandHome(path))
-	}
-	return resolved
 }

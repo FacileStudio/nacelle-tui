@@ -1,5 +1,7 @@
 package settings
 
+import "github.com/FacileStudio/nacelle/mcp/client"
+
 // merge overwrites every setting the layer above actually mentions, and leaves
 // the rest alone.
 func (c *Config) merge(over Config) {
@@ -21,7 +23,13 @@ func (c *Config) merge(over Config) {
 	if len(over.SkillDirs) > 0 {
 		c.SkillDirs = over.SkillDirs
 	}
-	c.MCP = append(c.MCP, over.MCP...)
+	for name, def := range over.MCP {
+		if c.MCP == nil {
+			c.MCP = map[string]client.ServerDef{}
+		}
+		c.MCP[name] = def
+	}
+	c.MCPFiles = append(c.MCPFiles, over.MCPFiles...)
 	c.Hooks = append(c.Hooks, over.Hooks...)
 }
 
