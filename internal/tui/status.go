@@ -50,13 +50,16 @@ func (m *Model) status() string {
 // footer is the costs line under the state line: price when the backend
 // reported one, input and output tokens, and the context size. The output and
 // context counts carry the live estimate (liveOut) so they tick as the model
-// writes; the real per-turn usage replaces the estimate the moment a turn ends.
+// writes, and the price carries that estimate scaled by the last realised cost
+// per token (rate) so the dollar figure moves too; the real per-turn usage
+// replaces the estimates the moment a turn ends.
 func (m *Model) footer() []string {
 	total := m.spent.Add(m.run.usage)
+	live := m.rate * float64(m.run.liveOut)
 
 	var spent []string
-	if total.Cost > 0 {
-		spent = append(spent, fmt.Sprintf("$%.4f", total.Cost))
+	if total.Cost+live > 0 {
+		spent = append(spent, fmt.Sprintf("$%.4f", total.Cost+live))
 	}
 	spent = append(spent,
 		"↑"+shortTokens(total.InputTokens+total.CacheCreationTokens),

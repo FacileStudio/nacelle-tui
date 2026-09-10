@@ -24,6 +24,16 @@ type account struct {
 	// in flight to it into a total that only ever goes up.
 	spent nacelle.Usage
 
+	// rate is the realised cost per token of the most recent turn that
+	// reported one: its Cost divided by its total billed tokens. The status
+	// line multiplies the live output-token estimate by it while a turn
+	// streams, so the dollar figure ticks without waiting for the turn to
+	// end. It stays zero until a turn reports a Cost — and stays that way on
+	// backends that never report one, so no dollars are invented — and the
+	// authoritative per-turn Cost replaces the estimate at the next turn
+	// boundary.
+	rate float64
+
 	// size is the input cost of the most recent finished turn, in tokens.
 	// Every turn re-bills the whole conversation as input, so this is also
 	// what the conversation would cost to send again right now — measured,

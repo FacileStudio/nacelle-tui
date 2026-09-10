@@ -85,6 +85,7 @@ func (m *Model) absorb(event nacelle.Event) {
 		m.turn(event)
 	case nacelle.KindDone:
 		m.run.usage = event.Usage
+		m.learnRate(event.Usage)
 		m.run.stop = event.Stop
 		m.sized(event.Usage)
 		m.run.liveOut = 0

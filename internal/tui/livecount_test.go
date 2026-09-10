@@ -53,6 +53,46 @@ func TestTheLiveEstimateIsReplacedAtTheTurnBoundary(t *testing.T) {
 	}
 }
 
+// The dollar figure is live too, on the same honesty as the token counter: no
+// turn has reported a Cost yet means no price at all; the first turn's real
+// Cost seeds a realised rate (Cost per total billed token); and while the next
+// turn streams, the footer shows the accumulated real Cost plus that rate
+// scaled by the live output-token estimate, so the $ ticks up as tokens
+// arrive. A backend that never reports a Cost keeps the rate at zero and no
+// price is invented, and the authoritative Cost replaces the estimate the
+// moment the next turn ends.
+func TestLivePriceTicksFromTheRealisedRateAndLandsOnTheRealCost(t *testing.T) {
+	m := sized()
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: strings.Repeat("b", 40)})
+	if got := visible(strings.Join(m.footer(), " ")); strings.Contains(got, "$") {
+		t.Errorf("footer = %q, want no price before a turn has reported a Cost", got)
+	}
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindTurn, Usage: nacelle.Usage{InputTokens: 400, OutputTokens: 30, Cost: 0.003}})
+	if got := visible(strings.Join(m.footer(), " ")); !strings.Contains(got, "$0.0030") {
+		t.Errorf("footer = %q, want the first turn's authoritative Cost", got)
+	}
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindText, Text: strings.Repeat("b", 40)})
+	streaming := visible(strings.Join(m.footer(), " "))
+	if !strings.Contains(streaming, "$0.0031") {
+		t.Errorf("footer = %q, want the live estimate on top of the real Cost", streaming)
+	}
+	if !strings.Contains(streaming, "↓40") {
+		t.Errorf("footer = %q, want the live output estimate still streaming", streaming)
+	}
+
+	m.absorb(nacelle.Event{Kind: nacelle.KindTurn, Usage: nacelle.Usage{InputTokens: 300, OutputTokens: 10, Cost: 0.004}})
+	landed := visible(strings.Join(m.footer(), " "))
+	if !strings.Contains(landed, "$0.0070") {
+		t.Errorf("footer = %q, want the authoritative Cost to replace the estimate at the turn end", landed)
+	}
+	if strings.Contains(landed, "$0.0031") {
+		t.Errorf("footer = %q, want no estimate stacked on the real cost", landed)
+	}
+}
+
 // A /parallel fan-out's live spend joins the session total as each nested turn
 // streams, so the footer's own counters move in real time instead of only when
 // the last task completes.

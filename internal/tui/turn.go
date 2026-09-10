@@ -17,6 +17,7 @@ func (m *Model) turn(event nacelle.Event) {
 	line := m.turnBoundary(event.Usage)
 	m.say(fromTurn, line)
 	m.run.usage = m.run.usage.Add(event.Usage)
+	m.learnRate(event.Usage)
 	m.run.liveOut = 0
 	m.sink.Record(event.Usage, time.Now())
 	m.sized(event.Usage)
@@ -57,6 +58,22 @@ func (m *Model) turnBoundary(usage nacelle.Usage) string {
 		pieces = append(pieces, fmt.Sprintf("$%.4f", usage.Cost))
 	}
 	return strings.Join(pieces, " · ")
+}
+
+// learnRate records the realised cost per token of a finished turn, Cost
+// divided by the turn's total billed tokens. The status line scales the live
+// output-token estimate by it while the next turn streams, so the dollar
+// figure moves before the turn ends. Only a reported Cost ever sets it, and a
+// turn reporting none leaves the previous rate standing: a backend that never
+// reports a Cost keeps the rate at zero, which is what keeps the live price
+// invisible there. The authoritative per-turn Cost still lands in the footer
+// the moment the turn ends, replacing the estimate exactly as the live token
+// estimate is replaced.
+func (m *Model) learnRate(usage nacelle.Usage) {
+	if usage.Cost <= 0 || usage.Total() == 0 {
+		return
+	}
+	m.rate = usage.Cost / float64(usage.Total())
 }
 
 func (m *Model) flushThinking() {
