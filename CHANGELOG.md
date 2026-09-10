@@ -4,6 +4,19 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.39.0] - 2026-09-10
+
+### Added
+- **Edit and command results render as full-width boxes** so they stand out in the transcript: a shared background, a left border coloured by outcome (green on success, red on failure, the tool's own colour while the call runs) and, beneath an edit, a footer recap of `+x -y` counting the added and removed lines. Changed lines sit on green or red tinted grounds. A `run_command`'s raw output is drawn in the same pane — its stdout and stderr now appear in the transcript — capped at 200 lines and stripped of ANSI and carriage returns.
+- **A running command's output streams into its box live.** nacelle v0.20.0 lets a tool implement `OutputTool` and emit its output as it is produced, and `run_command` does, one line at a time. The TUI consumes the new `KindToolOutput` events and grows the running box under the tool's line as lines arrive, without duplicating the output when the result arrives carrying the same text.
+
+### Changed
+- **The token and context counters tick as the model writes.** The stream reports usage only at a turn boundary, so the output and context counts now carry a live estimate built from the streamed deltas and replace it with the authoritative figure when the turn ends. A detached `/parallel` fan-out's spend joins the footer as it streams too.
+- **nacelle bumped to v0.20.0** for `OutputTool` / `KindToolOutput`.
+
+### Fixed
+- **The expanded thinking trace streams as one block** instead of rendering a blank row between every line: each completed line was committed as its own widget, and widgets join by a blank row, so a multi-line trace read as one blank line between each.
+
 ## [0.38.0] - 2026-09-10
 
 ### Added

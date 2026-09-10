@@ -214,4 +214,3 @@ func (m *Model) stranded() {
 	m.run.outputs = map[string]string{}
 	m.dropFinishedParallel()
 }
-
