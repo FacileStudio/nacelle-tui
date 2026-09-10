@@ -2,58 +2,58 @@ package tui
 
 import (
 	"encoding/json"
-	"fmt"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/FacileStudio/nacelle"
 )
 
-// parallelResult mirrors the JSON returned by parallel_subagent.
-type parallelResult struct {
-	Tasks  map[string]string        `json:"tasks,omitempty"`
-	Errors map[string]string        `json:"errors,omitempty"`
-	Usage  map[string]nacelle.Usage `json:"usage,omitempty"`
-}
+// This file is the shared chromosome of a parallel fan-out: how the model's own
+// parallel_subagent call becomes row state, how streamed results get back onto
+// the update loop, and the row helpers both the /parallel command and the model
+// path read. The launcher and per-result handlers live in parallel_detached.go.
 
-// handleParallelResult merges the fan-out result into the tracked tasks for
-// this call. The call's rows are kept once done so each subagent's final spend
-// stays visible under the prompt while the parent narrates; stranded() clears
-// calls whose tasks have all finished at the next send or run end.
-func (m *Model) handleParallelResult(rawResult string, toolID string, tasks []parallelTaskInfo) {
-	var result parallelResult
-	if err := json.Unmarshal([]byte(rawResult), &result); err != nil {
-		m.parallelResultError(toolID, tasks, err)
+// rememberParallelCall stashes the tasks a model's parallel_subagent call asked
+// for, keyed by the tool call's ID, so the non-blocking stub result that follows
+// can seed the batch's rows. The fan-out itself runs detached inside nacelle;
+// the turn only needs to know the tasks to draw them.
+func (m *Model) rememberParallelCall(tool nacelle.ToolEvent) {
+	if m.pending == nil {
+		m.pending = make(map[string][]string)
+	}
+	var input struct {
+		Tasks []string `json:"tasks"`
+	}
+	if err := json.Unmarshal([]byte(tool.Input), &input); err != nil {
 		return
 	}
-	for i := range tasks {
-		m.applyParallelResult(i, result, tasks)
-	}
+	m.pending[tool.ID] = input.Tasks
 }
 
-func (m *Model) applyParallelResult(i int, result parallelResult, tasks []parallelTaskInfo) {
-	idx := strconv.Itoa(i)
-	pt := &tasks[i]
-	if errMsg, ok := result.Errors[idx]; ok {
-		pt.Err = errMsg
-	} else if res, ok := result.Tasks[idx]; ok {
-		pt.Result = res
+// startDetachedParent consumes the stub a non-blocking parallel_subagent call
+// returned — `{"started":N,"batch":key}` — and registers that batch's rows. The
+// results stream in tagged with the same batch, so they land exactly like the
+// /parallel command's do.
+func (m *Model) startDetachedParent(tool nacelle.ToolEvent, rawResult string) {
+	tasks, ok := m.pending[tool.ID]
+	if !ok {
+		return
 	}
-	if u, ok := result.Usage[idx]; ok {
-		pt.Usage = u
+	delete(m.pending, tool.ID)
+	var stub struct {
+		Batch string `json:"batch"`
 	}
-	pt.End = time.Now()
-	pt.Active = false
+	if err := json.Unmarshal([]byte(rawResult), &stub); err != nil || stub.Batch == "" {
+		return
+	}
+	m.registerParallel(stub.Batch, tasks)
 }
 
-func (m *Model) parallelResultError(toolID string, tasks []parallelTaskInfo, err error) {
-	for i := range tasks {
-		tasks[i].Err = fmt.Sprintf("failed to parse result: %v", err)
-		tasks[i].End = time.Now()
-		tasks[i].Active = false
-	}
-	delete(m.parallelTasks, toolID)
+// PostDetached forwards a streamed parallel task outcome from nacelle's Detach
+// callback — a goroutine it owns — into the detached channel. It is mounted as
+// the parallel tool's Results hook, so the model's own calls surface exactly
+// like a /parallel fan-out's do.
+func PostDetached(r nacelle.ParallelTaskResult) {
+	detached <- detachedResult{batch: r.Batch, idx: r.Index, result: r.Result, err: r.Err, usage: r.Usage}
 }
 
 // dropFinishedParallel forgets every parallel call whose tasks have all ended,
@@ -61,7 +61,7 @@ func (m *Model) parallelResultError(toolID string, tasks []parallelTaskInfo, err
 // sitting under the prompt forever. Run from stranded(), which both send and
 // settle reach.
 func (m *Model) dropFinishedParallel() {
-	for toolID, tasks := range m.parallelTasks {
+	for batch, tasks := range m.parallelTasks {
 		done := true
 		for _, pt := range tasks {
 			if pt.Active {
@@ -70,7 +70,7 @@ func (m *Model) dropFinishedParallel() {
 			}
 		}
 		if done {
-			delete(m.parallelTasks, toolID)
+			delete(m.parallelTasks, batch)
 		}
 	}
 }
@@ -85,7 +85,7 @@ func taskTitle(pt parallelTaskInfo) string {
 	return strings.Join(strings.Fields(pt.Task), " ")
 }
 
-// parallelTaskRows returns the row count for a map of parallel_subagent calls.
+// parallelTaskRows returns the row count for a map of parallel fan-outs.
 func parallelTaskRows(tasks map[string][]parallelTaskInfo) int {
 	rows := 0
 	for _, call := range tasks {

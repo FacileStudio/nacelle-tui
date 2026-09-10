@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -41,23 +40,13 @@ func watchDetached() tea.Cmd {
 	}
 }
 
-// launchDetached starts one fan-out without touching the main run. It creates
+// launchDetached starts one fan-out without touching the main run. It registers
 // the batch's row state, says in the main thread that the agents were started,
 // and hands the actual delegation to a background goroutine; busy stays false,
 // so the prompt stays live.
 func (m *Model) launchDetached(tasks []string) tea.Cmd {
 	id := m.nextDetachID()
-	if m.parallelTasks == nil {
-		m.parallelTasks = make(map[string][]parallelTaskInfo)
-	}
-	list := make([]parallelTaskInfo, len(tasks))
-	for i, t := range tasks {
-		list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
-	}
-	m.parallelTasks[id] = list
-	m.titleParallelTasks(id, tasks)
-	m.say(fromClient, fmt.Sprintf("started %d parallel agents", len(tasks)))
-	m.layout(m.windowHeight)
+	m.registerParallel(id, tasks)
 
 	cfg := m.delegate
 	go func() {
@@ -79,25 +68,30 @@ func (m *Model) launchDetached(tasks []string) tea.Cmd {
 	return nil
 }
 
+// registerParallel seeds the row state for a batch and announces it in the main
+// thread. Both the /parallel command and a model's non-blocking tool call end up
+// here; the batch key is theirs to choose. The fan-out's streamed results route
+// back by that same key.
+func (m *Model) registerParallel(batch string, tasks []string) {
+	if m.parallelTasks == nil {
+		m.parallelTasks = make(map[string][]parallelTaskInfo)
+	}
+	list := make([]parallelTaskInfo, len(tasks))
+	for i, t := range tasks {
+		list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
+	}
+	m.parallelTasks[batch] = list
+	m.titleParallelTasks(batch, tasks)
+	m.say(fromClient, fmt.Sprintf("started %d parallel agents", len(tasks)))
+	m.layout(m.windowHeight)
+}
+
 // nextDetachID hands out a batch key for a detached fan-out. The "detach"
-// prefix keeps it apart from the model-tool path's nacelle tool IDs, which are
-// the other kind of key the parallelTasks map holds.
+// prefix keeps it apart from the model-tool path's nacelle batch keys, which
+// are the other kind of key the parallelTasks map holds.
 func (m *Model) nextDetachID() string {
 	m.detachedSeq++
 	return "detach" + strconv.Itoa(m.detachedSeq)
-}
-
-// delegateApprove is the approval policy the detached subagents answer to. It
-// is the same rule agent.delegateApprovals applies to the model-callable tool:
-// a delegate inherits the parent's policy, and a session with approvals off
-// hands the delegate an allow-all rather than the SDK's deny-all default.
-// The rule lives here rather than in agent because agent imports tui, so tui
-// cannot import it back — this is the mirror that keeps the two linked.
-func delegateApprove(cfg nacelle.Config) nacelle.Approve {
-	if cfg.Approve != nil {
-		return cfg.Approve
-	}
-	return func(context.Context, string, json.RawMessage) bool { return true }
 }
 
 // recordDetached applies one detached subagent result and re-arms the watch.

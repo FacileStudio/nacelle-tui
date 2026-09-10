@@ -1,9 +1,13 @@
 package tui
 
 import (
+	"context"
+	"encoding/json"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 // handleParallelCommand parses a `/parallel task1, task2, task3` line and
@@ -40,4 +44,17 @@ func splitParallelTasks(args string) []string {
 		}
 	}
 	return out
+}
+
+// delegateApprove is the approval policy the detached subagents answer to. It
+// is the same rule agent.delegateApprovals applies to the model-callable tool:
+// a delegate inherits the parent's policy, and a session with approvals off
+// hands the delegate an allow-all rather than the SDK's deny-all default.
+// The rule lives here rather than in agent because agent imports tui, so tui
+// cannot import it back — this is the mirror that keeps the two linked.
+func delegateApprove(cfg nacelle.Config) nacelle.Approve {
+	if cfg.Approve != nil {
+		return cfg.Approve
+	}
+	return func(context.Context, string, json.RawMessage) bool { return true }
 }

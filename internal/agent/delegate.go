@@ -27,6 +27,8 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 	}, nacelle.ParallelSubAgentOptions{
 		Approve: delegateApprovals(approve),
 		Usage:   tui.DelegateUsage,
+		Detach:  true,
+		Results: tui.PostDetached,
 	})
 	if err != nil {
 		return nil, err

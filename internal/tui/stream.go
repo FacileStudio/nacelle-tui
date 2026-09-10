@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -89,7 +88,7 @@ func (m *Model) absorb(event nacelle.Event) {
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 	if tool.Name == "parallel_subagent" {
-		m.handleParallelCall(tool)
+		m.rememberParallelCall(tool)
 	}
 	m.introduceReasoning()
 	m.commitParagraphs()
@@ -103,29 +102,9 @@ func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 	}
 }
 
-func (m *Model) handleParallelCall(tool nacelle.ToolEvent) {
-	var input struct {
-		Tasks []string `json:"tasks"`
-	}
-	if err := json.Unmarshal([]byte(tool.Input), &input); err != nil {
-		return
-	}
-	if m.parallelTasks == nil {
-		m.parallelTasks = make(map[string][]parallelTaskInfo)
-	}
-	list := make([]parallelTaskInfo, len(input.Tasks))
-	for i, t := range input.Tasks {
-		list[i] = parallelTaskInfo{Task: t, Began: time.Now(), Active: true}
-	}
-	m.parallelTasks[tool.ID] = list
-	m.titleParallelTasks(tool.ID, input.Tasks)
-}
-
 func (m *Model) absorbToolResult(tool nacelle.ToolEvent, rawResult string) {
 	if tool.Name == "parallel_subagent" {
-		if tasks, ok := m.parallelTasks[tool.ID]; ok {
-			m.handleParallelResult(rawResult, tool.ID, tasks)
-		}
+		m.startDetachedParent(tool, rawResult)
 	}
 	m.run.finishTool(tool)
 	m.finished(&tool)
