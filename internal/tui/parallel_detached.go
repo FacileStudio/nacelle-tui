@@ -149,6 +149,7 @@ func (m *Model) finishDetached(pt *parallelTaskInfo, r detachedResult) {
 	pt.End = time.Now()
 	pt.Active = false
 	pt.Tool = ""
+	pt.ToolOut = ""
 	if r.usage.Total() > 0 {
 		residual := nacelle.Usage{
 			InputTokens:         max(r.usage.InputTokens-pt.Ledgered.InputTokens, 0),
