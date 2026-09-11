@@ -17,8 +17,7 @@ const commandLineCap = 200
 // for a call that worked, red for one that failed. The codes are the basic
 // palette lipgloss reads as those hues — the raw SGR 32/31 escapes the tool
 // lines already wear would land in the ANSI256 range and render as desaturated
-// teals. A still-running box wears the tool's own colour via toolview.ToolBorder
-// instead.
+// teals. A still-running box wears yellow via toolview.ToolBorder instead.
 func boxBorder(ok bool) string {
 	if ok {
 		return "2"
@@ -80,20 +79,21 @@ func (m *Model) boxedGroupRow(g toolGroup) string {
 		return ""
 	}
 	content := max(m.width-1, 10)
-	return toolview.MatchBackground(m.theme.Muted, m.transparent).Width(content).Render(truncate(toolview.ToolLinePainted(line), content))
+	return toolview.MatchBackground(m.theme.Muted, m.transparent).Width(content).Render(truncate(toolview.ToolLineRunning(line), content))
 }
 
 // inFlightGroup draws one running tool's live row — boxed for an edit or
-// command with the tool's own colour on the left border while it runs, and as
-// the ordinary held line for every other tool. A running command's streamed
-// output fills the box beneath its line as the lines arrive.
+// command with the running yellow on the left border while it runs, and as
+// the ordinary held line, also yellow, for every other tool. A running
+// command's streamed output fills the box beneath its line as the lines
+// arrive.
 func (m *Model) inFlightGroup(g toolGroup) string {
 	if !diff.IsEditTool(g.Name) {
 		line := g.InFlightLine(m.width)
 		if line == "" {
 			return ""
 		}
-		return toolview.ToolLinePainted(line)
+		return toolview.ToolLineRunning(line)
 	}
 	var rows []string
 	if row := m.boxedGroupRow(g); row != "" {
@@ -103,7 +103,7 @@ func (m *Model) inFlightGroup(g toolGroup) string {
 	if len(rows) == 0 {
 		return ""
 	}
-	return toolview.Box(rows, toolview.ToolBorder(g.Name, g.Tool.Source), m.transparent)
+	return toolview.Box(rows, toolview.ToolBorder(), m.transparent)
 }
 
 // liveOutputRows are the streamed output lines of a running run_command, ready

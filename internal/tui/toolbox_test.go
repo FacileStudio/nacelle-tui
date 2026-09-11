@@ -82,20 +82,19 @@ func TestAFinishedEditRendersARecapBox(t *testing.T) {
 }
 
 // While an edit or command is still running, its live region row is the same
-// box the result will fill, wearing the tool's own colour on the left border —
-// the same magenta (SGR 35) the tool glyph already wears raw, so the spine and
-// the line agree.
-func TestTheLiveBoxWearsTheToolColourWhileRunning(t *testing.T) {
+// box the result will fill, its left border and held line both wearing the
+// running state's yellow (basic "3", SGR 33).
+func TestTheLiveBoxIsYellowWhileRunning(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 	m.absorb(called("l", "edit_file", `{"path":"view.go"}`))
 
 	view := m.View().Content
-	if !strings.Contains(view, "\x1b[35;48;5;237m▌") {
-		t.Errorf("view = %q, want the running edit box's magenta spine", view)
+	if !strings.Contains(view, "\x1b[33;48;5;237m▌") {
+		t.Errorf("view = %q, want the running edit box's yellow spine", view)
 	}
-	if !strings.Contains(view, "\x1b[35m✎") {
-		t.Errorf("view = %q, want the glyph in that same magenta", view)
+	if !strings.Contains(view, "\x1b[33m✎") {
+		t.Errorf("view = %q, want the running glyph in that same yellow", view)
 	}
 	if strings.Contains(view, "38;5;3") {
 		t.Errorf("view = %q, want no ANSI256 grey-range border escape", view)
@@ -103,14 +102,18 @@ func TestTheLiveBoxWearsTheToolColourWhileRunning(t *testing.T) {
 }
 
 // A read call is not boxed while running — only edits and commands get the
-// pane treatment, so the box means "this changed the tree".
+// pane treatment, so the box means "this changed the tree" (its spine carries
+// the 48;5;237 backdrop). The held line still wears the running yellow.
 func TestANonEditToolIsNotBoxedWhileRunning(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 	m.absorb(called("r", "read_file", `{"path":"view.go"}`))
 
-	if strings.Contains(m.View().Content, "▌") {
+	if strings.Contains(m.View().Content, "48;5;237m▌") {
 		t.Error("a read call was boxed, want the ordinary held line")
+	}
+	if !strings.Contains(m.View().Content, "\x1b[33m☰") {
+		t.Error("a read call's held line is not painted the running yellow")
 	}
 }
 
@@ -181,8 +184,8 @@ func TestStreamedFragmentsFillTheLiveBoxOneRowEach(t *testing.T) {
 		}
 	}
 	rows := 0
-	for line := range strings.SplitSeq(view, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "▌") {
+	for line := range strings.SplitSeq(m.View().Content, "\n") {
+		if strings.Contains(line, "48;5;237m▌") {
 			rows++
 		}
 	}
@@ -228,17 +231,16 @@ func TestStreamedFragmentsStaySeparateRowsInTheFinishedBox(t *testing.T) {
 	}
 }
 
-// A running command's live box border wears the tool's own colour — magenta
-// for a run_command, orange 208 for an MCP one — while a finished box flips
-// the same spine to green or red. One scheme, no grey drift between states.
-func TestTheLiveBoxBorderUsesTheToolsOwnColourForRunCommandToo(t *testing.T) {
+// A running command's live box border wears the same yellow as an edit's — one
+// running colour for every tool — while a finished box keeps green or red.
+func TestTheLiveBoxBorderIsYellowForRunCommandToo(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 	m.absorb(called("c", "run_command", `{"command":"make"}`))
 
 	view := m.View().Content
-	if !strings.Contains(view, "\x1b[35;48;5;237m▌") {
-		t.Errorf("view = %q, want the running command box's magenta spine", view)
+	if !strings.Contains(view, "\x1b[33;48;5;237m▌") {
+		t.Errorf("view = %q, want the running command box's yellow spine", view)
 	}
 	if strings.Contains(view, "38;5;3") {
 		t.Errorf("view = %q, want no ANSI256 grey-range border escape", view)

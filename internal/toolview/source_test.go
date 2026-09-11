@@ -1,6 +1,7 @@
 package toolview
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/FacileStudio/nacelle"
@@ -38,20 +39,19 @@ func TestMCPSourceColor(t *testing.T) {
 	}
 }
 
-// ToolBorder returns the lipgloss basic-palette twin of the tool's raw glyph
-// colour — same hue, different encoding — and keeps MCP's ANSI256 orange, so
-// the running box's spine matches the glyph it sits under.
-func TestToolBorderUsesTheGlyphsHueForLipgloss(t *testing.T) {
-	if got := ToolBorder("whatever_mcp_tool", nacelle.ToolSourceMCP); got != mcpANSI {
-		t.Errorf("ToolBorder(MCP) = %q, want %q", got, mcpANSI)
+// ToolBorder returns the running state's one colour — yellow, basic "3" — for
+// every tool, local or MCP alike, so a running box's spine always reads as
+// "in flight". The finished box trades this for green or red via the caller.
+func TestToolBorderIsAlwaysYellowWhileRunning(t *testing.T) {
+	if got := ToolBorder(); got != "3" {
+		t.Errorf("ToolBorder() = %q, want the running yellow 3", got)
 	}
-	if got := ToolBorder("run_command", nacelle.ToolSourceLocal); got != "5" {
-		t.Errorf("ToolBorder(run_command) = %q, want the basic-palette magenta 5", got)
-	}
-	if got := ToolBorder("edit_file", nacelle.ToolSourceLocal); got != "5" {
-		t.Errorf("ToolBorder(edit_file) = %q, want the basic-palette magenta 5", got)
-	}
-	if got := ToolBorder("unknown", nacelle.ToolSourceLocal); got != "4" {
-		t.Errorf("ToolBorder(unknown) = %q, want the plain-tool blue 4", got)
+}
+
+// ToolLineRunning paints a held line yellow, the same running-state colour the
+// box spine wears, so a live row reads as "in flight" whatever its tool tone.
+func TestToolLineRunningPaintsYellow(t *testing.T) {
+	if got := ToolLineRunning("✎ edit_file(view.go)"); !strings.Contains(got, "\x1b[33m") {
+		t.Errorf("ToolLineRunning = %q, want the SGR yellow 33 paint", got)
 	}
 }
