@@ -77,7 +77,7 @@ type transcript struct {
 	// pre-wrapped row. It is capped at holdRowsCap with the oldest rows dropped
 	// ring-buffer style, so a long session cannot grow the per-frame redraw
 	// without bound.
-	hold       []string
+	hold []string
 	// scrollTop is how many transcript rows the scroll wheel has pulled the
 	// tui-mode window back from the newest row. Held lines are drawn tail-first
 	// with the prompt pinned; scrolling up raises this so earlier rows surface
