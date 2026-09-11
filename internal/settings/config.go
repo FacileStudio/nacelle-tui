@@ -64,8 +64,8 @@ type Config struct {
 	UI `yaml:",inline"`
 
 	Sources `yaml:",inline"`
-
-	Hooks []HookSpec `yaml:"hooks"`
+	Hooks   []HookSpec `yaml:"hooks"`
+	Cron    []CronJob  `yaml:"cron"`
 }
 
 // Toggles is the on/off settings: whether the model may run commands, whether
