@@ -4,6 +4,38 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+## [0.47.0] - 2026-09-11
+
+### Added
+- **TUI mode is the default rendering.** `rendering_mode` defaults to `tui` and
+  `transparent_blocks` to `true`; set `rendering_mode: inline` to keep the old
+  behaviour.
+- **Startup context notes.** The transcript opens with the context files the
+  system prompt grew by and a rough token cost, plus the whole system prompt's
+  cost, before the first message is sent.
+- **Shift+Enter inserts a newline** in the prompt, alongside Alt+Enter. On
+  terminals that do not speak the Kitty keyboard protocol Shift+Enter stays
+  Enter, which is unchanged.
+
+### Changed
+- **Wrapped block rows keep their border.** Diff, command-output and tool
+  blocks wrap long lines themselves instead of leaving it to the terminal, so
+  every continuation carries the pane's spine.
+- **Diff line numbers sit one space off the left border.**
+- **Tool lines and box spines are yellow while running**, finished green;
+  parallel task clocks stay green at start.
+
+### Fixed
+- **Resizing mid-run re-wraps the transcript.** A shrink no longer clips held
+  rows; rows painted at the old width are broken again at the new width,
+  continuations keeping their border.
+- **The approval gate sees the bridged tool's name in MCP catalog mode.**
+  Allowing one tool no longer opens every bridged tool behind `call_tool`.
+- **Wrapped prompt rows keep their background**, and the running-tool/queue
+  spine and margin spacing were cleaned up.
+
 ## [0.46.0] - 2026-09-11
 
 ### Changed
