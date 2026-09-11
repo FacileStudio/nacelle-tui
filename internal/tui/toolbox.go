@@ -78,7 +78,7 @@ func (m *Model) boxedGroupRow(g toolGroup) string {
 	if line == "" {
 		return ""
 	}
-	content := max(m.width-1, 10)
+	content := max(m.width-2, 10)
 	return toolview.MatchBackground(m.theme.Muted, m.transparent).Width(content).Render(truncate(toolview.ToolLineRunning(line), content))
 }
 
@@ -118,7 +118,7 @@ func (m *Model) liveOutputRows(g toolGroup) []string {
 	if text == "" {
 		return nil
 	}
-	content := max(m.width-1, 10)
+	content := max(m.width-2, 10)
 	base := toolview.MatchBackground(m.theme.Plain, m.transparent).Width(content)
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 	rows := make([]string, 0, min(len(lines), commandLineCap))
@@ -138,7 +138,7 @@ func (m *Model) outputBox(result string, ok bool) string {
 	if result == "" {
 		return ""
 	}
-	content := max(m.width-1, 10)
+	content := max(m.width-2, 10)
 	base := toolview.MatchBackground(m.theme.Plain, m.transparent).Width(content)
 	lines := strings.Split(strings.TrimSuffix(result, "\n"), "\n")
 	rows := make([]string, 0, min(len(lines), commandLineCap)+1)

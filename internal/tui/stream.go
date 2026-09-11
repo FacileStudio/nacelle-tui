@@ -84,7 +84,9 @@ func (m *Model) absorb(event nacelle.Event) {
 	case nacelle.KindTurn:
 		m.turn(event)
 	case nacelle.KindDone:
-		m.run.usage = event.Usage
+		if event.Usage.Total() > 0 {
+			m.run.usage = event.Usage
+		}
 		m.learnRate(event.Usage)
 		m.run.stop = event.Stop
 		m.sized(event.Usage)

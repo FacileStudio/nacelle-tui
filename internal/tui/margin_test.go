@@ -31,7 +31,7 @@ func TestLiveRowsCarryAMargin(t *testing.T) {
 		if got == "" {
 			continue
 		}
-		if !strings.HasPrefix(got, " ") || !strings.HasSuffix(got, " ") {
+		if !strings.HasSuffix(got, " ") || (!strings.HasPrefix(got, " ") && !strings.HasPrefix(got, "▌")) {
 			t.Errorf("row %q does not carry the margin spaces", row)
 		}
 		if w := lipgloss.Width(row); w > m.width {

@@ -33,25 +33,25 @@ func MatchBackground(style lipgloss.Style, transparent bool) lipgloss.Style {
 const borderChar = "▌"
 
 // Box renders a full-width, left-bordered container for one tool's result or
-// diff. Besides a single-column border each row is expected to already carry
-// its own background and to span width-1 columns; the border column is drawn
-// in borderColor over BlockBg, so a box reads as one pane with a coloured
-// spine — green for a successful edit, red for a failed one, the tool's own
-// colour while it is still running. transparent drops that backdrop, so the
-// pane floats on the terminal's own background. width is the pane's content
-// width: a row longer than it is wrapped here rather than left for the
-// terminal to soft-wrap, because a terminal's own wrap continuation carries
-// no border and the pane falls apart visually mid-line. Continuations keep
-// the same border and background as the row they continue. Returns a string
-// ending in a newline.
+// diff. Besides a single-column border and one margin space each row is
+// expected to already carry its own background and to span width-2 columns;
+// the border column is drawn in borderColor over BlockBg, so a box reads as
+// one pane with a coloured spine — green for a successful edit, red for a
+// failed one, the tool's own colour while it is still running. transparent
+// drops that backdrop, so the pane floats on the terminal's own background.
+// width is the pane's content width: a row longer than it is wrapped here
+// rather than left for the terminal to soft-wrap, because a terminal's own
+// wrap continuation carries no border and the pane falls apart visually
+// mid-line. Continuations keep the same border and background as the row they
+// continue. Returns a string ending in a newline.
 func Box(rows []string, borderColor string, transparent bool, width int) string {
 	if len(rows) == 0 {
 		return ""
 	}
-	border := MatchBackground(lipgloss.NewStyle().Width(1).Foreground(lipgloss.Color(borderColor)), transparent).Render(borderChar)
+	border := MatchBackground(lipgloss.NewStyle().Width(1).Foreground(lipgloss.Color(borderColor)), transparent).Render(borderChar) + " "
 	var sb strings.Builder
 	for _, row := range rows {
-		for _, piece := range wrapRow(row, max(width-1, 1)) {
+		for _, piece := range wrapRow(row, max(width-2, 1)) {
 			sb.WriteString(border)
 			sb.WriteString(piece)
 			sb.WriteString("\n")

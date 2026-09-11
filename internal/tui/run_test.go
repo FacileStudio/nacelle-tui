@@ -89,17 +89,17 @@ func TestMultiTurnToolExecutionBoundary(t *testing.T) {
 	runTwoTurns(m)
 
 	lines := spoken(m)
-	if len(lines) < 5 {
-		t.Fatalf("spoken lines = %d, want at least 5", len(lines))
+	if len(lines) < 4 {
+		t.Fatalf("spoken lines = %d, want at least 4", len(lines))
 	}
-	if !strings.Contains(lines[0], "looking now") || !strings.Contains(lines[1], "15 tokens") {
-		t.Errorf("turn 1 = %v, want text and tokens", lines[:2])
+	if !strings.Contains(lines[0], "looking now") {
+		t.Errorf("turn 1 = %v, want the text", lines[:1])
 	}
-	if !strings.Contains(lines[2], "read_file(main.go)") {
-		t.Errorf("tool line = %q, want read_file", lines[2])
+	if !strings.Contains(lines[1], "read_file(main.go)") {
+		t.Errorf("tool line = %q, want read_file", lines[1])
 	}
-	if !strings.Contains(lines[3], "all done") || !strings.Contains(lines[4], "30 tokens") {
-		t.Errorf("turn 2 = %v, want text and tokens", lines[3:5])
+	if !strings.Contains(lines[2], "all done") || !strings.Contains(lines[3], "45 tokens") || !strings.Contains(lines[3], "$0.0030") {
+		t.Errorf("turn 2 and recap = %v, want text then the run recap", lines[2:4])
 	}
 	if len(m.conversation) != 4 || said(m.conversation[1]) != "looking now\n" || said(m.conversation[3]) != "all done\n" {
 		t.Errorf("conversation = %v, want preserved turns", m.conversation)

@@ -50,7 +50,8 @@ func splitLines(text string) []string {
 }
 
 // cell renders one content line padded to the full pane width, so a box row
-// spans width-1 columns and the left border is the one column it adds.
+// spans width-2 columns and the border plus its margin space are the two
+// columns they add.
 func cell(base lipgloss.Style, text string, content int) string {
 	return base.Width(content).Render(text)
 }
@@ -89,7 +90,7 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 	if len(blocks) == 0 {
 		return ""
 	}
-	content := max(width-1, 10)
+	content := max(width-2, 10)
 	backdrop := block(muted, transparent)
 	pane := diffPane{Content: content, Gutter: gutterWidth(nums), Backdrop: backdrop}
 
@@ -107,6 +108,7 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 			break
 		}
 	}
+	rows = append(rows, cell(backdrop, "", content))
 	rows = append(rows, recap(change, muted, content, transparent))
 	return toolview.Box(rows, borderColor, transparent, width)
 }
@@ -125,8 +127,7 @@ func recap(change EditChange, muted lipgloss.Style, content int, transparent boo
 	if removed > 0 {
 		parts = append(parts, toolview.MatchBackground(lipgloss.NewStyle().Foreground(lipgloss.Color("9")), transparent).Render("-"+strconv.Itoa(removed)))
 	}
-	sep := block(muted, transparent).Render(" ")
-	return cell(block(muted, transparent), "  "+strings.Join(parts, sep), content)
+	return cell(block(muted, transparent), "  "+strings.Join(parts, ""), content)
 }
 
 // renderBlock appends one hunk's rows to the box, stopping at the display cap

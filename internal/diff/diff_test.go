@@ -95,11 +95,8 @@ func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
 			recap = line
 		}
 	}
-	if !strings.Contains(recap, "92;48;5;237") || !strings.Contains(recap, "91;48;5;237") {
+	if !strings.Contains(recap, "48;5;237m+1") || !strings.Contains(recap, "48;5;237m-1") {
 		t.Errorf("recap = %q, want both counts on the block background", recap)
-	}
-	if !strings.Contains(recap, "48;5;237m \x1b[m") {
-		t.Errorf("recap = %q, want the gap between the counts on the block background", recap)
 	}
 }
 

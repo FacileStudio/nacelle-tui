@@ -198,9 +198,9 @@ func verifyPromptClearedRestoresLiveRows(t *testing.T, m *Model) {
 }
 
 func TestPromptContinuationsAndBounds(t *testing.T) {
-	border := promptBorder(theme.Themed(true).Muted)
+	border := promptBorder(theme.Themed(true).Border)
 	row := border(textarea.PromptInfo{LineNumber: 0, Focused: true})
-	if got := visible(row); got != "▌" || border(textarea.PromptInfo{LineNumber: 1, Focused: true}) != row {
+	if got := visible(row); got != "▌ " || border(textarea.PromptInfo{LineNumber: 1, Focused: true}) != row {
 		t.Errorf("row marker = %q, want the same muted ▌ border on every row", got)
 	}
 	for _, height := range []int{6, 8, 12, 24} {

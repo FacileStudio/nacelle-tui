@@ -48,6 +48,7 @@ func (m *Model) settle() tea.Cmd {
 	m.closeTurn(m.run.stop)
 	m.stranded()
 	m.sayNothingCame()
+	m.runRecap()
 	m.spent = m.spent.Add(m.run.usage)
 	m.run.usage = nacelle.Usage{}
 	m.run.liveOut = 0

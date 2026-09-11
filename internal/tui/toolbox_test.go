@@ -76,8 +76,8 @@ func TestAFinishedEditRendersARecapBox(t *testing.T) {
 	if !strings.Contains(said, "view.go") {
 		t.Errorf("diff = %q, want the changed file named in the box", said)
 	}
-	if !strings.Contains(said, "+1 -1") {
-		t.Errorf("diff = %q, want the +1 -1 recap", said)
+	if !strings.Contains(said, "+1-1") {
+		t.Errorf("diff = %q, want the +1-1 recap", said)
 	}
 }
 

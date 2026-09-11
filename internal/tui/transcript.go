@@ -142,11 +142,11 @@ func (m *Model) paint(who speaker, text string) string {
 	width := max(m.width, 1)
 	switch who {
 	case fromReader:
-		return m.theme.Question.Width(width).Render("▌ " + text)
+		return m.question(text, width)
 	case fromModel:
 		return m.markdown(text)
 	case fromThinking:
-		return m.theme.Thinking.Width(width).Render(text)
+		return m.margined([]string{m.theme.Thinking.Width(width - 2).Render(text)})[0]
 	case fromTool:
 		return toolview.ToolLinePainted(text)
 	case fromResult:

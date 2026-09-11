@@ -10,12 +10,14 @@ import (
 	"github.com/FacileStudio/nacelle"
 )
 
+// turn records a finished turn. Its boundary line is no longer said here:
+// each intermediate recap drowned the transcript, and the footer already
+// ticks the live counts. The one recap the reader gets is the run's, said
+// once at settle.
 func (m *Model) turn(event nacelle.Event) {
 	m.Thought()
 	m.flushThinking()
 	m.commitTail()
-	line := m.turnBoundary(event.Usage)
-	m.say(fromTurn, line)
 	m.run.usage = m.run.usage.Add(event.Usage)
 	m.learnRate(event.Usage)
 	m.run.liveOut = 0
@@ -37,27 +39,31 @@ func (m *Model) commitTail() {
 	}
 }
 
-func (m *Model) turnBoundary(usage nacelle.Usage) string {
+// runRecap says the run's one boundary line at settle: the run's duration,
+// its total token spend and its cost. The per-turn version is gone; this is
+// the one recap that survives.
+func (m *Model) runRecap() {
+	if m.run.usage.Total() == 0 {
+		return
+	}
 	spent := time.Duration(0)
-	if !m.run.turnBegan.IsZero() {
-		spent = time.Since(m.run.turnBegan)
-	} else if !m.run.began.IsZero() {
+	if !m.run.began.IsZero() {
 		spent = time.Since(m.run.began)
 	}
 	dur := "0s"
 	if spent > 0 {
 		dur = took(spent)
 	}
-	tokens := usage.Total()
+	tokens := m.run.usage.Total()
 	tokenStr := fmt.Sprintf("%s tokens", shortTokens(tokens))
 	if tokens == 1 {
 		tokenStr = "1 token"
 	}
 	pieces := []string{dur, tokenStr}
-	if usage.Cost > 0 {
-		pieces = append(pieces, fmt.Sprintf("$%.4f", usage.Cost))
+	if m.run.usage.Cost > 0 {
+		pieces = append(pieces, fmt.Sprintf("$%.4f", m.run.usage.Cost))
 	}
-	return strings.Join(pieces, " · ")
+	m.say(fromTurn, strings.Join(pieces, " · "))
 }
 
 // learnRate records the realised cost per token of a finished turn, Cost

@@ -35,6 +35,7 @@ type UIStyles struct {
 	Waiting    lipgloss.Style
 	Ready      lipgloss.Style
 	Muted      lipgloss.Style
+	Border     lipgloss.Style
 	Compacting lipgloss.Style
 }
 
@@ -67,6 +68,7 @@ func uiStylesFor(pick func(a, b color.Color) color.Color, quiet color.Color) UIS
 		Waiting:    lipgloss.NewStyle().Foreground(lipgloss.Color("6")),
 		Ready:      lipgloss.NewStyle().Foreground(lipgloss.Color("2")),
 		Muted:      lipgloss.NewStyle().Foreground(quiet),
+		Border:     lipgloss.NewStyle().Foreground(pick(lipgloss.Color("0"), lipgloss.Color("15"))),
 		Compacting: lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
 	}
 }

@@ -6,6 +6,33 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-09-11
+
+### Added
+- **A white left spine on the input prompt**, one space between the spine and
+  the text, so no prompt row sits flush against the left edge. The spine moved
+  from the muted tone to the new `Border` palette style.
+- **A left spine on every row of a multi-line user question** in the
+  transcript, wrapped or not — the question now reads as one bordered pane.
+
+### Changed
+- **Tool boxes carry a margin space after their left border**, so box text no
+  longer touches the spine; every `Box` caller now sizes content two columns
+  narrower and the live region stops double-margining rows that open with the
+  border glyph.
+- **One run recap instead of a per-turn boundary.** The muted
+  "duration · tokens · cost" line that landed after every turn is gone; the
+  same recap is said once when a run settles. The live footer already ticks
+  the counts mid-run.
+- **Thinking traces keep their one-space screen margin** when they are
+  committed to the transcript, matching what streaming showed.
+- **The diff footer sits one blank row below the diff** and the `+n -n` counts
+  join without a gap.
+
+### Fixed
+- A run's final `done` event no longer overwrites the accumulated usage with
+  an empty one, which would have made the run recap report zero tokens.
+
 ## [0.47.0] - 2026-09-11
 
 ### Added

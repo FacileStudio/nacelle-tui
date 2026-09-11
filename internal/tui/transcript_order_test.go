@@ -74,10 +74,10 @@ func TestKindTurnRendersBoundaryWithoutBreakingConversation(t *testing.T) {
 
 	saidLines := spoken(m)
 	if len(saidLines) != 2 || !strings.Contains(saidLines[0], "the answer") {
-		t.Fatalf("spoken = %v, want answer and turn boundary", saidLines)
+		t.Fatalf("spoken = %v, want answer and run recap", saidLines)
 	}
 	if !strings.Contains(saidLines[1], "150 tokens") || !strings.Contains(saidLines[1], "$0.0025") {
-		t.Errorf("turn boundary = %q, want tokens and cost", saidLines[1])
+		t.Errorf("run recap = %q, want tokens and cost", saidLines[1])
 	}
 	raw := m.unprinted[len(m.unprinted)-1]
 	if !strings.Contains(raw, "\x1b[38;5;2") {
@@ -88,11 +88,9 @@ func TestKindTurnRendersBoundaryWithoutBreakingConversation(t *testing.T) {
 	}
 }
 
-// The finished widgets of a turn — the thinking line, the turn boundary, and
-// each tool line — get a blank row after them so they do not run into whatever
-// comes next. Without it the boundary "3.069s · 131k tokens · $0.0011" sat
-// glued to the next tool call and every tool line stuck to the one below it,
-// which read as one dense block instead of separate steps.
+// The run recap is said once, at settle: the run's duration, tokens and cost
+// on one muted line, replacing the per-turn boundary lines that used to land
+// after every turn.
 func TestWidgetLinesAreSeparatedByBlankRows(t *testing.T) {
 	m := sized()
 	m.run.answer.WriteString("the answer")
@@ -100,40 +98,40 @@ func TestWidgetLinesAreSeparatedByBlankRows(t *testing.T) {
 	m.say(fromTool, "$ read_file(x)")
 
 	said := visible(strings.Join(m.unprinted, "\n"))
-	boundaryAt := strings.Index(said, "10 tokens")
+	if strings.Contains(said, "10 tokens") {
+		t.Fatalf("said = %q, want no per-turn boundary in the transcript", said)
+	}
+	m.settle()
+	said = visible(strings.Join(m.unprinted, "\n"))
+	recapAt := strings.Index(said, "10 tokens")
 	toolAt := strings.Index(said, "$ read_file(x)")
-	if boundaryAt < 0 || toolAt < 0 {
-		t.Fatalf("said = %q, want boundary and tool line", said)
+	if recapAt < 0 || toolAt < 0 || toolAt >= recapAt {
+		t.Fatalf("said = %q, want the tool line before the run recap", said)
 	}
-	if boundaryAt >= toolAt {
-		t.Errorf("said = %q, want the turn boundary before the tool line", said)
-	}
-	if gap := said[boundaryAt:toolAt]; strings.Count(gap, "\n") < 2 {
-		t.Errorf("said = %q, want a blank row between the turn boundary and the tool line", said)
-	}
-	if before := said[:boundaryAt]; strings.Count(before, "\n") < 2 {
-		t.Errorf("said = %q, want a blank row between the answer and the turn boundary", said)
+	if gap := said[toolAt:recapAt]; strings.Count(gap, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the tool line and the run recap", said)
 	}
 }
 
-// A turn boundary closes the answer it streamed under, so it must be held apart
-// from that answer by a blank row — not just from the tool line that follows. A
-// single answer line and a boundary gluing straight to it reads as the timing
-// being part of the answer, which is what the user reported ("11.159s · 318k
-// tokens · $0.0028" sitting under "Code committed.").
-func TestTurnBoundaryIsSeparatedFromTheAnswerAboveIt(t *testing.T) {
+// The run recap closes the answer it follows, so it must be held apart from
+// that answer by a blank row — a recap gluing straight to the answer reads as
+// the timing being part of the answer.
+func TestRunRecapIsSeparatedFromTheAnswerAboveIt(t *testing.T) {
 	m := sized()
+	m.run.busy = true
+	m.run.cancel = func() {}
 	m.run.answer.WriteString("Code committed")
 	m.turn(nacelle.Event{Usage: nacelle.Usage{InputTokens: 10}})
+	m.settle()
 
 	said := visible(strings.Join(m.unprinted, "\n"))
-	boundaryAt := strings.Index(said, "10 tokens")
+	recapAt := strings.Index(said, "10 tokens")
 	answerAt := strings.Index(said, "Code committed")
-	if boundaryAt < 0 || answerAt < 0 || answerAt >= boundaryAt {
-		t.Fatalf("said = %q, want the answer before the boundary", said)
+	if recapAt < 0 || answerAt < 0 || answerAt >= recapAt {
+		t.Fatalf("said = %q, want the answer before the recap", said)
 	}
-	if gap := said[answerAt:boundaryAt]; strings.Count(gap, "\n") < 2 {
-		t.Errorf("said = %q, want a blank row between the answer and the turn boundary", said)
+	if gap := said[answerAt:recapAt]; strings.Count(gap, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the answer and the recap", said)
 	}
 }
 

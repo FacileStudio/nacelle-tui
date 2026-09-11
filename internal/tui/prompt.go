@@ -16,17 +16,17 @@ const promptRows = 10
 // row above the whole field is added by the view assembly.
 const minHeightRows = 1
 
-// newPrompt builds the compose textarea. The prompt's gutter is a muted left
+// newPrompt builds the compose textarea. The prompt's gutter is a white left
 // spine (see promptBorder), so what you type opens one cell from that spine
 // and a wrapped question reads as one bordered block rather than a floating
-// field. placeholder is the ghost text shown while the prompt is empty. muted
-// colours that spine and matches the palette's muted tone. Every row carries
+// field. placeholder is the ghost text shown while the prompt is empty. spine
+// colours that border and matches the palette's border tone. Every row carries
 // the same backdrop (see promptBackdrop), so a wrapped question holds its bar
 // all the way down instead of dropping it on the rows below the cursor's.
-func newPrompt(placeholder string, muted lipgloss.Style) textarea.Model {
+func newPrompt(placeholder string, spine lipgloss.Style) textarea.Model {
 	prompt := textarea.New()
 	prompt.Placeholder = placeholder
-	prompt.SetPromptFunc(1, promptBorder(muted))
+	prompt.SetPromptFunc(1, promptBorder(spine))
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
 	prompt.MinHeight = minHeightRows
@@ -54,18 +54,16 @@ func promptBackdrop() lipgloss.Style {
 
 // promptBgClear resets the terminal background to default ahead of the border
 // glyph, so the left spine never inherits the background of the row it sits
-// on — notably the cursor line, which the textarea paints over its row. muted
-// then picks the spine's foreground: the two escapes draw a muted ▌ on a
+// on — notably the cursor line, which the textarea paints over its row. spine
+// then picks the border's foreground: the two escapes draw a white ▌ on a
 // transparent ground while the rest of the prompt keeps its own background.
 const promptBgClear = "\x1b[49m"
 
-// promptBorder is the gutter for every row: a single muted ▌ with no
-// background, the same left-spine half-block the run_command boxes draw, so
-// the input bar reads as a bordered pane. The single margin space the gutter
-// used to be kept every row one cell from the left edge; the ▌ holds that
-// one-column spacing and adds the border.
-func promptBorder(muted lipgloss.Style) func(textarea.PromptInfo) string {
-	border := promptBgClear + muted.Render("▌")
+// promptBorder is the gutter for every row: a single white ▌ with no
+// background, then one margin space, so no row of the input sits flush
+// against the left edge.
+func promptBorder(spine lipgloss.Style) func(textarea.PromptInfo) string {
+	border := promptBgClear + spine.Render("▌") + " "
 	return func(textarea.PromptInfo) string {
 		return border
 	}

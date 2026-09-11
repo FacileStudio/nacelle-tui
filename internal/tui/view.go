@@ -43,9 +43,11 @@ func (m *Model) aboveContent() []string {
 // so aboveContent hands the queue and tasks views two cells fewer and this
 // pass clips a row that still came back full-width down to m.width-2 before
 // the spaces go on — otherwise the margin would push every full row past the
-// edge and wrap it. Blank separator rows stay empty: a gutter would turn them
-// into phantom content and break the blank-line bookkeeping in tuiUpper and
-// assembleInline.
+// edge and wrap it. A row that opens with a box border glyph (▌) carries its
+// own spine, so it gets only the trailing space: the pane edge is its own
+// left margin, as it is in the printed transcript. Blank separator rows stay
+// empty: a gutter would turn them into phantom content and break the
+// blank-line bookkeeping in tuiUpper and assembleInline.
 func (m *Model) margined(rows []string) []string {
 	fit := make([]string, 0, len(rows))
 	for _, row := range rows {
@@ -54,7 +56,12 @@ func (m *Model) margined(rows []string) []string {
 			if padded[i] == "" {
 				continue
 			}
-			padded[i] = " " + layout.Shave(padded[i], max(m.width-2, 1)) + " "
+			trimmed := layout.Shave(padded[i], max(m.width-2, 1))
+			if strings.HasPrefix(unstyled(padded[i]), "▌") {
+				padded[i] = trimmed + " "
+				continue
+			}
+			padded[i] = " " + trimmed + " "
 		}
 		fit = append(fit, strings.Join(padded, "\n"))
 	}
