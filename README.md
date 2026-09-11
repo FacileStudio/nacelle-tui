@@ -144,7 +144,6 @@ ui:
   rendering_mode: inline
   group_tools: true
   show_thinking: true
-  prompt_prefix: "| "
   prompt_placeholder: "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
   start_message: ""
   transparent_blocks: false

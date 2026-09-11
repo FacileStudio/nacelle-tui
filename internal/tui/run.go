@@ -30,7 +30,6 @@ type SessionConfig struct {
 	CompactAt         int64
 	AutoResume        bool
 	Resume            string
-	PromptPrefix      string
 	PromptPlaceholder string
 	StartMessage      string
 }

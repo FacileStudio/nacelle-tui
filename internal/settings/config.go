@@ -96,16 +96,13 @@ type Security struct {
 // "running 10 tools" line while they run. ShowThinking expands thinking traces
 // by default rather than collapsing to "thought for 2.9s"; ctrl+t toggles.
 //
-// PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
-// by default (a wrapped question hangs under a matching indent). PromptPlaceholder
-// is the ghost text while the prompt is empty, StartMessage prints on launch
-// above the banner, Mode is "inline" or "tui" rendering.
+// PromptPlaceholder is the ghost text while the prompt is empty, StartMessage
+// prints on launch above the banner, Mode is "inline" or "tui" rendering.
 type UI struct {
 	Mode              *string `yaml:"rendering_mode"`
 	GroupTools        *bool   `yaml:"group_tools"`
 	ShowThinking      *bool   `yaml:"show_thinking"`
 	Diffs             *bool   `yaml:"diffs"`
-	PromptPrefix      *string `yaml:"prompt_prefix"`
 	PromptPlaceholder *string `yaml:"prompt_placeholder"`
 	StartMessage      *string `yaml:"start_message"`
 	TransparentBlocks *bool   `yaml:"transparent_blocks"`
@@ -169,7 +166,6 @@ func Defaults(system string) Config {
 	groupTools, showThinking := true, true
 	cont, resume := false, ""
 	mode, transparent, json := "inline", false, false
-	promptPrefix := "| "
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
 	return Config{
@@ -185,7 +181,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, Diffs: &diffs, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
+		UI: UI{Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, Diffs: &diffs, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
 	}
 }
 

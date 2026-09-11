@@ -193,15 +193,12 @@ func verifyPromptClearedRestoresLiveRows(t *testing.T, m *Model) {
 }
 
 func TestPromptContinuationsAndBounds(t *testing.T) {
-	prompt := continuation("| ")
-	if got := visible(prompt(textarea.PromptInfo{LineNumber: 0, Focused: true})); got != "|  " {
-		t.Errorf("first row marker = %q, want the prefix '| ' plus a margin space", got)
+	first := continuation(textarea.PromptInfo{LineNumber: 0, Focused: true})
+	if got := visible(first); got != " " {
+		t.Errorf("first row marker = %q, want a single margin space", got)
 	}
-	if got := prompt(textarea.PromptInfo{LineNumber: 1, Focused: true}); strings.TrimSpace(visible(got)) != "" {
-		t.Errorf("wrapped row marker = %q, want only the indent", got)
-	}
-	if got := continuation("")(textarea.PromptInfo{LineNumber: 1, Focused: true}); got != " " {
-		t.Errorf("empty prefix wrapped row marker = %q, want a one-space gutter", got)
+	if got := continuation(textarea.PromptInfo{LineNumber: 1, Focused: true}); got != " " {
+		t.Errorf("wrapped row marker = %q, want a one-space gutter", got)
 	}
 
 	for _, height := range []int{6, 8, 12, 24} {

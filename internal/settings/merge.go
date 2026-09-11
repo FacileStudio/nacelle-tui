@@ -114,9 +114,6 @@ func (c *Config) mergeUI(over Config) {
 	if over.Mode != nil {
 		c.Mode = over.Mode
 	}
-	if over.PromptPrefix != nil {
-		c.PromptPrefix = over.PromptPrefix
-	}
 	if over.PromptPlaceholder != nil {
 		c.PromptPlaceholder = over.PromptPlaceholder
 	}

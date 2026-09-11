@@ -35,7 +35,7 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConf
 	m := &Model{
 		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume, resumePath: c.Resume, herdrClient: herdr.NewFromEnv()},
 		transcript: transcript{compactAt: c.CompactAt},
-		composer:   composer{prompt: newPrompt(c.PromptPrefix, c.PromptPlaceholder), hist: history.New()},
+		composer:   composer{prompt: newPrompt(c.PromptPlaceholder), hist: history.New()},
 		look: look{
 			theme: theme.Themed(true),
 			spin:  status.NewSpinner(),

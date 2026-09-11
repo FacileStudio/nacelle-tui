@@ -6,7 +6,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 )
 
 const promptRows = 10
@@ -16,15 +15,14 @@ const promptRows = 10
 // row above the whole field is added by the view assembly.
 const minHeightRows = 1
 
-// newPrompt builds the compose textarea. prefix is what the first row shows
-// ahead of the caret — "| " out of the box — always followed by one space of
-// margin before the text, and continuation rows get a matching run of spaces so
-// a wrapped question reads as one block. An empty prefix still leaves that one
-// space: the text never touches the left edge.
-func newPrompt(prefix string, placeholder string) textarea.Model {
+// newPrompt builds the compose textarea. The prompt has no prefix: the first
+// row opens with a single margin space, so a wrapped question reads as one
+// block and the text never touches the left edge. placeholder is the ghost text
+// shown while the prompt is empty.
+func newPrompt(placeholder string) textarea.Model {
 	prompt := textarea.New()
 	prompt.Placeholder = placeholder
-	prompt.SetPromptFunc(lipgloss.Width(prefix)+1, continuation(prefix))
+	prompt.SetPromptFunc(1, continuation)
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
 	prompt.MinHeight = minHeightRows
@@ -35,19 +33,10 @@ func newPrompt(prefix string, placeholder string) textarea.Model {
 	return prompt
 }
 
-// continuation is the gutter text for every row. The first row carries the
-// prefix plus a trailing margin space; every later row carries an indent as wide
-// as that same gutter so wrapped text hangs under what it follows. The margin
-// space is always there, so even an empty prefix leaves one space before the
-// text on the first row and one space of gutter on continuation rows.
-func continuation(prefix string) func(textarea.PromptInfo) string {
-	indent := strings.Repeat(" ", lipgloss.Width(prefix)+1)
-	return func(info textarea.PromptInfo) string {
-		if info.LineNumber == 0 {
-			return prefix + " "
-		}
-		return indent
-	}
+// continuation is the gutter text for every row: a single margin space, so the
+// first row opens one space from the left edge and wrapped rows hang under it.
+func continuation(textarea.PromptInfo) string {
+	return " "
 }
 
 func (m *Model) ask() tea.Cmd {
