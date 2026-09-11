@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
+	"github.com/FacileStudio/nacelle-tui/internal/theme"
 )
 
 func TestTheSpinnerAndTheWaitingPhraseAreOneColouredStatement(t *testing.T) {
@@ -193,20 +194,16 @@ func verifyPromptClearedRestoresLiveRows(t *testing.T, m *Model) {
 }
 
 func TestPromptContinuationsAndBounds(t *testing.T) {
-	first := continuation(textarea.PromptInfo{LineNumber: 0, Focused: true})
-	if got := visible(first); got != " " {
-		t.Errorf("first row marker = %q, want a single margin space", got)
+	border := promptBorder(theme.Themed(true).Muted)
+	row := border(textarea.PromptInfo{LineNumber: 0, Focused: true})
+	if got := visible(row); got != "▌" || border(textarea.PromptInfo{LineNumber: 1, Focused: true}) != row {
+		t.Errorf("row marker = %q, want the same muted ▌ border on every row", got)
 	}
-	if got := continuation(textarea.PromptInfo{LineNumber: 1, Focused: true}); got != " " {
-		t.Errorf("wrapped row marker = %q, want a one-space gutter", got)
-	}
-
 	for _, height := range []int{6, 8, 12, 24} {
 		m := sized()
 		m.resize(tea.WindowSizeMsg{Width: 60, Height: height})
 		m.prompt.SetValue(strings.Repeat("word ", 300))
 		m.layout(m.windowHeight)
-
 		if got := strings.Count(m.View().Content, "\n") + 1; got > height {
 			t.Errorf("window %d: View drew %d rows, want <= %d", height, got, height)
 		}
