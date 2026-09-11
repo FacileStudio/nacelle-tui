@@ -1,7 +1,7 @@
 package diff
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -15,12 +15,6 @@ var (
 	addedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color("22"))
 	// removedStyle tints a changed line's text red on a dark red backdrop.
 	removedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color("52"))
-	// addFg and remFg colour the recap's +x / -y figures on the block
-	// background. Each carries that background itself because a rendered
-	// fragment ends in a full reset, which would otherwise cancel the
-	// surrounding cell's background before the second figure draws.
-	addFg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color(toolview.BlockBg))
-	remFg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color(toolview.BlockBg))
 )
 
 func truncate(s string, limit int) string {
@@ -32,8 +26,8 @@ func truncate(s string, limit int) string {
 
 // block lays a muted line over the box background, so context, the header and
 // the recap share the pane with the changed lines instead of floating on it.
-func block(muted lipgloss.Style) lipgloss.Style {
-	return muted.Background(lipgloss.Color(toolview.BlockBg))
+func block(muted lipgloss.Style, transparent bool) lipgloss.Style {
+	return toolview.MatchBackground(muted, transparent)
 }
 
 // splitLines breaks file contents into diffable lines, dropping a single
@@ -74,7 +68,7 @@ func CountChange(change EditChange) (added, removed int) {
 // on their own tinted background, and a recap footer of "+x -y". borderColor
 // is the caller's verdict on the edit — green or red when it finished, the
 // tool's own colour while it is still running.
-func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss.Style) string {
+func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss.Style, transparent bool) string {
 	if change.Path == "" || change.Before == change.After {
 		return ""
 	}
@@ -84,23 +78,24 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 		return ""
 	}
 	content := max(width-1, 10)
+	backdrop := block(muted, transparent)
 
 	rows := make([]string, 0, shownDiffLines+2)
-	rows = append(rows, cell(block(muted), "  "+change.Path, content))
+	rows = append(rows, cell(backdrop, "  "+change.Path, content))
 	shown := 0
 	for i, blk := range blocks {
 		if i > 0 {
-			rows = append(rows, cell(block(muted), "  …", content))
+			rows = append(rows, cell(backdrop, "  …", content))
 			shown++
 		}
 		var cut bool
-		rows, shown, cut = renderBlock(rows, blk, content, shown, muted)
+		rows, shown, cut = renderBlock(rows, blk, content, shown, backdrop)
 		if cut {
 			break
 		}
 	}
-	rows = append(rows, recap(change, muted, content))
-	return toolview.Box(rows, borderColor)
+	rows = append(rows, recap(change, muted, content, transparent))
+	return toolview.Box(rows, borderColor, transparent)
 }
 
 // recap is the box's footer: "+x -y", additions counted in green and removals
@@ -108,27 +103,27 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 // ends in a full reset, so the space joining them must carry the block
 // background itself — a literal space would render bare on the terminal's
 // default background, a visibly different patch in the pane.
-func recap(change EditChange, muted lipgloss.Style, content int) string {
+func recap(change EditChange, muted lipgloss.Style, content int, transparent bool) string {
 	added, removed := CountChange(change)
 	var parts []string
 	if added > 0 {
-		parts = append(parts, addFg.Render("+"+fmt.Sprintf("%d", added)))
+		parts = append(parts, toolview.MatchBackground(lipgloss.NewStyle().Foreground(lipgloss.Color("10")), transparent).Render("+"+strconv.Itoa(added)))
 	}
 	if removed > 0 {
-		parts = append(parts, remFg.Render("-"+fmt.Sprintf("%d", removed)))
+		parts = append(parts, toolview.MatchBackground(lipgloss.NewStyle().Foreground(lipgloss.Color("9")), transparent).Render("-"+strconv.Itoa(removed)))
 	}
-	sep := block(muted).Render(" ")
-	return cell(block(muted), "  "+strings.Join(parts, sep), content)
+	sep := block(muted, transparent).Render(" ")
+	return cell(block(muted, transparent), "  "+strings.Join(parts, sep), content)
 }
 
 // renderBlock appends one hunk's rows to the box, stopping at the display cap
 // with a marker saying the diff was cut rather than pretending it wasn't. It
 // returns the grown slice, how many rows are through, and whether the cap was
 // reached.
-func renderBlock(rows []string, blk []diffOp, content, shown int, muted lipgloss.Style) ([]string, int, bool) {
+func renderBlock(rows []string, blk []diffOp, content, shown int, backdrop lipgloss.Style) ([]string, int, bool) {
 	for _, op := range blk {
 		if shown >= shownDiffLines {
-			rows = append(rows, cell(block(muted), "  … more", content))
+			rows = append(rows, cell(backdrop, "  … more", content))
 			return rows, shown, true
 		}
 		var row string
@@ -138,7 +133,7 @@ func renderBlock(rows []string, blk []diffOp, content, shown int, muted lipgloss
 		case '+':
 			row = cell(addedStyle, "  + "+truncate(op.text, content-4), content)
 		default:
-			row = cell(block(muted), "    "+truncate(op.text, content-5), content)
+			row = cell(backdrop, "    "+truncate(op.text, content-5), content)
 		}
 		rows = append(rows, row)
 		shown++

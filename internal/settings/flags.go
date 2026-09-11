@@ -26,14 +26,16 @@ type declared struct {
 	discoveryFlags
 }
 
-// uiFlags is the -continue, -resume and -mode switches. Grouped
-// together so declared stays under filet's struct cap; continue auto-resumes
-// the newest session, resume names one by id or path, and mode picks between
-// "inline" and "tui" rendering.
+// uiFlags is the -continue, -resume, -mode and -transparent-blocks switches.
+// Grouped together so declared stays under filet's struct cap; continue
+// auto-resumes the newest session, resume names one by id or path, mode picks
+// between "inline" and "tui" rendering, and transparent-blocks drops the pane
+// backdrop tool results sit on.
 type uiFlags struct {
-	cont   *bool
-	resume *string
-	mode   *string
+	cont        *bool
+	resume      *string
+	mode        *string
+	transparent *bool
 }
 
 type togglesFlags struct {
@@ -68,9 +70,10 @@ func declareFlags(fallback Config) declared {
 		root:        flag.String("root", fallback.Root, "directory the file tools may reach"),
 		system:      flag.String("system", fallback.System, "system prompt"),
 		uiFlags: uiFlags{
-			cont:   flag.Bool("continue", *fallback.Continue, "auto-resume newest session"),
-			resume: flag.String("resume", *fallback.Resume, "resume a specific session by id or file path"),
-			mode:   flag.String("mode", *fallback.Mode, "inline or tui rendering"),
+			cont:        flag.Bool("continue", *fallback.Continue, "auto-resume newest session"),
+			resume:      flag.String("resume", *fallback.Resume, "resume a specific session by id or file path"),
+			mode:        flag.String("mode", *fallback.Mode, "inline or tui rendering"),
+			transparent: flag.Bool("transparent-blocks", *fallback.TransparentBlocks, "drop the backdrop on tool result and diff panes"),
 		},
 		reasoningFlags: reasoningFlags{
 			effort:   flag.String("effort", fallback.Effort, "none, minimal, low, medium, high, xhigh or max"),
@@ -151,6 +154,10 @@ func FromFlags(fallback Config) Config {
 
 	var flags Config
 	flag.Visit(func(flg *flag.Flag) {
+		if flg.Name == "transparent-blocks" {
+			flags.TransparentBlocks = f.transparent
+			return
+		}
 		if take, known := typed[flg.Name]; known {
 			take(&flags)
 		}

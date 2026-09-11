@@ -37,13 +37,14 @@ type SessionConfig struct {
 
 // UISession holds the complete state needed to run an interactive terminal session.
 type UISession struct {
-	Agent          *nacelle.Agent
-	Banner         string
-	Skills         []skills.Skill
-	HookNotice     string
-	Gate           *Approvals
-	DelegateConfig nacelle.Config
-	Mode           string
+	Agent             *nacelle.Agent
+	Banner            string
+	Skills            []skills.Skill
+	HookNotice        string
+	Gate              *Approvals
+	DelegateConfig    nacelle.Config
+	Mode              string
+	TransparentBlocks bool
 	SessionConfig
 }
 

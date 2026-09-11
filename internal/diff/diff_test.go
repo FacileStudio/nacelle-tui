@@ -20,7 +20,7 @@ func plain(diff string) string {
 
 func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 	change := EditChange{Path: "main.go", Before: "one\ntwo\nthree\n", After: "one\nTWO\nthree\n"}
-	diff := RenderDiff(change, 80, "32", muted)
+	diff := RenderDiff(change, 80, "32", muted, false)
 	text := plain(diff)
 
 	if !strings.Contains(text, "- two") {
@@ -38,7 +38,7 @@ func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 
 func TestADiffNamesTheFileAtTheTop(t *testing.T) {
 	change := EditChange{Path: "main.go", Before: "old\n", After: "new\n"}
-	diff := plain(RenderDiff(change, 80, "32", muted))
+	diff := plain(RenderDiff(change, 80, "32", muted, false))
 
 	if !strings.Contains(diff, "main.go") {
 		t.Errorf("diff = %q, want the changed file named in the header", diff)
@@ -47,7 +47,7 @@ func TestADiffNamesTheFileAtTheTop(t *testing.T) {
 
 func TestADiffSitsInAFullWidthBoxWithAColouredSpine(t *testing.T) {
 	change := EditChange{Path: "f", Before: "old\n", After: "new\n"}
-	diff := RenderDiff(change, 40, "32", muted)
+	diff := RenderDiff(change, 40, "32", muted, false)
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(diff, "\n"), "\n") {
 		if !strings.HasPrefix(plain(line), "▌") {
@@ -64,7 +64,7 @@ func TestADiffSitsInAFullWidthBoxWithAColouredSpine(t *testing.T) {
 
 func TestADiffColoursRemovalsRedAndAdditionsGreen(t *testing.T) {
 	change := EditChange{Path: "f", Before: "old\n", After: "new\n"}
-	diff := RenderDiff(change, 80, "32", muted)
+	diff := RenderDiff(change, 80, "32", muted, false)
 
 	if !strings.Contains(diff, "91") || !strings.Contains(diff, "48;5;52") {
 		t.Errorf("diff = %q, want removals in red on a dark red ground", diff)
@@ -76,7 +76,7 @@ func TestADiffColoursRemovalsRedAndAdditionsGreen(t *testing.T) {
 
 func TestARecapSumsAddedAndRemovedLines(t *testing.T) {
 	change := EditChange{Path: "f", Before: "a\nb\nc\n", After: "a\nx\nc\nd\n"}
-	diff := plain(RenderDiff(change, 80, "32", muted))
+	diff := plain(RenderDiff(change, 80, "32", muted, false))
 
 	if !strings.Contains(diff, "+2") || !strings.Contains(diff, "-1") {
 		t.Errorf("recap = %q, want +2 -1 for one line changed and one added", diff)
@@ -90,7 +90,7 @@ func TestARecapSumsAddedAndRemovedLines(t *testing.T) {
 func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
 	change := EditChange{Path: "f", Before: "a\nb\n", After: "a\nc\n"}
 	var recap string
-	for line := range strings.SplitSeq(strings.TrimSuffix(RenderDiff(change, 80, "32", muted), "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSuffix(RenderDiff(change, 80, "32", muted, false), "\n"), "\n") {
 		if strings.Contains(plain(line), "-1") {
 			recap = line
 		}
@@ -105,7 +105,7 @@ func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
 
 func TestACreatedFileIsAllAdditions(t *testing.T) {
 	change := EditChange{Path: "new.go", Before: "", After: "package main\n"}
-	diff := RenderDiff(change, 80, "32", muted)
+	diff := RenderDiff(change, 80, "32", muted, false)
 	text := plain(diff)
 
 	if strings.Contains(diff, "48;5;52") {
@@ -121,7 +121,7 @@ func TestACreatedFileIsAllAdditions(t *testing.T) {
 
 func TestAnUnchangedFileRendersNothing(t *testing.T) {
 	change := EditChange{Path: "same.go", Before: "a\nb\n", After: "a\nb\n"}
-	if diff := RenderDiff(change, 80, "32", muted); diff != "" {
+	if diff := RenderDiff(change, 80, "32", muted, false); diff != "" {
 		t.Errorf("diff = %q, want nothing for identical contents", diff)
 	}
 }
@@ -129,7 +129,7 @@ func TestAnUnchangedFileRendersNothing(t *testing.T) {
 func TestADiffIsCutToTheWindowWithoutWrapping(t *testing.T) {
 	long := strings.Repeat("x", 200)
 	change := EditChange{Path: "f", Before: long + "\n", After: long + "\nadded\n"}
-	diff := RenderDiff(change, 40, "32", muted)
+	diff := RenderDiff(change, 40, "32", muted, false)
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(diff, "\n"), "\n") {
 		if width := len([]rune(plain(line))); width > 40 {
@@ -143,7 +143,7 @@ func TestAHugeRewriteFallsBackToOneReplacementBlock(t *testing.T) {
 	after := strings.Repeat("new line\n", 3000)
 	change := EditChange{Path: "f", Before: before, After: after}
 
-	diff := RenderDiff(change, 80, "32", muted)
+	diff := RenderDiff(change, 80, "32", muted, false)
 	if got := strings.Count(plain(diff), "+ new line"); got == 0 {
 		t.Error("diff shows no additions for a wholesale rewrite")
 	}
@@ -160,6 +160,25 @@ func TestCountChangeCountsAllLinesNotJustShown(t *testing.T) {
 	added, removed := CountChange(change)
 	if added != 200 || removed != 100 {
 		t.Errorf("count = %d,%d want 200,100", added, removed)
+	}
+}
+
+// Transparent mode drops the grey block backdrop that normally frames the
+// whole diff pane — border, header, context and recap — while keeping the
+// green/red tints on the changed lines, so the change is still colour-coded on
+// the terminal's own background.
+func TestRenderDiffTransparentDropsTheBlockBackdrop(t *testing.T) {
+	change := EditChange{Path: "f", Before: "a\nb\n", After: "a\nc\n"}
+	opaque := RenderDiff(change, 80, "2", muted, false)
+	if !strings.Contains(opaque, "48;5;237") {
+		t.Errorf("opaque diff lost the block backdrop, want 48;5;237")
+	}
+	clear := RenderDiff(change, 80, "2", muted, true)
+	if strings.Contains(clear, "48;5;237") {
+		t.Errorf("transparent diff kept the block backdrop %q", plain(clear))
+	}
+	if !strings.Contains(clear, "+ c") || !strings.Contains(clear, "- b") {
+		t.Errorf("transparent diff dropped the green/red diff lines %q", plain(clear))
 	}
 }
 

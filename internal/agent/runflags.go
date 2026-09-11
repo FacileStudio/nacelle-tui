@@ -69,13 +69,14 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 	}
 
 	return &tui.UISession{
-		Agent:          get.agent,
-		Banner:         banner(get.backend, p.config, found, p.mcp, v),
-		Skills:         found.skills,
-		HookNotice:     hookNotice,
-		Gate:           approvalGate,
-		DelegateConfig: get.config,
-		Mode:           *p.config.Mode,
+		Agent:             get.agent,
+		Banner:            banner(get.backend, p.config, found, p.mcp, v),
+		Skills:            found.skills,
+		HookNotice:        hookNotice,
+		Gate:              approvalGate,
+		DelegateConfig:    get.config,
+		Mode:              *p.config.Mode,
+		TransparentBlocks: *p.config.TransparentBlocks,
 		SessionConfig: tui.SessionConfig{
 			Root:              p.config.Root,
 			Model:             p.config.Model,

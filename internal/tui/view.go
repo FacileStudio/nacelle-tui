@@ -15,6 +15,7 @@ type screen struct {
 	liveRows     int
 	frameRows    int
 	mode         int
+	transparent  bool
 }
 
 func (m *Model) View() tea.View {

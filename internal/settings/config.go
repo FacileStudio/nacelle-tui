@@ -93,13 +93,12 @@ type Toggles struct {
 //
 // PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
 // by default; a wrapped question hangs its later rows under a matching indent.
-// A single space of margin always follows the prefix, so the input never touches
-// the left edge — an empty prefix still leaves one leading space.
-// PromptPlaceholder is the ghost text the prompt shows while it is empty.
-// StartMessage is printed as the first thing on launch, above the banner, and may span lines. Empty prints nothing.
-// Mode is "inline" (finished lines into the terminal's own scrollback under
-// the live region) or "tui" (a prompt pinned to the bottom of an alternate
-// screen, the transcript held in its own buffer), like htop or vim.
+// A single space of margin always follows the prefix, so an empty prefix still
+// leaves one leading space. PromptPlaceholder is the ghost text while the
+// prompt is empty, StartMessage prints on launch above the banner (may span
+// lines, empty prints nothing), and Mode is "inline" (finished lines into the
+// terminal's own scrollback) or "tui" (a prompt pinned to the bottom of an
+// alternate screen holding its own transcript buffer).
 type UI struct {
 	Continue          *bool   `yaml:"continue"`
 	Resume            *string `yaml:"resume"`
@@ -109,6 +108,7 @@ type UI struct {
 	PromptPrefix      *string `yaml:"prompt_prefix"`
 	PromptPlaceholder *string `yaml:"prompt_placeholder"`
 	StartMessage      *string `yaml:"start_message"`
+	TransparentBlocks *bool   `yaml:"transparent_blocks"`
 }
 
 // Reasoning holds the three settings that decide how hard the model thinks.
@@ -176,6 +176,7 @@ func Defaults(system string) Config {
 	groupTools, showThinking := true, true
 	cont, resume := false, ""
 	mode := "inline"
+	transparent := false
 	promptPrefix := "| "
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
@@ -193,7 +194,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Continue: &cont, Resume: &resume, Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage},
+		UI: UI{Continue: &cont, Resume: &resume, Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent},
 	}
 }
 

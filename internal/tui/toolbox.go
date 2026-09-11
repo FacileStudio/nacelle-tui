@@ -3,8 +3,6 @@ package tui
 import (
 	"strings"
 
-	"charm.land/lipgloss/v2"
-
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/diff"
 	"github.com/FacileStudio/nacelle-tui/internal/toolview"
@@ -49,7 +47,7 @@ func (m *Model) editBoxFor(id string, tool *nacelle.ToolEvent, ok bool) string {
 	}
 	var box strings.Builder
 	if edited {
-		if d := renderDiff(change, m.width, boxBorder(ok), m.theme.Muted); d != "" {
+		if d := renderDiff(change, m.width, boxBorder(ok), m.theme.Muted, m.transparent); d != "" {
 			box.WriteString(d)
 		}
 	}
@@ -82,7 +80,7 @@ func (m *Model) boxedGroupRow(g toolGroup) string {
 		return ""
 	}
 	content := max(m.width-1, 10)
-	return m.theme.Muted.Background(lipgloss.Color(toolview.BlockBg)).Width(content).Render(truncate(toolview.ToolLinePainted(line), content))
+	return toolview.MatchBackground(m.theme.Muted, m.transparent).Width(content).Render(truncate(toolview.ToolLinePainted(line), content))
 }
 
 // inFlightGroup draws one running tool's live row — boxed for an edit or
@@ -105,7 +103,7 @@ func (m *Model) inFlightGroup(g toolGroup) string {
 	if len(rows) == 0 {
 		return ""
 	}
-	return toolview.Box(rows, toolview.ToolBorder(g.Name, g.Tool.Source))
+	return toolview.Box(rows, toolview.ToolBorder(g.Name, g.Tool.Source), m.transparent)
 }
 
 // liveOutputRows are the streamed output lines of a running run_command, ready
@@ -121,7 +119,7 @@ func (m *Model) liveOutputRows(g toolGroup) []string {
 		return nil
 	}
 	content := max(m.width-1, 10)
-	base := m.theme.Plain.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
+	base := toolview.MatchBackground(m.theme.Plain, m.transparent).Width(content)
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 	rows := make([]string, 0, min(len(lines), commandLineCap))
 	for i, ln := range lines {
@@ -141,7 +139,7 @@ func (m *Model) outputBox(result string, ok bool) string {
 		return ""
 	}
 	content := max(m.width-1, 10)
-	base := m.theme.Plain.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
+	base := toolview.MatchBackground(m.theme.Plain, m.transparent).Width(content)
 	lines := strings.Split(strings.TrimSuffix(result, "\n"), "\n")
 	rows := make([]string, 0, min(len(lines), commandLineCap)+1)
 	for i, ln := range lines {
@@ -151,5 +149,5 @@ func (m *Model) outputBox(result string, ok bool) string {
 		}
 		rows = append(rows, base.Render("  "+truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-2)))
 	}
-	return toolview.Box(rows, boxBorder(ok))
+	return toolview.Box(rows, boxBorder(ok), m.transparent)
 }

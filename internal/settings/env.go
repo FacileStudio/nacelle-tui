@@ -31,7 +31,7 @@ func FromEnv() Config {
 		System:   os.Getenv(EnvPrefix + "SYSTEM"),
 		Limits:   Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
 		Sources:  Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
-		UI:       UI{Mode: envString(EnvPrefix + "MODE")},
+		UI:       UI{Mode: envString(EnvPrefix + "MODE"), TransparentBlocks: envBool(EnvPrefix + "TRANSPARENT_BLOCKS")},
 		Toggles: Toggles{
 			Bash:              envBool(EnvPrefix + "BASH"),
 			Subagents:         envBool(EnvPrefix + "SUBAGENTS"),

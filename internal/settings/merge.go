@@ -31,6 +31,9 @@ func (c *Config) merge(over Config) {
 	}
 	c.MCPFiles = append(c.MCPFiles, over.MCPFiles...)
 	c.Hooks = append(c.Hooks, over.Hooks...)
+	if len(over.Cron) > 0 {
+		c.Cron = over.Cron
+	}
 }
 
 // mergeStrings overwrites every string setting over actually mentions. A
@@ -119,5 +122,8 @@ func (c *Config) mergeUI(over Config) {
 	}
 	if over.StartMessage != nil {
 		c.StartMessage = over.StartMessage
+	}
+	if over.TransparentBlocks != nil {
+		c.TransparentBlocks = over.TransparentBlocks
 	}
 }
