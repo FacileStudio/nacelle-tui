@@ -28,8 +28,8 @@ type Limits struct {
 // which vendor protocol, which model, which base URL, and the bearer key.
 // Backend and Model were top-level settings until base_url and api_key joined
 // them, and the four sit in one group only to stay under filet's struct cap.
-// The yaml keys and NACELLE_ names are unchanged, so existing config files
-// keep working.
+// The yaml keys live under the group names (provider:, limits: and the rest);
+// the NACELLE_ names are unchanged, so existing environments keep working.
 type Provider struct {
 	Backend string `yaml:"backend"`
 	Model   string `yaml:"model"`
@@ -47,23 +47,23 @@ type Provider struct {
 // the environment: a file holding an actual OPENAI_API_KEY is a file that can
 // never be committed to a dotfiles repo.
 type Config struct {
-	Provider `yaml:",inline"`
+	Provider `yaml:"provider"`
 	Root     string `yaml:"root"`
 	System   string `yaml:"system"`
 
-	Limits `yaml:",inline"`
+	Limits `yaml:"limits"`
 
-	Toggles `yaml:",inline"`
+	Toggles `yaml:"tools"`
 
-	Reasoning `yaml:",inline"`
+	Reasoning `yaml:"reasoning"`
 
-	Web `yaml:",inline"`
+	Web `yaml:"web"`
 
-	Discovery `yaml:",inline"`
+	Discovery `yaml:"discovery"`
 
-	UI `yaml:",inline"`
+	UI `yaml:"ui"`
 
-	Sources `yaml:",inline"`
+	Sources `yaml:"sources"`
 	Hooks   []HookSpec `yaml:"hooks"`
 	Cron    []CronJob  `yaml:"cron"`
 }

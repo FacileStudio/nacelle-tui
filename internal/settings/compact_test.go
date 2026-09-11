@@ -49,7 +49,7 @@ func TestCompactAtDefaults(t *testing.T) {
 
 func TestCompactAtPrecedence(t *testing.T) {
 	env := setupConfigEnv(t)
-	env.write(t, "compact_at: 204800\n")
+	env.write(t, "limits:\n  compact_at: 204800\n")
 	if c := env.read(t, s.Config{}); *c.CompactAt != 204800 {
 		t.Errorf("file compact_at = %d, want 204800", *c.CompactAt)
 	}
@@ -67,12 +67,12 @@ func TestCompactAtPrecedence(t *testing.T) {
 
 func TestCompactAtFileVariants(t *testing.T) {
 	env := setupConfigEnv(t)
-	env.write(t, "backend: anthropic\n")
+	env.write(t, "provider:\n  backend: anthropic\n")
 	if c := env.read(t, s.Config{}); *c.CompactAt != s.DefaultCompactAt {
 		t.Errorf("unmentioned compact_at = %d, want default %d", *c.CompactAt, s.DefaultCompactAt)
 	}
 
-	env.write(t, "compact_at: 0\n")
+	env.write(t, "limits:\n  compact_at: 0\n")
 	if c := env.read(t, s.Config{}); *c.CompactAt != 0 {
 		t.Errorf("compact_at: 0 = %d, want 0", *c.CompactAt)
 	}

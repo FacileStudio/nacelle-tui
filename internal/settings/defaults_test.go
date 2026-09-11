@@ -35,7 +35,7 @@ func TestDiffsDefaultOnAndTurnableOff(t *testing.T) {
 		t.Error("diffs = false, want it on by default")
 	}
 
-	written(t, "diffs: false\n")
+	written(t, "tools:\n  diffs: false\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
@@ -54,7 +54,7 @@ func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
 	if *fallback.Resume != "" {
 		t.Errorf("resume = %q, want the empty default", *fallback.Resume)
 	}
-	written(t, "resume: 2026-09-10T14-000Z.jsonl\n")
+	written(t, "ui:\n  resume: 2026-09-10T14-000Z.jsonl\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with resume: %v", err)
@@ -69,7 +69,7 @@ func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
 // reached the resolved config — so this pins the merge that keeps auto-resume
 // switchable.
 func TestContinueFromTheFile(t *testing.T) {
-	written(t, "continue: true\n")
+	written(t, "ui:\n  continue: true\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with continue: %v", err)
@@ -83,7 +83,7 @@ func TestContinueFromTheFile(t *testing.T) {
 // saying json: true reaches the resolved config instead of being dropped by
 // mergeUI.
 func TestJSONFromTheFile(t *testing.T) {
-	written(t, "json: true\n")
+	written(t, "ui:\n  json: true\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with json: %v", err)
@@ -98,7 +98,7 @@ func TestJSONFromTheFile(t *testing.T) {
 // actually runs, the same way TestTheFileBeatsTheDefaults proves it for a
 // plain string.
 func TestSkillDirsComesFromTheFile(t *testing.T) {
-	written(t, "skill_dirs:\n  - /a/skills\n  - /b/skills\n")
+	written(t, "sources:\n  skill_dirs:\n    - /a/skills\n    - /b/skills\n")
 
 	config, err := settings(Config{})
 	if err != nil {
@@ -113,7 +113,7 @@ func TestSkillDirsComesFromTheFile(t *testing.T) {
 // uses for a list of directories, and it has to beat the file without
 // erasing an unrelated setting the file made.
 func TestSkillDirsFromTheEnvironmentAreColonSeparatedAndBeatTheFile(t *testing.T) {
-	written(t, "skill_dirs:\n  - /from/the/file\n")
+	written(t, "sources:\n  skill_dirs:\n    - /from/the/file\n")
 	t.Setenv(EnvPrefix+"SKILL_DIRS", "/a/skills:/b/skills")
 
 	config, err := settings(Config{})

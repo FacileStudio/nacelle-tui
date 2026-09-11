@@ -62,7 +62,7 @@ func TestAnUnreadableMCPFileEndsTheRun(t *testing.T) {
 }
 
 func TestMCPFromNacelleYmlIsInlineAndTheFlagNamesFiles(t *testing.T) {
-	written(t, "mcp:\n  mycelium:\n    command: mycelium\n    args: [mcp]\n")
+	written(t, "sources:\n  mcp:\n    mycelium:\n      command: mycelium\n      args: [mcp]\n")
 
 	config, err := resolveSettings(Config{Sources: Sources{MCPFiles: []string{"/from/the/flag.json"}}})
 	if err != nil {
@@ -77,7 +77,7 @@ func TestMCPFromNacelleYmlIsInlineAndTheFlagNamesFiles(t *testing.T) {
 }
 
 func TestNoMCPKeyAnywhereLeavesMCPUnset(t *testing.T) {
-	written(t, "backend: openrouter\n")
+	written(t, "provider:\n  backend: openrouter\n")
 
 	config, err := resolveSettings(Config{})
 	if err != nil {

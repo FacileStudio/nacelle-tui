@@ -95,7 +95,7 @@ could tell apart.
 | Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue`, `-resume` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence. `-resume` names one session by id or file path and, when given, beats `-continue` |
 | Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `backend: anthropic`, `root: .`, `bash: false`, `thinking: false`, `project_context: true`, `skills: true`, `trust_skills: false`, `skill_dirs: []`, `mcp: {}`, `approve_tools: false`, `diffs: true`, `max_iterations: 0` (no cap), `compact_at: 100000` (absolute tokens), `fetch: true`, `tasks: true` |
+| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.bash: false`, `reasoning.thinking: false`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `tools.approve_tools: false`, `tools.diffs: true`, `limits.max_iterations: 0` (no cap), `limits.compact_at: 100000` (absolute tokens), `web.fetch: true`, `tools.tasks: true` |
 
 `project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
 there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
@@ -109,43 +109,77 @@ the person running this should opt into, not defaults sprung on them. See
 
 ### `~/.nacelle.yml`
 
+The file is grouped: each family of settings lives under its own key, the same
+families the code groups them into. The old flat layout (every key at the top
+level) was replaced by these groups in 0.44.0 — a flat key is now a parse
+error, because `KnownFields(true)` refuses anything unknown.
+
 ```yaml
-backend: anthropic
-model: claude-opus-5
-# base_url: and api_key: point at a custom endpoint — see "Custom providers".
-# leave them out to use the vendor's own API and key resolution.
-# base_url: http://localhost:3001/v1
-# api_key: sk-your-unified-key
-effort: high
-reasoning_budget: 8192
-compact_at: 100000
+provider:
+  backend: anthropic
+  model: claude-opus-5
+  # base_url: and api_key: point at a custom endpoint — see "Custom providers".
+  # leave them out to use the vendor's own API and key resolution.
+  # base_url: http://localhost:3001/v1
+  # api_key: sk-your-unified-key
+reasoning:
+  effort: high
+  thinking: true
+  reasoning_budget: 8192
+limits:
+  compact_at: 100000
+  max_iterations: 0
 root: .
 system: You are a terminal coding assistant.
-bash: true
-thinking: true
-project_context: true
-skills: true
-trust_skills: false
-skill_dirs:
-  - ~/.claude/skills
-mcp:
-  mycelium:
-    command: mycelium
-    args: [mcp]
-approve_tools: false
-diffs: true
-max_iterations: 0
-fetch: true
-tasks: true
-prompt_prefix: '| '
-prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
-# start_message: |-
-#   Welcome to nacelle.
-#     _   _
-#    | | | |
-#    | |_| |
-#    |_____|
+tools:
+  bash: true
+  approve_tools: false
+  diffs: true
+  subagents: true
+  tasks: true
+  strict_confinement: false
+web:
+  fetch: true
+discovery:
+  project_context: true
+  skills: true
+  trust_skills: false
+ui:
+  prompt_prefix: '| '
+  prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
+  mode: inline
+  group_tools: true
+  show_thinking: true
+  transparent_blocks: false
+  # start_message: |-
+  #   Welcome to nacelle.
+  #     _   _
+  #    | | | |
+  #    | |_| |
+  #    |_____|
+sources:
+  skill_dirs:
+    - ~/.claude/skills
+  mcp:
+    mycelium:
+      command: mycelium
+      args: [mcp]
+hooks: []
+cron: []
 ```
+
+Old flat key → new home, for migrating a pre-0.44 file:
+
+| Old key | New location |
+|---|---|
+| `backend`, `model`, `base_url`, `api_key` | `provider:` |
+| `max_iterations`, `compact_at` | `limits:` |
+| `bash`, `subagents`, `approve_tools`, `diffs`, `tasks`, `strict_confinement` | `tools:` |
+| `effort`, `thinking`, `reasoning_budget` | `reasoning:` |
+| `fetch` | `web:` |
+| `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
+| `continue`, `resume`, `mode`, `group_tools`, `show_thinking`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks`, `json` | `ui:` |
+| `skill_dirs`, `mcp` | `sources:` |
 
 Every field is optional. A missing file is not an error — most people never write one — but an
 unreadable or malformed one is: a config silently ignored is worse than no config, because the
@@ -186,10 +220,11 @@ nacelle
 Or the same provider in `~/.nacelle.yml`:
 
 ```yaml
-backend: openai
-base_url: http://localhost:3001/v1
-api_key: sk-your-unified-key
-model: auto
+provider:
+  backend: openai
+  base_url: http://localhost:3001/v1
+  api_key: sk-your-unified-key
+  model: auto
 ```
 
 `base_url` and `api_key` are optional everywhere. Leave `base_url` out and the backend's own default
@@ -257,13 +292,14 @@ every project-local `.agents/skills/` found on that run and remembers the decisi
 `~/.nacelle/trust.json`, keyed by canonical directory — run it once per project, not on every
 launch.
 
-**MCP servers** (`mcp.go`). A server is written inline under `mcp:` in `~/.nacelle.yml` — nothing
+**MCP servers** (`mcp.go`). A server is written inline under `sources.mcp:` in `~/.nacelle.yml` — nothing
 else is needed to start one:
 ```yaml
-mcp:
-  mycelium:
-    command: mycelium
-    args: [mcp]
+sources:
+  mcp:
+    mycelium:
+      command: mycelium
+      args: [mcp]
 ```
 The key is the server name;the definition uses the keys the `mcpServers` format spells — `command` + `args`
 (stdio), `"type": "http"` + `url` (remote), `env`, `cwd`, `headers`, `disabled`. Both stdio and HTTP

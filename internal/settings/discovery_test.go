@@ -3,7 +3,7 @@ package settings
 import "testing"
 
 func TestDiscoveryCanBeTurnedOffByTheFile(t *testing.T) {
-	written(t, "skills: false\nproject_context: false\n")
+	written(t, "discovery:\n  skills: false\n  project_context: false\n")
 
 	config, err := settings(Config{})
 	if err != nil {

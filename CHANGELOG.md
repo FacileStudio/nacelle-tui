@@ -4,6 +4,18 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.44.0] - 2026-09-11
+
+### Changed
+- **BREAKING: the config file is grouped.** `~/.nacelle.yml` keys now live
+  under their own family headers — `provider:`, `limits:`, `tools:`,
+  `reasoning:`, `web:`, `discovery:`, `ui:` and `sources:` — instead of all
+  sitting flat at the top level. The names inside each group are unchanged.
+  A pre-0.44 file fails to parse with `KnownFields(true)` naming the flat
+  keys, not silently ignoring them; docs/configuration.md carries the full
+  old-key → new-location migration table. Flags and `NACELLE_*` environment
+  variables are untouched.
+
 ## [0.43.1] - 2026-09-11
 
 ### Fixed

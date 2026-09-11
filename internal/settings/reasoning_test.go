@@ -9,7 +9,7 @@ import "testing"
 // key that quietly moved under a heading would not degrade, it would refuse to
 // start the next time that file was read.
 func TestTheOldTopLevelEffortAndThinkingKeysStillLoad(t *testing.T) {
-	written(t, "backend: openrouter\neffort: high\nthinking: true\nmax_iterations: 12\n")
+	written(t, "provider:\n  backend: openrouter\nreasoning:\n  effort: high\n  thinking: true\nlimits:\n  max_iterations: 12\n")
 
 	config, err := settings(Config{})
 	if err != nil {
@@ -34,7 +34,7 @@ func TestTheReasoningBudgetCrossesEveryLayer(t *testing.T) {
 		t.Errorf("default budget = %d, want 0 meaning no ceiling from here", budget)
 	}
 
-	written(t, "reasoning_budget: 8000\n")
+	written(t, "reasoning:\n  reasoning_budget: 8000\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
@@ -56,7 +56,7 @@ func TestTheReasoningBudgetCrossesEveryLayer(t *testing.T) {
 // the file and are overridden one at a time by the environment, so setting
 // only the base URL leaves the file's backend, model and key standing.
 func TestAProvidersFieldsResolveFieldByField(t *testing.T) {
-	written(t, "backend: openai\nmodel: auto\nbase_url: http://localhost:9999/v1\napi_key: from-the-file\n")
+	written(t, "provider:\n  backend: openai\n  model: auto\n  base_url: http://localhost:9999/v1\n  api_key: from-the-file\n")
 	t.Setenv(EnvPrefix+"PROVIDER_BASE_URL", "http://localhost:3001/v1")
 
 	config, err := settings(Config{})

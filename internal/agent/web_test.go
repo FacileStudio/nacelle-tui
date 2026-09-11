@@ -16,7 +16,7 @@ func TestFetchIsOnByDefaultAndTheFileCanTurnItOff(t *testing.T) {
 		t.Error("fetch = false, want reading a page to be available without asking")
 	}
 
-	written(t, "fetch: false\n")
+	written(t, "web:\n  fetch: false\n")
 	if config, err = resolveSettings(Config{}); err != nil {
 		t.Fatalf("settings: %v", err)
 	}

@@ -20,7 +20,7 @@ func TestSubagentsDefaultOn(t *testing.T) {
 // The whole precedence chain has to carry the toggle, or the layer that
 // turns it on is not the layer that decides.
 func TestSubagentsFollowThePrecedenceChain(t *testing.T) {
-	written(t, "subagents: false")
+	written(t, "tools:\n  subagents: false")
 	t.Setenv("NACELLE_SUBAGENTS", "true")
 
 	config, err := settings(Config{})
@@ -37,7 +37,7 @@ func TestSubagentsFollowThePrecedenceChain(t *testing.T) {
 // the layer owes that mount is that subagents: true reaches the resolved
 // config.
 func TestSubagentsTrueInTheFileTurnsTheMountOn(t *testing.T) {
-	written(t, "subagents: true")
+	written(t, "tools:\n  subagents: true")
 
 	config, err := settings(Config{})
 	if err != nil {

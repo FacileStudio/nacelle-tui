@@ -43,7 +43,7 @@ func TestNoConfigFileLeavesTheDefaultsStanding(t *testing.T) {
 // A config that cannot be parsed must not be skipped in silence: the setting
 // you carefully wrote is simply not in effect, and nothing says so.
 func TestAMalformedConfigIsAnError(t *testing.T) {
-	written(t, "backend: [this is not a string")
+	written(t, "provider:\n  backend: [this is not a string")
 
 	if _, err := settings(Config{}); err == nil {
 		t.Fatal("a malformed config was accepted")
@@ -54,12 +54,12 @@ func TestAMalformedConfigIsAnError(t *testing.T) {
 // environment, and beaten by the flag — the same linear chain as every other
 // setting.
 func TestModeFallsThroughTheWholeChain(t *testing.T) {
-	written(t, "mode: inline\n")
+	written(t, "ui:\n  mode: inline\n")
 	if config, _ := settings(Config{}); *config.Mode != "inline" {
 		t.Errorf("mode = %q, want inline by default", *config.Mode)
 	}
 
-	written(t, "mode: tui\n")
+	written(t, "ui:\n  mode: tui\n")
 	if config, _ := settings(Config{}); *config.Mode != "tui" {
 		t.Errorf("mode = %q, want the file's tui", *config.Mode)
 	}
@@ -76,7 +76,7 @@ func TestModeFallsThroughTheWholeChain(t *testing.T) {
 }
 
 func TestTheFileBeatsTheDefaults(t *testing.T) {
-	written(t, "backend: openrouter\nmodel: deepseek/deepseek-v4-flash-0731\n")
+	written(t, "provider:\n  backend: openrouter\n  model: deepseek/deepseek-v4-flash-0731\n")
 
 	config, err := settings(Config{})
 	if err != nil {
@@ -92,7 +92,7 @@ func TestTheFileBeatsTheDefaults(t *testing.T) {
 // file, which turned what its README called overrides into two mutually
 // exclusive modes nobody could tell apart.
 func TestTheEnvironmentBeatsTheFileWithoutReplacingIt(t *testing.T) {
-	written(t, "backend: openrouter\nmodel: from-the-file\nroot: /from/the/file\n")
+	written(t, "provider:\n  backend: openrouter\n  model: from-the-file\nroot: /from/the/file\n")
 	t.Setenv(EnvPrefix+"MODEL", "from-the-environment")
 
 	config, err := settings(Config{})
@@ -108,7 +108,7 @@ func TestTheEnvironmentBeatsTheFileWithoutReplacingIt(t *testing.T) {
 }
 
 func TestAFlagBeatsEverything(t *testing.T) {
-	written(t, "model: from-the-file\n")
+	written(t, "provider:\n  model: from-the-file\n")
 	t.Setenv(EnvPrefix+"MODEL", "from-the-environment")
 
 	config, err := settings(Config{Provider: Provider{Model: "from-the-flag"}})
@@ -124,7 +124,7 @@ func TestAFlagBeatsEverything(t *testing.T) {
 // that says false are different answers, and a bool cannot tell them apart —
 // so a file turning something off has to survive a default that had it on.
 func TestATurnedOffToggleIsNotMistakenForAnUnsetOne(t *testing.T) {
-	written(t, "max_iterations: 3\nthinking: true\n")
+	written(t, "limits:\n  max_iterations: 3\nreasoning:\n  thinking: true\n")
 
 	config, err := settings(Config{})
 	if err != nil {
@@ -144,7 +144,7 @@ func TestATurnedOffToggleIsNotMistakenForAnUnsetOne(t *testing.T) {
 // A value strconv cannot read means the writer meant something; falling through
 // to the layer below is closer to that than silently choosing false.
 func TestAnUnreadableEnvironmentValueFallsThroughRatherThanMeaningFalse(t *testing.T) {
-	written(t, "bash: true\n")
+	written(t, "tools:\n  bash: true\n")
 	t.Setenv(EnvPrefix+"BASH", "yes-please")
 
 	config, err := settings(Config{})
@@ -157,7 +157,7 @@ func TestAnUnreadableEnvironmentValueFallsThroughRatherThanMeaningFalse(t *testi
 }
 
 func TestPromptPrefixAndPlaceholderComeFromTheFile(t *testing.T) {
-	written(t, "prompt_prefix: '> '\nprompt_placeholder: ask away\n")
+	written(t, "ui:\n  prompt_prefix: '> '\n  prompt_placeholder: ask away\n")
 
 	config, err := settings(Config{})
 	if err != nil {
@@ -179,7 +179,7 @@ func TestStartMessageComesFromTheFileAndDefaultsEmpty(t *testing.T) {
 		t.Errorf("start message = %q, want empty default", *config.StartMessage)
 	}
 
-	written(t, "start_message: |\n  welcome\n  to nacelle\n")
+	written(t, "ui:\n  start_message: |\n    welcome\n    to nacelle\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
@@ -193,7 +193,7 @@ func TestStartMessageComesFromTheFileAndDefaultsEmpty(t *testing.T) {
 // continuation indent. The pointer has to tell empty apart from unset, so an
 // explicit empty prompt_prefix wins over the default rather than leaving it.
 func TestAnEmptyPromptPrefixBeatsTheDefault(t *testing.T) {
-	written(t, "prompt_prefix: ''\n")
+	written(t, "ui:\n  prompt_prefix: ''\n")
 
 	config, err := settings(Config{})
 	if err != nil {
