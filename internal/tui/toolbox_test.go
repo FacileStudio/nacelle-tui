@@ -178,7 +178,7 @@ func TestStreamedFragmentsFillTheLiveBoxOneRowEach(t *testing.T) {
 	}
 
 	view := visible(m.View().Content)
-	for _, line := range []string{"  syntax ok", "  compiling", "  linking", "  done"} {
+	for _, line := range []string{"▌ syntax ok", "▌ compiling", "▌ linking", "▌ done"} {
 		if !strings.Contains(view, line) {
 			t.Errorf("view = %q, want streamed line %q in the running box", view, line)
 		}

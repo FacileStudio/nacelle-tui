@@ -126,7 +126,7 @@ func (m *Model) liveOutputRows(g toolGroup) []string {
 		if i >= commandLineCap {
 			break
 		}
-		rows = append(rows, base.Render("  "+truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-2)))
+		rows = append(rows, base.Render(truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-1)))
 	}
 	return rows
 }
@@ -144,10 +144,10 @@ func (m *Model) outputBox(result string, ok bool) string {
 	rows := make([]string, 0, min(len(lines), commandLineCap)+1)
 	for i, ln := range lines {
 		if i >= commandLineCap {
-			rows = append(rows, base.Render("  … more"))
+			rows = append(rows, base.Render("… more"))
 			break
 		}
-		rows = append(rows, base.Render("  "+truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-2)))
+		rows = append(rows, base.Render(truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-1)))
 	}
 	return toolview.Box(rows, boxBorder(ok), m.transparent, max(m.width, 10))
 }
