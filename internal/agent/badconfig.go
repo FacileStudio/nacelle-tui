@@ -19,17 +19,20 @@ var ansiField = regexp.MustCompile(`line (\d+): field (\S+) not found in type (\
 // badConfigReport renders a settings parse failure for a terminal: the path in
 // red, each unknown-field line with its line number dim and field name yellow.
 func badConfigReport(bad *settings.ParseError) string {
-	out := "\033[31m" + bad.Path + " is not a valid configuration\033[0m\n"
-	for _, line := range strings.Split(bad.Err.Error(), "\n") {
+	var out strings.Builder
+	out.WriteString("\033[31m")
+	out.WriteString(bad.Path)
+	out.WriteString(" is not a valid configuration\033[0m\n")
+	for line := range strings.SplitSeq(bad.Err.Error(), "\n") {
 		if m := ansiField.FindStringSubmatch(line); m != nil {
-			out += fmt.Sprintf("  \033[2mline %s:\033[0m field \033[33m%s\033[0m is not a setting (in %s)\n", m[1], m[2], m[3])
+			fmt.Fprintf(&out, "  \033[2mline %s:\033[0m field \033[33m%s\033[0m is not a setting (in %s)\n", m[1], m[2], m[3])
 			continue
 		}
 		if line != "" && line != "yaml: unmarshal errors:" {
-			out += "  \033[2m" + line + "\033[0m\n"
+			fmt.Fprintf(&out, "  \033[2m%s\033[0m\n", line)
 		}
 	}
-	return out
+	return out.String()
 }
 
 // confirmDefaultSettings asks the person whether to boot without the file. It

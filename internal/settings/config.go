@@ -1,4 +1,4 @@
-// Package settings resolves the linear precedence chain that turns flags, environment
+// Package settings resolves the precedence chain that turns flags, environment
 // variables, a YAML file, and built-in defaults into the one Config the session acts on.
 package settings
 
@@ -17,14 +17,13 @@ import (
 const ConfigFile = ".nacelle.yml"
 
 // Limits is the threshold settings that cap the run. Embedded in Config so
-// every field still reads as c.MaxIterations and c.CompactAt.
+// every field still reads as c.MaxIterations.
 type Limits struct {
 	MaxIterations *int   `yaml:"max_iterations"`
 	CompactAt     *int64 `yaml:"compact_at"`
 }
 
-// Provider is the backend in use plus the endpoint and key that reach it:
-// which vendor protocol, which model, which base URL, and the bearer key.
+// Provider is the backend in use plus the endpoint and key that reach it.
 // The yaml keys live under the group names (provider:, limits: and the rest);
 // the NACELLE_ names are unchanged, so existing environments keep working.
 type Provider struct {
@@ -50,10 +49,7 @@ type Session struct {
 // Config is one layer of settings. Every field is a pointer or an empty-able
 // string so a layer can say nothing about a setting rather than saying zero:
 // "false" and "not mentioned" are different answers and a bool cannot tell
-// them apart.
-// The one credential it can carry is a custom endpoint's own api_key, where a
-// dotfile is the reasonable home for it; a vendor key is better kept in the
-// environment, since a file holding a live OPENAI_API_KEY can never be committed.
+// them apart. Its only credential is a custom endpoint's own api_key.
 type Config struct {
 	NoConfig *bool `yaml:"-"`
 
@@ -95,21 +91,15 @@ type Security struct {
 
 // UI holds display settings for the interactive client.
 //
-// Diffs shows a git-style diff when the model edits a file.
-//
-// GroupTools collapses consecutive read-only tool calls of one name into a
-// single "running 10 tools" line while they run; each completed call still
-// prints its own line. ShowThinking expands thinking traces by default rather
-// than collapsing to "thought for 2.9s"; ctrl+t still toggles per-session.
+// Diffs shows a git-style diff when the model edits a file. GroupTools
+// collapses consecutive read-only tool calls of one name into a single
+// "running 10 tools" line while they run. ShowThinking expands thinking traces
+// by default rather than collapsing to "thought for 2.9s"; ctrl+t toggles.
 //
 // PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
-// by default; a wrapped question hangs its later rows under a matching indent
-// (one space of margin always follows the prefix, so an empty prefix still
-// leaves one leading space). PromptPlaceholder is the ghost text while the
-// prompt is empty, StartMessage prints on launch above the banner (may span
-// lines, empty prints nothing), Mode is "inline" (finished lines into the
-// terminal's own scrollback) or "tui" (a prompt pinned to the bottom of an
-// alternate screen holding its own transcript buffer).
+// by default (a wrapped question hangs under a matching indent). PromptPlaceholder
+// is the ghost text while the prompt is empty, StartMessage prints on launch
+// above the banner, Mode is "inline" or "tui" rendering.
 type UI struct {
 	Mode              *string `yaml:"rendering_mode"`
 	GroupTools        *bool   `yaml:"group_tools"`
@@ -165,8 +155,7 @@ func DerefBool(b *bool) bool {
 }
 
 // DefaultCompactAt is the transcript size, in tokens, at which a session
-// with no opinion of its own compacts. It sits well inside the smallest
-// window nacelle is aimed at, so the first sign of trouble is never StopContext.
+// with no opinion of its own compacts.
 const DefaultCompactAt int64 = 75_000
 
 // Defaults is the bottom layer, and the only one that answers everything.
@@ -200,7 +189,7 @@ func Defaults(system string) Config {
 	}
 }
 
-// ConfigPath is where the config file lives (HOME); a test need not touch the real one.
+// ConfigPath is where the config file lives (HOME).
 func ConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -233,16 +222,6 @@ func Load(path string) (Config, error) {
 	}
 	return settings, nil
 }
-
-// ParseError is an invalid settings file: Load refused it. The interactive
-// client catches it to offer a default-settings boot instead of dying.
-type ParseError struct {
-	Path string
-	Err  error
-}
-
-func (e *ParseError) Error() string { return "parsing " + e.Path + ": " + e.Err.Error() }
-func (e *ParseError) Unwrap() error { return e.Err }
 
 // Settings resolves every layer in one place: flag beats environment beats
 // file beats default. The scaffold runs before the file is read.
