@@ -1,12 +1,20 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 )
+
+// htmlComment is the authoring-note syntax markdown files carry. It is
+// stripped before a file reaches the prompt: research on layered
+// instructions validated the free win, and a note addressed to a future
+// editor of the file is not an instruction to the model.
+var htmlComment = regexp.MustCompile(`(?s)<!--.*?-->`)
 
 // instrumentFile is one CLAUDE.md or AGENTS.md found on the walk, kept
 // alongside its path so the rendered output can say where it came from.
@@ -53,8 +61,8 @@ type instrumentFile struct {
 // disabled" — the trust boundary there is reserved for things that change
 // what the agent itself can do, which nothing this package reads today does.
 func projectContext(root string) (string, int) {
-	levels := instrumentLevels(root)
-	if global := globalInstructions(); len(global) > 0 {
+	levels, seen := instrumentLevels(root)
+	if global := globalInstructions(seen); len(global) > 0 {
 		levels = append(levels, global)
 	}
 	count := 0
@@ -64,25 +72,43 @@ func projectContext(root string) (string, int) {
 	return renderLevels(levels), count
 }
 
+// realpath resolves symlinks so the same file reached through two paths —
+// most often a CLAUDE.md symlinked to AGENTS.md, the Mycelium setup — is
+// recognised as one file and read once. A path that cannot be resolved falls
+// back to itself: the read will simply fail later, as it already did.
+func realpath(path string) string {
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return path
+	}
+	return resolved
+}
+
 // instrumentLevels walks from root to the filesystem root, returning every
 // directory that held a CLAUDE.md or an AGENTS.md, closest to root first and
 // the filesystem root last — the reverse of the order the caller wants, so
 // renderLevels is what turns it around.
-func instrumentLevels(root string) [][]instrumentFile {
+//
+// One file reaching the model twice is a prompt bloated by duplicates, so a
+// resolved path is admitted once across the whole walk: the same inode behind
+// two names, at the same level or two levels up, is read from the first
+// encounter only.
+func instrumentLevels(root string) ([][]instrumentFile, map[string]bool) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 
+	seen := map[string]bool{}
 	var levels [][]instrumentFile
 	for dir := abs; ; {
-		if here := instrumentsIn(dir); len(here) > 0 {
+		if here := instrumentsIn(dir, seen); len(here) > 0 {
 			levels = append(levels, here)
 		}
 
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return levels
+			return levels, seen
 		}
 		dir = parent
 	}
@@ -92,12 +118,19 @@ func instrumentLevels(root string) [][]instrumentFile {
 // reads outside the walk from root. No home directory or no file there is
 // not an error — most machines will have neither, or won't have adopted the
 // convention yet, and that is the ordinary case, not a degraded one.
-func globalInstructions() []instrumentFile {
+//
+// The walk already read the same real file — a project AGENTS.md symlinked
+// to the global one, say — the global copy is skipped: the walk's level keeps
+// its own label, and the content is not in the prompt twice.
+func globalInstructions(seen map[string]bool) []instrumentFile {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil
 	}
 	path := filepath.Join(home, ".agents", "AGENTS.md")
+	if seen[realpath(path)] {
+		return nil
+	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil
@@ -109,14 +142,26 @@ func globalInstructions() []instrumentFile {
 // order. Either can be absent, and a file that exists but cannot be read is
 // treated the same as one that was never there — one unreadable file is not
 // a reason to fail the whole walk.
-func instrumentsIn(dir string) []instrumentFile {
+//
+// Files already admitted earlier in the walk — the same real file under
+// another name or another level — are skipped, not read twice.
+func instrumentsIn(dir string, seen map[string]bool) []instrumentFile {
 	var here []instrumentFile
 	for _, name := range []string{"CLAUDE.md", "AGENTS.md"} {
 		path := filepath.Join(dir, name)
+		key := realpath(path)
+		if seen[key] {
+			continue
+		}
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			continue
 		}
+		raw = htmlComment.ReplaceAll(raw, nil)
+		if len(bytes.TrimSpace(raw)) == 0 {
+			continue
+		}
+		seen[key] = true
 		here = append(here, instrumentFile{path: path, content: string(raw)})
 	}
 	return here

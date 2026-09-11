@@ -67,7 +67,7 @@ func TestAugmentSystemCountsContextFilesAndSkills(t *testing.T) {
 	config.Root = root
 	config.SkillDirs = []string{skillDir}
 
-	found := augmentSystem(&config)
+	found := augmentSystem(&config, connected{})
 
 	if found.contextFiles != 1 {
 		t.Errorf("contextFiles = %d, want 1", found.contextFiles)

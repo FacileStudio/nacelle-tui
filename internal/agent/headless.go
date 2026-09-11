@@ -74,7 +74,7 @@ func buildHeadlessAgent(config settings.Config) (*nacelle.Agent, func(), error) 
 		return nil, nil, closeOnErr(err, set)
 	}
 
-	augmentSystem(&config)
+	augmentSystem(&config, mcp)
 	_, approve := approval.Build(*config.ApproveTools)
 
 	hooks, _, err := settings.SessionHooks(config)

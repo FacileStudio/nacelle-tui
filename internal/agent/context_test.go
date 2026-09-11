@@ -79,6 +79,92 @@ func TestProjectContextAcceptsEitherFilename(t *testing.T) {
 	}
 }
 
+// A CLAUDE.md that is a symlink to the same directory's AGENTS.md — the
+// Mycelium setup — is one file, and the prompt must carry it once, not twice.
+func TestProjectContextReadsASymlinkedDuplicateOnce(t *testing.T) {
+	noGlobalInstructions(t)
+	dir := t.TempDir()
+	agents := filepath.Join(dir, "AGENTS.md")
+	if err := os.WriteFile(agents, []byte("one file, read once"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := os.Symlink(agents, filepath.Join(dir, "CLAUDE.md")); err != nil {
+		t.Fatalf("Symlink: %v", err)
+	}
+
+	got, count := projectContext(dir)
+
+	if strings.Count(got, "one file, read once") != 1 {
+		t.Errorf("context = %q, want the symlinked duplicate read once", got)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1", count)
+	}
+}
+
+// The global ~/.agents/AGENTS.md and a project AGENTS.md symlinked to it are
+// the same file reached through two paths; the walk's level wins and the
+// global section is not manufactured for it a second time.
+func TestProjectContextSkipsAGlobalFileTheWalkAlreadyRead(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".agents"), 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	global := filepath.Join(home, ".agents", "AGENTS.md")
+	if err := os.WriteFile(global, []byte("one file, read once"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	dir := t.TempDir()
+	if err := os.Symlink(global, filepath.Join(dir, "AGENTS.md")); err != nil {
+		t.Fatalf("Symlink: %v", err)
+	}
+
+	got, count := projectContext(dir)
+
+	if strings.Count(got, "one file, read once") != 1 {
+		t.Errorf("context = %q, want the shared file read once", got)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1", count)
+	}
+	if strings.Contains(got, "Global instructions") {
+		t.Errorf("context = %q, want no global section for a file the walk already read", got)
+	}
+}
+
+// HTML comments in an instruction file are authoring notes addressed to the
+// file's next editor, not instructions to the model, so they are stripped
+// before injection. A file whose every content line was a comment is an
+// empty layer and is dropped entirely.
+func TestProjectContextStripsHTMLComments(t *testing.T) {
+	noGlobalInstructions(t)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "AGENTS.md"), []byte("<!-- hidden note -->real instruction\n<!-- another\nmultiline one -->"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	got, count := projectContext(dir)
+
+	if strings.Contains(got, "hidden note") || strings.Contains(got, "multiline one") {
+		t.Errorf("context = %q, want comments stripped", got)
+	}
+	if !strings.Contains(got, "real instruction") {
+		t.Errorf("context = %q, want the real content kept", got)
+	}
+	if count != 1 {
+		t.Errorf("count = %d, want 1", count)
+	}
+
+	only := t.TempDir()
+	if err := os.WriteFile(filepath.Join(only, "CLAUDE.md"), []byte("<!-- nothing but a note -->"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if text, count := projectContext(only); count != 0 || text != "" {
+		t.Errorf("context = %q, count = %d, want a comment-only file dropped", text, count)
+	}
+}
+
 // ~/.agents/AGENTS.md is the AGENTS.md standard's own global-base path —
 // the file Codex, Cursor, Copilot, Gemini and pi already read — so it
 // reaches the model too, ahead of anything project-specific: more general

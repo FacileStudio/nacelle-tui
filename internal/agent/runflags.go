@@ -61,7 +61,7 @@ func setupAgentTools(noConfig bool) (preparedTools, error) {
 }
 
 func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
-	found := augmentSystem(&p.config)
+	found := augmentSystem(&p.config, p.mcp)
 	approvalGate, approve := approval.Build(*p.config.ApproveTools)
 
 	hooks, hookNotice, err := settings.SessionHooks(p.config)
@@ -121,9 +121,9 @@ type loaded struct {
 	contextFiles int
 }
 
-func augmentSystem(config *settings.Config) loaded {
+func augmentSystem(config *settings.Config, mcp connected) loaded {
 	var found loaded
-	config.System += environment(*config, time.Now())
+	config.System += environment(*config, time.Now(), mcp)
 	if *config.ProjectContext {
 		text, files := projectContext(config.Root)
 		config.System += text

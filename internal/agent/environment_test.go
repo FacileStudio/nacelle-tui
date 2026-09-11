@@ -24,7 +24,7 @@ func TestEnvironmentNamesTheRootAbsolutely(t *testing.T) {
 	config := withApproval(false)
 	config.Root = "."
 
-	got := environment(config, time.Now())
+	got := environment(config, time.Now(), connected{})
 
 	want, err := filepath.Abs(".")
 	if err != nil {
@@ -36,7 +36,7 @@ func TestEnvironmentNamesTheRootAbsolutely(t *testing.T) {
 }
 
 func TestEnvironmentWarnsThatAbsolutePathsOnlyWorkInRunCommand(t *testing.T) {
-	got := environment(withApproval(false), time.Now())
+	got := environment(withApproval(false), time.Now(), connected{})
 
 	for _, want := range []string{"absolute", "run_command"} {
 		if !strings.Contains(got, want) {
@@ -46,7 +46,7 @@ func TestEnvironmentWarnsThatAbsolutePathsOnlyWorkInRunCommand(t *testing.T) {
 }
 
 func TestEnvironmentDatesTheSession(t *testing.T) {
-	got := environment(withApproval(false), time.Date(2026, 8, 20, 9, 0, 0, 0, time.UTC))
+	got := environment(withApproval(false), time.Date(2026, 8, 20, 9, 0, 0, 0, time.UTC), connected{})
 
 	if !strings.Contains(got, "2026-08-20") {
 		t.Errorf("environment() = %q, want it to carry the date it was given", got)
@@ -54,7 +54,7 @@ func TestEnvironmentDatesTheSession(t *testing.T) {
 }
 
 func TestEnvironmentSaysWhetherAnyoneReviewsAToolCall(t *testing.T) {
-	on := environment(withApproval(true), time.Now())
+	on := environment(withApproval(true), time.Now(), connected{})
 	if !strings.Contains(on, "refusal") {
 		t.Errorf("environment() = %q, want the approval gate explained when it is on", on)
 	}
@@ -62,13 +62,13 @@ func TestEnvironmentSaysWhetherAnyoneReviewsAToolCall(t *testing.T) {
 		t.Errorf("environment() = %q, want no unreviewed warning while the gate is on", on)
 	}
 
-	if off := environment(withApproval(false), time.Now()); !strings.Contains(off, "Nobody sees one first") {
+	if off := environment(withApproval(false), time.Now(), connected{}); !strings.Contains(off, "Nobody sees one first") {
 		t.Errorf("environment() = %q, want the model told nothing reviews a call with the gate off", off)
 	}
 }
 
 func TestEnvironmentTeachesBatchingIndependentToolCalls(t *testing.T) {
-	got := environment(withApproval(false), time.Now())
+	got := environment(withApproval(false), time.Now(), connected{})
 
 	for _, want := range []string{"independent", "one turn"} {
 		if !strings.Contains(got, want) {
@@ -78,7 +78,7 @@ func TestEnvironmentTeachesBatchingIndependentToolCalls(t *testing.T) {
 }
 
 func TestEnvironmentSaysAParallelFanOutEndsTheTurn(t *testing.T) {
-	got := environment(withApproval(false), time.Now())
+	got := environment(withApproval(false), time.Now(), connected{})
 
 	for _, want := range []string{"non-blocking and return-control", "ends your turn"} {
 		if !strings.Contains(got, want) {
@@ -88,14 +88,14 @@ func TestEnvironmentSaysAParallelFanOutEndsTheTurn(t *testing.T) {
 }
 
 func TestEnvironmentWarnsAboutIrreversibleCommandsOnlyWithBash(t *testing.T) {
-	if got := environment(withApproval(false), time.Now()); !strings.Contains(got, "git reset --hard") {
+	if got := environment(withApproval(false), time.Now(), connected{}); !strings.Contains(got, "git reset --hard") {
 		t.Errorf("environment() = %q, want the irreversible commands named when the shell is on", got)
 	}
 
 	config := withApproval(false)
 	off := false
 	config.Bash = &off
-	if got := environment(config, time.Now()); strings.Contains(got, "git reset --hard") {
+	if got := environment(config, time.Now(), connected{}); strings.Contains(got, "git reset --hard") {
 		t.Errorf("environment() = %q, want no shell warning when there is no shell", got)
 	}
 }
@@ -106,7 +106,7 @@ func TestAugmentSystemAlwaysAppendsTheEnvironment(t *testing.T) {
 	config.System = "You are something else entirely."
 	config.ProjectContext, config.Skills = &off, &off
 
-	augmentSystem(&config)
+	augmentSystem(&config, connected{})
 
 	if !strings.Contains(config.System, "Working directory:") {
 		t.Errorf("System = %q, want the session's own facts appended regardless of the switches", config.System)
@@ -118,13 +118,13 @@ func TestEnvironmentMentionsRunCommandOnlyWhenBashIsMounted(t *testing.T) {
 	off := false
 	config.Bash = &off
 
-	if got := environment(config, time.Now()); strings.Contains(got, "run_command") {
+	if got := environment(config, time.Now(), connected{}); strings.Contains(got, "run_command") {
 		t.Errorf("environment() = %q, want no word about run_command when -bash is off", got)
 	}
 }
 
 func TestEnvironmentMentionsWebFetchOnlyWhenFetchIsMounted(t *testing.T) {
-	got := environment(withApproval(false), time.Now())
+	got := environment(withApproval(false), time.Now(), connected{})
 	if !strings.Contains(got, "web_fetch") {
 		t.Errorf("environment() = %q, want the fetch tool named when fetch is on", got)
 	}
@@ -133,14 +133,14 @@ func TestEnvironmentMentionsWebFetchOnlyWhenFetchIsMounted(t *testing.T) {
 	off := false
 	config.Fetch = &off
 
-	if got := environment(config, time.Now()); strings.Contains(got, "web_fetch") {
+	if got := environment(config, time.Now(), connected{}); strings.Contains(got, "web_fetch") {
 		t.Errorf("environment() = %q, want no word about web_fetch when fetch is off", got)
 	}
 }
 
 func TestEnvironmentDescribesConfinementBasedOnStrictConfinement(t *testing.T) {
 
-	on := environment(withApproval(false), time.Now())
+	on := environment(withApproval(false), time.Now(), connected{})
 	if !strings.Contains(on, "absolute paths") {
 		t.Errorf("environment() without confinement = %q, want mention of absolute-path handling", on)
 	}
@@ -151,11 +151,37 @@ func TestEnvironmentDescribesConfinementBasedOnStrictConfinement(t *testing.T) {
 	with := withApproval(false)
 	confined := true
 	with.StrictConfinement = &confined
-	withConfined := environment(with, time.Now())
+	withConfined := environment(with, time.Now(), connected{})
 	if !strings.Contains(withConfined, "cannot reach outside") {
 		t.Errorf("environment() with confinement = %q, want confinement warning", withConfined)
 	}
 	if strings.Contains(withConfined, "no confinement") {
 		t.Errorf("environment() with confinement = %q, should not say \"no confinement\"", withConfined)
+	}
+}
+
+func TestEnvironmentNamesTheBridgedServersOnlyWhenMounted(t *testing.T) {
+	if got := environment(defaults(), time.Now(), connected{}); strings.Contains(got, "MCP-bridged") {
+		t.Errorf("environment() = %q, want no MCP note when no server is mounted", got)
+	}
+
+	got := environment(defaults(), time.Now(), connected{servers: 2, names: []string{"antenne", "sonde"}})
+	for _, want := range []string{"antenne, sonde", "prefixed with"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("environment() = %q, want it to say %q", got, want)
+		}
+	}
+}
+
+func TestEnvironmentExplainsTheCatalogWhenOneIsMounted(t *testing.T) {
+	if got := environment(defaults(), time.Now(), connected{servers: 1, names: []string{"antenne"}}); strings.Contains(got, "search_tools") {
+		t.Errorf("environment() = %q, want no catalog note while the set is mounted whole", got)
+	}
+
+	got := environment(defaults(), time.Now(), connected{servers: 1, names: []string{"antenne"}, catalog: true})
+	for _, want := range []string{"search_tools", "get_tool_details", "call_tool"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("environment() = %q, want the catalog note to name %s", got, want)
+		}
 	}
 }
