@@ -4,6 +4,22 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.42.1] - 2026-09-11
+
+### Fixed
+- **Compaction no longer freezes the spinner or strands queued lines.** A
+  post-turn or `/compact` pass now keeps its elapsed timer ticking instead of
+  stopping after the first frame, and the lines queued behind a running pass
+  are delivered from the outcome handlers once the rebuilt conversation is in
+  place — no more racing the install or quietly dropping them.
+- **The summarizer runs reasoning-off.** A reasoning-first model spent the
+  output budget on its chain of thought and streamed back no final text, so a
+  pass landed empty and fell back to the weak mask. With reasoning off the
+  budget goes to the summary, and an empty summary is reported instead of
+  failing silently.
+- **The agent stops advertising `web_fetch` when fetching is off.** The tool
+  list no longer claims a fetch capability that is disabled.
+
 ## [0.42.0] - 2026-09-11
 
 ### Added
