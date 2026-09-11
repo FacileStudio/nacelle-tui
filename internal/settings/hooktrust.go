@@ -37,7 +37,7 @@ func loadHookTrust() (map[string]hookTrustRecord, error) {
 	return store, nil
 }
 
-// saveHookTrust records one approval, creating ~/.nacelle/ if trust.json
+// saveHookTrust records one approval, creating ~/.nacelle/ if hooks.json
 // has not needed it before now.
 func saveHookTrust(store map[string]hookTrustRecord, path, hash string) error {
 	dir, err := trustDir()

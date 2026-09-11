@@ -32,7 +32,7 @@ profiles and panes are what a product grows, not what a contract test needs.
 |---|---|
 | TUI | Go 1.26.4, `charm.land/bubbletea/v2`, lipgloss v2, glamour v2 |
 | Agent | [FacileStudio/nacelle](https://github.com/FacileStudio/nacelle), pinned by tag |
-| State | `~/.nacelle.yml`, `~/.nacelle/trust.json` for hook trust |
+| State | `~/.nacelle.yml`, `~/.nacelle/hooks.json` for hook trust |
 | Release | GoReleaser, GitHub Actions on tag push, Homebrew tap `FacileStudio/tap` |
 
 ## Install
