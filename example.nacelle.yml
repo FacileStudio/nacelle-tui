@@ -1,0 +1,56 @@
+# example.nacelle.yml — every setting, every default, explicit.
+# Written to ~/.nacelle.yml on first boot; identical to the settings.Template
+# in internal/settings/scaffold.go. Delete ~/.nacelle.yml to regenerate it.
+provider:
+  backend: anthropic
+  model: ""
+  base_url: ""
+  api_key: ""
+
+root: .
+system: ""
+continue: false
+resume: ""
+
+limits:
+  max_iterations: 5
+  compact_at: 75000
+
+tools:
+  bash: true
+  subagents: true
+  approve_tools: false
+  diffs: true
+  tasks: true
+  strict_confinement: false
+
+web:
+  fetch: true
+
+reasoning:
+  effort: ""
+  thinking: true
+  budget: 0
+
+discovery:
+  project_context: true
+  skills: true
+  trust_skills: false
+  trust_hooks: false
+
+ui:
+  rendering_mode: inline
+  group_tools: true
+  show_thinking: true
+  prompt_prefix: "| "
+  prompt_placeholder: "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
+  start_message: ""
+  transparent_blocks: false
+  cron_list_json: false
+
+sources:
+  skill_dirs: []
+  mcp: {}
+
+hooks: []
+cron: []

@@ -94,9 +94,69 @@ Full settings reference: [docs/configuration.md](docs/configuration.md).
 
 ## Configuration
 
-Settings live in `~/.nacelle.yml`, created with defaults the first time a
-setting needs writing. Hook trust decisions live in `~/.nacelle/trust.json`,
-keyed by project path and file hash, remembering trust decisions per project.
+Settings live in `~/.nacelle.yml`, **written on first boot with every default
+explicitly set** — delete it to regenerate. An existing file is never touched.
+The example file with all defaults, and the full reference with the
+precedence order and the traps in each setting:
+[docs/configuration.md](docs/configuration.md).
+
+`example.nacelle.yml` in this repo is the same file the first boot writes:
+
+```yaml
+provider:
+  backend: anthropic
+  model: ""
+  base_url: ""
+  api_key: ""
+
+root: .
+system: ""
+continue: false
+resume: ""
+
+limits:
+  max_iterations: 5
+  compact_at: 75000
+
+tools:
+  bash: true
+  subagents: true
+  approve_tools: false
+  diffs: true
+  tasks: true
+  strict_confinement: false
+
+web:
+  fetch: true
+
+reasoning:
+  effort: ""
+  thinking: true
+  budget: 0
+
+discovery:
+  project_context: true
+  skills: true
+  trust_skills: false
+  trust_hooks: false
+
+ui:
+  rendering_mode: inline
+  group_tools: true
+  show_thinking: true
+  prompt_prefix: "| "
+  prompt_placeholder: "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
+  start_message: ""
+  transparent_blocks: false
+  cron_list_json: false
+
+sources:
+  skill_dirs: []
+  mcp: {}
+
+hooks: []
+cron: []
+```
 
 ## herdr
 

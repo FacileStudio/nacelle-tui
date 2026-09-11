@@ -95,7 +95,7 @@ could tell apart.
 | Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue`, `-resume` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence. `-resume` names one session by id or file path and, when given, beats `-continue` |
 | Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.bash: false`, `reasoning.thinking: false`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `tools.approve_tools: false`, `tools.diffs: true`, `limits.max_iterations: 0` (no cap), `limits.compact_at: 100000` (absolute tokens), `web.fetch: true`, `tools.tasks: true` |
+| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.bash: true`, `reasoning.thinking: true`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `discovery.trust_hooks: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `tools.approve_tools: false`, `tools.diffs: true`, `limits.max_iterations: 5`, `limits.compact_at: 75000` (absolute tokens), `web.fetch: true`, `tools.tasks: true`, `ui.rendering_mode: inline`, `ui.group_tools: true`, `ui.show_thinking: true` |
 
 `project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
 there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
@@ -127,8 +127,8 @@ reasoning:
   thinking: true
   budget: 8192
 limits:
-  compact_at: 100000
-  max_iterations: 0
+  compact_at: 75000
+  max_iterations: 5
 root: .
 system: You are a terminal coding assistant.
 tools:
@@ -144,6 +144,8 @@ discovery:
   project_context: true
   skills: true
   trust_skills: false
+continue: false
+resume: ""
 ui:
   prompt_prefix: '| '
   prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
@@ -179,10 +181,13 @@ Old flat key → new home, for migrating a pre-0.44 file:
 | `effort`, `thinking`, `reasoning_budget` (now `budget`) | `reasoning:` |
 | `fetch` | `web:` |
 | `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
-| `continue`, `resume`, `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
+| `continue`, `resume` (stay top level, they are launch settings not display) | — |
+| `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
 | `skill_dirs`, `mcp` | `sources:` |
 
-Every field is optional. A missing file is not an error — most people never write one — but an
+Every field is optional. A missing file is not an error — on first boot
+nacelle writes this file itself with every default explicit, and you edit from
+there; deleting it regenerates it. But an unreadable or malformed one is: a
 unreadable or malformed one is: a config silently ignored is worse than no config, because the
 setting carefully written is simply not in effect and nothing says so.
 

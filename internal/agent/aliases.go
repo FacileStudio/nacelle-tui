@@ -9,6 +9,9 @@ import (
 // Config aliases settings.Config.
 type Config = settings.Config
 
+// Session aliases settings.Session, the four top-level launch settings.
+type Session = settings.Session
+
 // Provider aliases settings.Provider, the active backend plus its endpoint.
 type Provider = settings.Provider
 

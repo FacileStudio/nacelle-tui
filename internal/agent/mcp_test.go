@@ -31,7 +31,7 @@ func TestNoMCPConfigStartsNothingAndChangesNothing(t *testing.T) {
 }
 
 func TestTheBannerSaysNothingAboutMCPWhenNoneIsConfigured(t *testing.T) {
-	got := testBanner(&answeringStub{}, asSettled(Config{Root: "."}), loaded{}, connected{})
+	got := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}}), loaded{}, connected{})
 	if strings.Contains(got, "MCP") {
 		t.Errorf("banner = %q, want no mention of MCP when none is configured", got)
 	}

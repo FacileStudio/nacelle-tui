@@ -18,7 +18,7 @@ func TestCountedNounPluralizes(t *testing.T) {
 
 func TestBannerShowsBackendModelRootSkillsAndContextFiles(t *testing.T) {
 	off := false
-	got := testBanner(&answeringStub{}, asSettled(Config{Provider: Provider{Model: "claude-opus-5"}, Root: ".", Toggles: Toggles{Bash: &off}}),
+	got := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Provider: Provider{Model: "claude-opus-5"}, Toggles: Toggles{Bash: &off}}),
 		loaded{skills: []skill{{Name: "deploy"}, {Name: "filet"}}, contextFiles: 2}, connected{})
 
 	lines := strings.Split(got, "\n")
@@ -38,7 +38,7 @@ func TestBannerShowsBackendModelRootSkillsAndContextFiles(t *testing.T) {
 
 func TestBannerSaysWhenBashIsOn(t *testing.T) {
 	on := true
-	got := testBanner(&answeringStub{}, asSettled(Config{Root: ".", Toggles: Toggles{Bash: &on}}), loaded{}, connected{})
+	got := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Toggles: Toggles{Bash: &on}}), loaded{}, connected{})
 
 	if !strings.Contains(got, "bash on") {
 		t.Errorf("banner = %q, want it to say bash is on", got)
@@ -47,7 +47,7 @@ func TestBannerSaysWhenBashIsOn(t *testing.T) {
 
 func TestBannerResolvesRootToAnAbsolutePath(t *testing.T) {
 	off := false
-	got := testBanner(&answeringStub{}, asSettled(Config{Root: ".", Toggles: Toggles{Bash: &off}}), loaded{}, connected{})
+	got := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Toggles: Toggles{Bash: &off}}), loaded{}, connected{})
 
 	if strings.Contains(got, "\n.") || strings.HasSuffix(strings.Split(got, "\n")[1], " . ") {
 		t.Errorf("banner = %q, want root resolved, not echoed as \".\"", got)

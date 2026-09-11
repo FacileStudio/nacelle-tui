@@ -17,8 +17,7 @@ import (
 const ConfigFile = ".nacelle.yml"
 
 // Limits is the threshold settings that cap the run. Embedded in Config so
-// every field still reads as c.MaxIterations and c.CompactAt — the group
-// exists only to keep the field count under filet's cap.
+// every field still reads as c.MaxIterations and c.CompactAt.
 type Limits struct {
 	MaxIterations *int   `yaml:"max_iterations"`
 	CompactAt     *int64 `yaml:"compact_at"`
@@ -26,8 +25,6 @@ type Limits struct {
 
 // Provider is the backend in use plus the endpoint and key that reach it:
 // which vendor protocol, which model, which base URL, and the bearer key.
-// Backend and Model were top-level settings until base_url and api_key joined
-// them, and the four sit in one group only to stay under filet's struct cap.
 // The yaml keys live under the group names (provider:, limits: and the rest);
 // the NACELLE_ names are unchanged, so existing environments keep working.
 type Provider struct {
@@ -37,19 +34,26 @@ type Provider struct {
 	APIKey  string `yaml:"api_key"`
 }
 
+// Session is the launch settings that are not display choices — where the
+// session starts, what its base prompt says, whether it resumes. Inlined so
+// root:, system:, continue: and resume: stay top-level keys in the file.
+type Session struct {
+	Root     string  `yaml:"root"`
+	System   string  `yaml:"system"`
+	Continue *bool   `yaml:"continue"`
+	Resume   *string `yaml:"resume"`
+}
+
 // Config is one layer of settings. Every field is a pointer or an empty-able
-// string so that a layer can say nothing about a setting rather than saying
-// zero, which is the whole difficulty of a precedence chain: "false" and "not
-// mentioned" are different answers and a bool cannot tell them apart.
-//
+// string so a layer can say nothing about a setting rather than saying zero:
+// "false" and "not mentioned" are different answers and a bool cannot tell
+// them apart.
 // The one credential it can carry is a custom endpoint's own api_key, where a
-// dotfile is the reasonable home for it. A vendor key is still better kept in
-// the environment: a file holding an actual OPENAI_API_KEY is a file that can
-// never be committed to a dotfiles repo.
+// dotfile is the reasonable home for it; a vendor key is better kept in the
+// environment, since a file holding a live OPENAI_API_KEY can never be committed.
 type Config struct {
 	Provider `yaml:"provider"`
-	Root     string `yaml:"root"`
-	System   string `yaml:"system"`
+	Session  `yaml:",inline"`
 
 	Limits `yaml:"limits"`
 
@@ -86,22 +90,18 @@ type Toggles struct {
 //
 // GroupTools collapses consecutive read-only tool calls of one name into a
 // single "running 10 tools" line while they run; each completed call still
-// prints its own line. On by default; off to watch every call land.
-//
-// ShowThinking expands thinking traces by default rather than collapsing to
-// "thought for 2.9s"; the ctrl+t key still toggles per-session.
+// prints its own line. ShowThinking expands thinking traces by default rather
+// than collapsing to "thought for 2.9s"; ctrl+t still toggles per-session.
 //
 // PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
-// by default; a wrapped question hangs its later rows under a matching indent.
-// A single space of margin always follows the prefix, so an empty prefix still
-// leaves one leading space. PromptPlaceholder is the ghost text while the
+// by default; a wrapped question hangs its later rows under a matching indent
+// (one space of margin always follows the prefix, so an empty prefix still
+// leaves one leading space). PromptPlaceholder is the ghost text while the
 // prompt is empty, StartMessage prints on launch above the banner (may span
 // lines, empty prints nothing), Mode is "inline" (finished lines into the
 // terminal's own scrollback) or "tui" (a prompt pinned to the bottom of an
 // alternate screen holding its own transcript buffer).
 type UI struct {
-	Continue          *bool   `yaml:"continue"`
-	Resume            *string `yaml:"resume"`
 	Mode              *string `yaml:"rendering_mode"`
 	GroupTools        *bool   `yaml:"group_tools"`
 	ShowThinking      *bool   `yaml:"show_thinking"`
@@ -113,8 +113,8 @@ type UI struct {
 }
 
 // Reasoning holds the three settings that decide how hard the model thinks.
-// Effort and Budget are two spellings of one idea — the backends disagree
-// about which they accept, so each sends the one its own API understands.
+// Effort and Budget spell one idea twice — the backends disagree on which
+// they accept, so each sends the one its own API understands.
 type Reasoning struct {
 	Effort   string `yaml:"effort"`
 	Thinking *bool  `yaml:"thinking"`
@@ -161,9 +161,7 @@ func DerefBool(b *bool) bool {
 
 // DefaultCompactAt is the transcript size, in tokens, at which a session
 // with no opinion of its own compacts. It sits well inside the smallest
-// window nacelle is aimed at, so the first sign of trouble is never
-// StopContext: the floor it leaves below itself is room for a full answer
-// plus the next turn's tools and system prompt.
+// window nacelle is aimed at, so the first sign of trouble is never StopContext.
 const DefaultCompactAt int64 = 75_000
 
 // Defaults is the bottom layer, and the only one that answers everything.
@@ -183,8 +181,7 @@ func Defaults(system string) Config {
 	return Config{
 		Web:       Web{Fetch: &fetch},
 		Provider:  Provider{Backend: "anthropic"},
-		Root:      ".",
-		System:    system,
+		Session:   Session{Root: ".", System: system, Continue: &cont, Resume: &resume},
 		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks, StrictConfinement: &strict},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
@@ -194,7 +191,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Continue: &cont, Resume: &resume, Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
+		UI: UI{Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
 	}
 }
 
@@ -232,11 +229,14 @@ func Load(path string) (Config, error) {
 	return settings, nil
 }
 
-// Settings resolves every layer in one place.
-//
-// Flag beats environment beats file beats default, and it is resolved here and
-// nowhere else.
+// Settings resolves every layer in one place: flag beats environment beats
+// file beats default. The scaffold runs before the file is read.
 func Settings(system string, flags Config) (Config, error) {
+	if created, err := Scaffold(ConfigPath()); err != nil {
+		return Config{}, err
+	} else if created {
+		fmt.Fprintln(os.Stderr, "wrote ~/.nacelle.yml with the default settings — edit it, or delete it to regenerate")
+	}
 	file, err := Load(ConfigPath())
 	if err != nil {
 		return Config{}, err

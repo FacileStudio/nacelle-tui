@@ -27,8 +27,7 @@ func providerEnv() Provider {
 func FromEnv() Config {
 	return Config{
 		Provider: providerEnv(),
-		Root:     os.Getenv(EnvPrefix + "ROOT"),
-		System:   os.Getenv(EnvPrefix + "SYSTEM"),
+		Session:  Session{Root: os.Getenv(EnvPrefix + "ROOT"), System: os.Getenv(EnvPrefix + "SYSTEM")},
 		Limits:   Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
 		Sources:  Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
 		UI:       UI{Mode: envString(EnvPrefix + "MODE"), TransparentBlocks: envBool(EnvPrefix + "TRANSPARENT_BLOCKS")},

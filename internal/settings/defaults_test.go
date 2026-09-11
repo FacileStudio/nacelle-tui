@@ -54,7 +54,7 @@ func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
 	if *fallback.Resume != "" {
 		t.Errorf("resume = %q, want the empty default", *fallback.Resume)
 	}
-	written(t, "ui:\n  resume: 2026-09-10T14-000Z.jsonl\n")
+	written(t, "resume: 2026-09-10T14-000Z.jsonl\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with resume: %v", err)
@@ -69,7 +69,7 @@ func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
 // reached the resolved config — so this pins the merge that keeps auto-resume
 // switchable.
 func TestContinueFromTheFile(t *testing.T) {
-	written(t, "ui:\n  continue: true\n")
+	written(t, "continue: true\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with continue: %v", err)

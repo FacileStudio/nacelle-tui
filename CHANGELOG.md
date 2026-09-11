@@ -7,10 +7,15 @@ while on `v0`, a breaking change bumps the minor.
 ## [0.44.0] - 2026-09-11
 
 ### Changed
+- **First boot scaffolds the config.** When no `~/.nacelle.yml` exists,
+  nacelle writes one with every setting present at its default value, so the
+  whole surface is visible and greppable from day one. An existing file is
+  never touched; deleting yours regenerates it. `example.nacelle.yml` in the
+  repo is the same document.
 - **BREAKING: the config file is grouped.** `~/.nacelle.yml` keys now live
   under their own family headers — `provider:`, `limits:`, `tools:`,
   `reasoning:`, `web:`, `discovery:`, `ui:` and `sources:` — instead of all
-  sitting flat at the top level. The names inside each group are unchanged.
+  sitting flat at the top level. `continue` and `resume` stay top level. The names inside each group are unchanged.
   A pre-0.44 file fails to parse with `KnownFields(true)` naming the flat
   keys, not silently ignoring them; docs/configuration.md carries the full
   old-key → new-location migration table. Three keys also renamed to say
