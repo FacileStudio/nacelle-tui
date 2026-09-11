@@ -19,8 +19,11 @@ const thrashLimit = 3
 
 // summarizer builds the small, tool-free agent asked to compact the evicted
 // middle, billed like the work it protects, and nil when there is no backend —
-// tests and offline runs mask instead. Reasoning is turned off: that output
-// budget is the summary's, not a chain of thought's.
+// tests and offline runs mask instead. It sends no reasoning parameter at all:
+// an explicit reasoning-off makes endpoints where reasoning is mandatory answer
+// 400, while omitting the key keeps reasoning off on models that default off
+// and lets a mandatory model spend its own default. The budget is the
+// summary's either way.
 //
 // It lives with the light lever because it is the expensive half of a pass: the
 // file name says light, but the summarizer is what a cheap pass must prove it
@@ -32,7 +35,7 @@ func (m *Model) summarizer() *nacelle.Agent {
 	agent, err := nacelle.New(nacelle.Config{
 		Backend:       m.agent.Backend(),
 		System:        compactSystem,
-		Thinking:      nacelle.Thinking{Effort: nacelle.EffortNone},
+		Thinking:      nacelle.Thinking{Show: false},
 		MaxTokens:     compactMaxTokens,
 		MaxIterations: 1,
 	})
@@ -59,7 +62,7 @@ func (m *Model) summarizer() *nacelle.Agent {
 // what evicting the oldest middle frees, which only ever biases a pass toward
 // the cheap mask — never toward a summarizer that could land under.
 func (m *Model) evictionCanLandUnder(evictCut int) bool {
-	return m.size - estTokens(convBytes(m.conversation, evictCut)) + compactMaxTokens <= m.compactAt
+	return m.size-estTokens(convBytes(m.conversation, evictCut))+compactMaxTokens <= m.compactAt
 }
 
 // maskOnlyPass is the skip for a pass whose evicted middle is too small to
@@ -74,9 +77,9 @@ func (m *Model) maskOnlyPass(evictCut int) tea.Cmd {
 	report := compactOutcome{
 		before: before,
 		after:  m.size,
-		done:   compacted{evictCut: evictCut, kept: len(m.conversation)-evictCut, results: results, thinking: thinking},
+		done:   compacted{evictCut: evictCut, kept: len(m.conversation) - evictCut, results: results, thinking: thinking},
 	}
-	m.say(fromCompact, compactReport(report) + "\n   cost sits in the kept tail — compaction protects the newest turns; /clear or read in chunks")
+	m.say(fromCompact, compactReport(report)+"\n   cost sits in the kept tail — compaction protects the newest turns; /clear or read in chunks")
 	m.checkThrash()
 	return nil
 }
