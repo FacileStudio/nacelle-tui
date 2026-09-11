@@ -26,16 +26,18 @@ type declared struct {
 	discoveryFlags
 }
 
-// uiFlags is the -continue, -resume, -mode and -transparent-blocks switches.
-// Grouped together so declared stays under filet's struct cap; continue
-// auto-resumes the newest session, resume names one by id or path, mode picks
-// between "inline" and "tui" rendering, and transparent-blocks drops the pane
-// backdrop tool results sit on.
+// uiFlags is the -continue, -resume, -mode, -transparent-blocks and -json
+// switches. Grouped together so declared stays under filet's struct cap;
+// continue auto-resumes the newest session, resume names one by id or path,
+// mode picks between "inline" and "tui" rendering, transparent-blocks drops
+// the pane backdrop tool results sit on, and json makes cron list print one
+// JSON document.
 type uiFlags struct {
 	cont        *bool
 	resume      *string
 	mode        *string
 	transparent *bool
+	json        *bool
 }
 
 type togglesFlags struct {
@@ -74,6 +76,7 @@ func declareFlags(fallback Config) declared {
 			resume:      flag.String("resume", *fallback.Resume, "resume a specific session by id or file path"),
 			mode:        flag.String("mode", *fallback.Mode, "inline or tui rendering"),
 			transparent: flag.Bool("transparent-blocks", *fallback.TransparentBlocks, "drop the backdrop on tool result and diff panes"),
+			json:        flag.Bool("json", *fallback.JSON, "print cron list as one JSON document"),
 		},
 		reasoningFlags: reasoningFlags{
 			effort:   flag.String("effort", fallback.Effort, "none, minimal, low, medium, high, xhigh or max"),
@@ -114,36 +117,6 @@ func declareSources() sourceFlags {
 	return sourceFlags{skillDirs: skillDirs, mcp: mcp}
 }
 
-// typedSetters maps each flag's name to what it does to a Config.
-func typedSetters(f declared) map[string]func(*Config) {
-	return map[string]func(*Config){
-		"backend":          func(c *Config) { c.Backend = *f.backend },
-		"model":            func(c *Config) { c.Model = *f.model },
-		"effort":           func(c *Config) { c.Effort = *f.effort },
-		"root":             func(c *Config) { c.Root = *f.root },
-		"system":           func(c *Config) { c.System = *f.system },
-		"continue":         func(c *Config) { c.Continue = f.cont },
-		"resume":           func(c *Config) { c.Resume = f.resume },
-		"mode":             func(c *Config) { c.Mode = f.mode },
-		"fetch":            func(c *Config) { c.Fetch = f.fetch },
-		"bash":             func(c *Config) { c.Bash = f.bash },
-		"subagents":        func(c *Config) { c.Subagents = f.subagents },
-		"thinking":         func(c *Config) { c.Thinking = f.thinking },
-		"project-context":  func(c *Config) { c.ProjectContext = f.projectContext },
-		"skills":           func(c *Config) { c.Skills = f.skills },
-		"trust-skills":     func(c *Config) { c.TrustSkills = f.trustSkills },
-		"trust-hooks":      func(c *Config) { c.TrustHooks = f.trustHooks },
-		"approve-tools":    func(c *Config) { c.ApproveTools = f.approveTools },
-		"diffs":            func(c *Config) { c.Diffs = f.diffs },
-		"tasks":            func(c *Config) { c.Tasks = f.tasks },
-		"max-iterations":   func(c *Config) { c.MaxIterations = f.iterations },
-		"compact-at":       func(c *Config) { c.CompactAt = f.compactAt },
-		"reasoning-budget": func(c *Config) { c.Budget = f.budget },
-		"skill-dir":        func(c *Config) { c.SkillDirs = []string(*f.skillDirs) },
-		"mcp":              func(c *Config) { c.MCPFiles = []string(*f.mcp) },
-	}
-}
-
 // FromFlags is the settings layer the command line supplies.
 //
 // Only the flags actually typed are collected. It calls flag.Parse internally.
@@ -154,10 +127,6 @@ func FromFlags(fallback Config) Config {
 
 	var flags Config
 	flag.Visit(func(flg *flag.Flag) {
-		if flg.Name == "transparent-blocks" {
-			flags.TransparentBlocks = f.transparent
-			return
-		}
 		if take, known := typed[flg.Name]; known {
 			take(&flags)
 		}

@@ -1,9 +1,11 @@
 package agent
 
 import (
+	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
@@ -15,6 +17,9 @@ func listCronJobs() error {
 	config, err := loadCronConfig()
 	if err != nil {
 		return err
+	}
+	if settings.DerefBool(config.JSON) {
+		return printCronJSON(config.Cron)
 	}
 	if len(config.Cron) == 0 {
 		fmt.Println("no cron jobs in " + settings.ConfigPath())
@@ -31,8 +36,8 @@ func listCronJobs() error {
 
 // installCronJob prints the systemd service + timer pair that arm one job, for
 // the user to drop under ~/.config/systemd/user/ (or /etc/systemd/system/ for a
-// system timer). It refuses a disabled job: the policy is a passing test run
-// and an explicit enabled: true before a schedule fires on its own.
+// system timer). It refuses any job that fails the arm-time policy in
+// checkCronInstallable.
 func installCronJob(name string) error {
 	config, err := loadCronConfig()
 	if err != nil {
@@ -42,53 +47,82 @@ func installCronJob(name string) error {
 	if err != nil {
 		return err
 	}
-	if !jobEnabled(job) {
-		return fmt.Errorf("job %q is disabled: run `nacelle cron run %s`, confirm the output, then set enabled: true",
-			name, name)
+	if err := checkCronInstallable(job); err != nil {
+		return err
 	}
-	schedule := job.When
-	if schedule == "" {
-		schedule = "daily"
-	}
-	timeout := job.Timeout
-	if timeout == "" {
-		timeout = "300"
-	}
+	schedule := cmp.Or(job.When, "daily")
+	timeout := cmp.Or(job.Timeout, "300")
 	bin, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("locating nacelle: %w", err)
 	}
-	svc, timer := cronUnits(job.Name, bin, schedule, timeout)
+	svc, timer := cronUnits(job.Name, bin, expandHome(job.Workdir), schedule, timeout)
 	fmt.Println(svc)
 	fmt.Println(timer)
 	fmt.Printf("# save both files, then: systemctl --user enable --now nacelle-%s.timer\n", job.Name)
 	return nil
 }
 
-func cronUnits(name, bin, schedule, timeout string) (service, timer string) {
+func cronUnits(name, bin, workdir, schedule, timeout string) (service, timer string) {
+	exec := strings.Join([]string{
+		systemdQuote(bin),
+		systemdQuote("cron"),
+		systemdQuote("run"),
+		systemdQuote(name),
+	}, " ")
 	service = fmt.Sprintf(`[Unit]
 Description=nacelle cron %[1]s
 
 [Service]
 Type=oneshot
-ExecStart=%[2]s cron run %[1]s
-TimeoutStopSec=%[3]s
+WorkingDirectory=%[2]s
+ExecStart=%[3]s
+TimeoutStartSec=%[4]s
 
 [Install]
 WantedBy=default.target
-`, name, bin, timeout)
+`, name, workdir, exec, timeout)
 	timer = fmt.Sprintf(`[Unit]
 Description=schedule for nacelle cron %[1]s
 
 [Timer]
-OnCalendar=%[4]s
+OnCalendar=%[2]s
 Unit=nacelle-%[1]s.service
 Persistent=false
 
 [Install]
 WantedBy=timers.target
-`, name, bin, timeout, schedule)
+`, name, schedule)
 	return service, timer
+}
+
+// systemdQuote makes one ExecStart token safe against whitespace splitting:
+// double quotes with the two escapes systemd processes inside them.
+func systemdQuote(arg string) string {
+	arg = strings.ReplaceAll(arg, `\`, `\\`)
+	arg = strings.ReplaceAll(arg, `"`, `\"`)
+	return `"` + arg + `"`
+}
+
+var cronNameRe = regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)
+
+// checkCronInstallable enforces the arm-time policy: a unit-safe name, an
+// explicit enabled: true after a test run, and a workdir — applyJob only sets
+// Root from an explicit workdir, so a job without one would execute wherever
+// the scheduler starts the unit. cron run needs the workdir rule alone; the
+// enabled rule is install-only.
+func checkCronInstallable(job settings.CronJob) error {
+	if !cronNameRe.MatchString(job.Name) {
+		return fmt.Errorf("invalid cron job name %q: unit file names only allow letters, digits, and . _ -", job.Name)
+	}
+	if !jobEnabled(job) {
+		return fmt.Errorf("job %q is disabled: run `nacelle cron run %s`, confirm the output, then set enabled: true",
+			job.Name, job.Name)
+	}
+	if job.Workdir == "" {
+		return fmt.Errorf("job %q has no workdir: without one the run executes in the scheduler's working directory, not the project's; set workdir: /path/to/dir on the job", job.Name)
+	}
+	return nil
 }
 
 // jobEnabled and jobCommands read a job's pointer settings with the policy

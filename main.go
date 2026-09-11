@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +14,10 @@ var version = "v0.35.0"
 func main() {
 	if err := agent.Run(version); err != nil {
 		fmt.Fprintln(os.Stderr, "nacelle:", unprefixed(err))
+		var usage *agent.UsageError
+		if errors.As(err, &usage) {
+			os.Exit(2)
+		}
 		os.Exit(1)
 	}
 }

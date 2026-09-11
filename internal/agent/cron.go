@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,24 +28,46 @@ func checkCronFlag() (bool, error) {
 	if len(args) == 0 || args[0] != "cron" {
 		return false, nil
 	}
-	sub := args[1:]
+	sub := hoistJSON(args[1:])
 	if len(sub) == 0 || sub[0] == "list" || sub[0] == "status" {
 		return true, listCronJobs()
 	}
 	switch sub[0] {
+	case "help", "-h", "--help":
+		return true, printCronUsage()
 	case "run":
 		if len(sub) < 2 {
-			return true, fmt.Errorf("usage: nacelle cron run <name>")
+			return true, usagef("usage: nacelle cron run <name>")
 		}
 		return true, runCronJob(sub[1])
 	case "install":
 		if len(sub) < 2 {
-			return true, fmt.Errorf("usage: nacelle cron install <name>")
+			return true, usagef("usage: nacelle cron install <name>")
 		}
 		return true, installCronJob(sub[1])
 	default:
-		return true, fmt.Errorf("unknown cron command %q: want run, install, or list", sub[0])
+		return true, usagef("unknown cron command %q: want run, install, or list", sub[0])
 	}
+}
+
+// hoistJSON moves a trailing -json ahead of the subcommand: the settings flag
+// parser stops at the first non-flag word, which "cron" always is, so a flag
+// typed after the subcommand would otherwise be invisible to it. There is a
+// precedent for rewriting os.Args mid-dispatch in extractPrintFlag.
+func hoistJSON(sub []string) []string {
+	rest := make([]string, 0, len(sub))
+	json := ""
+	for _, arg := range sub {
+		if arg == "-json" || arg == "--json" || strings.HasPrefix(arg, "-json=") || strings.HasPrefix(arg, "--json=") {
+			json = arg
+			continue
+		}
+		rest = append(rest, arg)
+	}
+	if json != "" {
+		os.Args = append([]string{os.Args[0], json, "cron"}, rest...)
+	}
+	return rest
 }
 
 func loadCronConfig() (settings.Config, error) {
@@ -93,16 +116,25 @@ func runCronJob(name string) error {
 	if err != nil {
 		return err
 	}
+	if err := validateDelivery(job.Delivery); err != nil {
+		return err
+	}
 	text, runErr := runHeadlessConfig(job.Prompt, applyJob(config, job))
 	status := cronOK
 	if runErr != nil {
 		status = cronFailed
 	}
 	logErr := appendCronLog(job.Delivery, job.Name, status, text)
-	if runErr != nil {
-		return runErr
+	return errors.Join(runErr, logErr)
+}
+
+// validateDelivery checks a job's delivery target before any billed run, so a
+// bad delivery: value fails fast instead of after the full run.
+func validateDelivery(delivery string) error {
+	if delivery == "" || strings.HasPrefix(delivery, "file:") {
+		return nil
 	}
-	return logErr
+	return fmt.Errorf("unknown delivery %q: want file:<dir>", delivery)
 }
 
 // appendCronLog delivers a run's outcome. An empty delivery target leaves the
@@ -110,11 +142,12 @@ func runCronJob(name string) error {
 // file:<dir> target appends the transcript and a status line to <dir>/<name>.log
 // so the output lands somewhere greppable without a TUI.
 func appendCronLog(delivery, name string, status cronStatus, text string) error {
+	if err := validateDelivery(delivery); err != nil {
+		return err
+	}
 	dir := ""
 	if rest, ok := strings.CutPrefix(delivery, "file:"); ok {
 		dir = rest
-	} else if delivery != "" {
-		return fmt.Errorf("unknown delivery %q: want file:<dir>", delivery)
 	}
 	if dir == "" {
 		return nil

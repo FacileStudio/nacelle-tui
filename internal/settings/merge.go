@@ -126,4 +126,7 @@ func (c *Config) mergeUI(over Config) {
 	if over.TransparentBlocks != nil {
 		c.TransparentBlocks = over.TransparentBlocks
 	}
+	if over.JSON != nil {
+		c.JSON = over.JSON
+	}
 }

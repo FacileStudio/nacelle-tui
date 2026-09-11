@@ -79,6 +79,20 @@ func TestContinueFromTheFile(t *testing.T) {
 	}
 }
 
+// JSON rides the same UI merge as continue, and this pins that a file layer
+// saying json: true reaches the resolved config instead of being dropped by
+// mergeUI.
+func TestJSONFromTheFile(t *testing.T) {
+	written(t, "json: true\n")
+	config, err := settings(Config{})
+	if err != nil {
+		t.Fatalf("settings with json: %v", err)
+	}
+	if !*config.JSON {
+		t.Error("json = false, want the file's true to win")
+	}
+}
+
 // SkillDirs is the one setting that is a slice rather than a string or a
 // *bool, so it needed its own line in merge() — this proves that line
 // actually runs, the same way TestTheFileBeatsTheDefaults proves it for a

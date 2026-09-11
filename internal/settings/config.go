@@ -96,7 +96,7 @@ type Toggles struct {
 // A single space of margin always follows the prefix, so an empty prefix still
 // leaves one leading space. PromptPlaceholder is the ghost text while the
 // prompt is empty, StartMessage prints on launch above the banner (may span
-// lines, empty prints nothing), and Mode is "inline" (finished lines into the
+// lines, empty prints nothing), Mode is "inline" (finished lines into the
 // terminal's own scrollback) or "tui" (a prompt pinned to the bottom of an
 // alternate screen holding its own transcript buffer).
 type UI struct {
@@ -109,6 +109,7 @@ type UI struct {
 	PromptPlaceholder *string `yaml:"prompt_placeholder"`
 	StartMessage      *string `yaml:"start_message"`
 	TransparentBlocks *bool   `yaml:"transparent_blocks"`
+	JSON              *bool   `yaml:"json"`
 }
 
 // Reasoning holds the three settings that decide how hard the model thinks.
@@ -175,8 +176,7 @@ func Defaults(system string) Config {
 	fetch := true
 	groupTools, showThinking := true, true
 	cont, resume := false, ""
-	mode := "inline"
-	transparent := false
+	mode, transparent, json := "inline", false, false
 	promptPrefix := "| "
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
@@ -194,7 +194,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Continue: &cont, Resume: &resume, Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent},
+		UI: UI{Continue: &cont, Resume: &resume, Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
 	}
 }
 

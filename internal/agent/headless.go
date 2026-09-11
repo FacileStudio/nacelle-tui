@@ -49,7 +49,9 @@ func runHeadlessConfig(prompt string, config settings.Config) (string, error) {
 			return "", err
 		}
 		if event.Kind == nacelle.KindText {
-			fmt.Fprint(os.Stdout, event.Text)
+			if _, err := fmt.Fprint(os.Stdout, event.Text); err != nil {
+				return "", err
+			}
 			out.WriteString(event.Text)
 		}
 	}
