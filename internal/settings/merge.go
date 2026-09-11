@@ -93,6 +93,9 @@ func (c *Config) mergeToggles(over Config) {
 	if over.Tasks != nil {
 		c.Tasks = over.Tasks
 	}
+	if over.Diagnostics != nil {
+		c.Diagnostics = over.Diagnostics
+	}
 }
 
 // mergeSecurity overwrites the security toggles over actually mentions.

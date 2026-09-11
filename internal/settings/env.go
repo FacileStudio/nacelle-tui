@@ -36,6 +36,7 @@ func FromEnv() Config {
 			ParallelAgents: envBool(EnvPrefix + "PARALLEL_AGENTS"),
 			Fetch:          envBool(EnvPrefix + "FETCH"),
 			Tasks:          envBool(EnvPrefix + "TASKS"),
+			Diagnostics:    envBool(EnvPrefix + "DIAGNOSTICS"),
 		},
 		Security: Security{
 			ApproveTools:  envBool(EnvPrefix + "APPROVE_TOOLS"),

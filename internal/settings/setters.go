@@ -42,6 +42,7 @@ func coreSetters(f declared) map[string]func(*Config) {
 		"approve-tools":    func(c *Config) { c.ApproveTools = f.approveTools },
 		"diffs":            func(c *Config) { c.Diffs = f.diffs },
 		"tasks":            func(c *Config) { c.Tasks = f.tasks },
+		"diagnostics":      func(c *Config) { c.Diagnostics = f.diagnostics },
 		"max-iterations":   func(c *Config) { c.MaxIterations = f.iterations },
 		"compact-at":       func(c *Config) { c.CompactAt = f.compactAt },
 		"reasoning-budget": func(c *Config) { c.Budget = f.budget },

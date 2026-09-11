@@ -10,6 +10,7 @@ import (
 	"github.com/FacileStudio/nacelle/openai"
 	"github.com/FacileStudio/nacelle/openrouter"
 
+	"github.com/FacileStudio/nacelle-tui/internal/diagnostics"
 	"github.com/FacileStudio/nacelle-tui/internal/settings"
 )
 
@@ -54,6 +55,10 @@ func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve
 		return built{}, err
 	}
 	local = withTasks(config, local)
+	if settings.DerefBool(config.Toggles.Diagnostics) {
+		local = append(local, diagnostics.Tool())
+		hooks = withDiagnosticsHook(hooks)
+	}
 
 	cfg := nacelle.Config{
 		Backend: retrying,

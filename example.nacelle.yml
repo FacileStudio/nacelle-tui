@@ -20,7 +20,8 @@ tools:
   run_command: true
   web_fetch: true
   tasks: true
-  parallel_subagent: true
+  parallel_agents: true
+  diagnostics: true
 
 security:
   approve_tools: false

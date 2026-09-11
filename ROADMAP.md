@@ -45,6 +45,14 @@ A cron for agents: unattended, no daemon. Jobs live inline in `~/.nacelle.yml` u
 
 ---
 
+## Track J — Diagnostics loop
+
+The model should see what its edits broke without being told to check: filet findings land in the session right after an edit, and a pull tool re-checks on demand.
+
+- **Post-edit diagnostics loop** — run `filet check` on every file a tool just wrote, injecting the findings into the session through an AfterToolCall hook (built-in, `internal/diagnostics`, kill switch `tools.diagnostics`), plus a `diagnostics` pull tool the model can call between edits. Design source: `syntheses/coding-agents-lsp-integration.md`. *Done via `internal/diagnostics` and `withDiagnosticsHook` in `internal/agent`.*
+
+---
+
 ## Release process
 
 1. Core lands changes, tags `vX.Y.Z`.

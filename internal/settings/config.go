@@ -80,6 +80,7 @@ type Toggles struct {
 	ParallelAgents *bool `yaml:"parallel_agents"`
 	Fetch          *bool `yaml:"web_fetch"`
 	Tasks          *bool `yaml:"tasks"`
+	Diagnostics    *bool `yaml:"diagnostics"`
 }
 
 // Security holds the settings that decide how much a tool call may do
@@ -152,41 +153,6 @@ type HookSpec struct {
 // defaults, so the pointer is never nil by the time it reaches a caller.
 func DerefBool(b *bool) bool {
 	return b != nil && *b
-}
-
-// DefaultCompactAt is the transcript size, in tokens, at which a session
-// with no opinion of its own compacts.
-const DefaultCompactAt int64 = 75_000
-
-// Defaults is the bottom layer, and the only one that answers everything.
-func Defaults(system string) Config {
-	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks, strict :=
-		true, true, true, true, false, false, false, true, true, false
-	envIsolation := false
-	parallelAgents := true
-	iterations, budget := 5, int64(0)
-	compactAt := int64(75000)
-	fetch := true
-	groupTools, showThinking := true, true
-	cont, resume := false, ""
-	mode, transparent, json := "tui", true, false
-	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
-	startMessage := ""
-	return Config{
-		Provider:  Provider{Backend: "anthropic"},
-		Session:   Session{Root: ".", System: system, Continue: &cont, Resume: &resume},
-		Toggles:   Toggles{Bash: &bash, ParallelAgents: &parallelAgents, Fetch: &fetch, Tasks: &tasks},
-		Security:  Security{ApproveTools: &approveTools, PathIsolation: &strict, EnvIsolation: &envIsolation},
-		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
-		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
-		Discovery: Discovery{
-			ProjectContext: &projectContext,
-			Skills:         &skills,
-			TrustSkills:    &trustSkills,
-			TrustHooks:     &trustHooks,
-		},
-		UI: UI{Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, Diffs: &diffs, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
-	}
 }
 
 // ConfigPath is where the config file lives (HOME).

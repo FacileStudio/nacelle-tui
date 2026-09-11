@@ -29,6 +29,7 @@ tools:
   web_fetch: true
   tasks: true
   parallel_agents: true
+  diagnostics: true
 
 security:
   approve_tools: false
