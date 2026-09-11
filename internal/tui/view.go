@@ -28,13 +28,37 @@ func (m *Model) aboveContent() []string {
 	var above []string
 	above = append(above, m.streaming()...)
 	above = append(above, "")
-	if tasksView := strings.Join(m.tasks.View(max(m.width, 1), m.theme.Muted), "\n"); tasksView != "" {
+	if tasksView := strings.Join(m.tasks.View(max(m.width-2, 1), m.theme.Muted), "\n"); tasksView != "" {
 		above = append(above, tasksView)
 		above = append(above, "")
 	}
 	above = append(above, m.status())
-	above = append(above, strings.Join(m.Queue.View(m.hist.Editing(m.Len()), m.width, m.theme.Question), "\n"))
-	return above
+	above = append(above, "")
+	above = append(above, strings.Join(m.Queue.View(m.hist.Editing(m.Len()), max(m.width-2, 1), m.theme.Question), "\n"))
+	return m.margined(above)
+}
+
+// margined wraps every painted live row in a single space so nothing touches
+// the left or right screen edge. The renderers fill the width they are given,
+// so aboveContent hands the queue and tasks views two cells fewer and this
+// pass clips a row that still came back full-width down to m.width-2 before
+// the spaces go on — otherwise the margin would push every full row past the
+// edge and wrap it. Blank separator rows stay empty: a gutter would turn them
+// into phantom content and break the blank-line bookkeeping in tuiUpper and
+// assembleInline.
+func (m *Model) margined(rows []string) []string {
+	fit := make([]string, 0, len(rows))
+	for _, row := range rows {
+		padded := strings.Split(row, "\n")
+		for i := range padded {
+			if padded[i] == "" {
+				continue
+			}
+			padded[i] = " " + layout.Shave(padded[i], max(m.width-2, 1)) + " "
+		}
+		fit = append(fit, strings.Join(padded, "\n"))
+	}
+	return fit
 }
 
 // belowContent is everything rendered beneath the prompt: the running parallel
@@ -44,7 +68,7 @@ func (m *Model) aboveContent() []string {
 func (m *Model) belowContent() string {
 	var below []string
 	if len(m.parallelTasks) > 0 {
-		below = append(below, m.parallelTasksView())
+		below = append(below, strings.Join(m.margined([]string{m.parallelTasksView()}), "\n"))
 	}
 	if menu := m.viewMenu(); menu != "" {
 		below = append(below, menu)
