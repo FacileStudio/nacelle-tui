@@ -54,6 +54,9 @@ func (m *Model) settle() tea.Cmd {
 	m.run.turnBegan = time.Time{}
 
 	m.taskReminder()
+	if cmd := m.maybeCompactIdle(); cmd != nil {
+		return tea.Sequence(cmd, m.deliver())
+	}
 	return m.deliver()
 }
 

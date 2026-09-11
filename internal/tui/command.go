@@ -18,7 +18,8 @@ import (
 type command func(m *Model) tea.Cmd
 
 var commands = map[string]command{
-	"clear": (*Model).clear,
+	"clear":   (*Model).clear,
+	"compact": (*Model).compactCmd,
 	"cost": func(m *Model) tea.Cmd {
 		total := m.spent.Add(m.run.usage)
 		m.say(fromClient, cost.Summary(total, m.tools, m.failed, time.Since(m.began)))
@@ -70,6 +71,7 @@ func (m *Model) clear() tea.Cmd {
 	m.conversation = nil
 	m.spent = nacelle.Usage{}
 	m.size, m.trimmed = 0, 0
+	m.thrashCount = 0
 	m.tasks = nil
 	tasks.SetCurrentPlan(nil)
 	m.clearFinishedParallel()
@@ -84,6 +86,7 @@ func (m *Model) clear() tea.Cmd {
 func (m *Model) help() tea.Cmd {
 	m.say(fromClient, strings.Join([]string{
 		"/clear — start a new session, same client",
+		"/compact — summarize older turns now to free context (auto-compacts on its own over the threshold)",
 		"/cost — what this session has spent so far",
 		"/help — show this message",
 		"/quit — quit",
@@ -130,6 +133,9 @@ func (m *Model) statusCmd() tea.Cmd {
 	}
 	if m.trimmed > 0 {
 		lines = append(lines, fmt.Sprintf("⎇ · %d", m.trimmed))
+	}
+	if m.thrashed() {
+		lines = append(lines, "thrash · context still over the threshold after a pass — /clear or read in chunks")
 	}
 	m.say(fromClient, strings.Join(lines, "\n"))
 	return nil

@@ -156,7 +156,7 @@ func (m *Model) paint(who speaker, text string) string {
 	case fromTurn:
 		return m.theme.Muted.Render(text)
 	case fromCompact:
-		return m.theme.Compacting.Width(width).Render(text)
+		return m.theme.Compacting.Render(text)
 	default:
 		return m.theme.Client.Render(text)
 	}

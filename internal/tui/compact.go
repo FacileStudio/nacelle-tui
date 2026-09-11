@@ -123,10 +123,11 @@ func keepCount(length int) int {
 	return n
 }
 
-// beginCompaction runs one pass. It is called from send, right before the
-// model needs the freed context, and only when the conversation is over the
-// threshold. It is where the running-tool row and the purple status come
-// from: a pass is an LLM call now, so it must not block the update loop.
+// beginCompaction runs one pass. It is called from send (right before the
+// model needs the freed context), from settle when a turn ends with the
+// context over threshold and nothing queued, and from the manual /compact
+// command. It is where the running-tool row and the purple status come from:
+// a pass is an LLM call now, so it must not block the update loop.
 //
 // The pass is two-stage and tiered, the way the research on long-running
 // agents lands. The summarization stage runs first, on its own goroutine,
@@ -227,6 +228,8 @@ func (m *Model) settleCompaction(outcome compactOutcome) tea.Cmd {
 	} else {
 		m.applyMaskFallback(outcome)
 	}
+
+	m.checkThrash()
 
 	if m.run.busy && m.agent != nil {
 		return m.startRun(m.run.bgCtx)

@@ -4,6 +4,36 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Added
+- **`/compact` compacts on demand.** Run a compaction pass now, at a natural
+  break, instead of waiting to overshoot the threshold. It fires only while
+  idle, says why when it cannot (disabled, too short, run in flight, already
+  compacting), and clears the thrash notice so a fresh attempt is made.
+
+### Changed
+- **Context compacts by itself after a turn that overshoots.** Compaction used
+  to wait for the next message to be sent, so a turn that ended with the
+  conversation over the threshold sat at that size until you typed again. A
+  turn that finishes too heavy now triggers the pass on the spot (when nothing
+  is queued), and the report it leaves in the transcript is a readable card:
+  before/after tokens, freed, kept share, and what was summarized or masked.
+  A message typed while the pass is running is held and sent once the context
+  is rebuilt, so it never goes out against a conversation mid-compaction.
+- **The light lever runs before the summary.** A pass that is over the
+  threshold now first trims oversized tool results and thinking blocks — the
+  cheap, backend-free stage — and only escalates to the summarizer call when
+  that alone cannot land the conversation back under the threshold. A pass the
+  mask clears costs nothing but a byte sweep.
+- **A thrash guard stops futile re-compaction.** When several passes in a row
+  end with the context still over the threshold — one very large result, usually
+  in the kept tail, that eviction cannot clear — the automatic triggers back off
+  and a notice suggests `/clear` or reading in chunks, instead of repeating a
+  pass that cannot help. A single miss does not disable auto-compaction; a pass
+  that lands under resets the count, and `/status` keeps reporting the stuck
+  state until it clears or you `/compact` by hand.
+
 ## [0.41.1] - 2026-09-11
 
 ### Added

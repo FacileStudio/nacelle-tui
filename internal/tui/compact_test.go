@@ -161,6 +161,9 @@ func TestCompactReportNamesTheWholePass(t *testing.T) {
 	if !strings.Contains(line, "✂") {
 		t.Errorf("report = %q, want the compaction icon", line)
 	}
+	if !strings.Contains(line, "Compaction summary") {
+		t.Errorf("report = %q, want the summary heading", line)
+	}
 	if !strings.Contains(line, "kept ") || !strings.Contains(line, "verbatim") {
 		t.Errorf("report = %q, want the kept share", line)
 	}
@@ -197,8 +200,8 @@ func TestSettleCompactionInstallsASummary(t *testing.T) {
 		t.Fatalf("spoken = %v, want the compaction report alone", said)
 	}
 	line := strings.Join(strings.Split(said[0], "\n"), " ")
-	if !strings.Contains(line, "✂ compacted context") || !strings.Contains(line, "summarized") || !strings.Contains(line, "freed") {
-		t.Errorf("report = %q, want the compaction line naming the summary", said[0])
+	if !strings.Contains(line, "✂ Compaction summary") || !strings.Contains(line, "summarized") || !strings.Contains(line, "freed") {
+		t.Errorf("report = %q, want the compaction card naming the summary", said[0])
 	}
 }
 

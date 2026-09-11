@@ -97,8 +97,8 @@ func compactedHistory(summary string) nacelle.Message {
 
 // compactReport is how the client says a pass went: the context size it
 // carried before and after, the share kept verbatim, what the mask and the
-// summary did, and how much room came back. One line, so it fits the terminal
-// and scrolls past without wrapping.
+// summary did, and how much room came back. A short block, so it reads as a
+// visible milestone in the transcript rather than a one-word aside.
 func compactReport(outcome compactOutcome) string {
 	d := outcome.done
 	freed := outcome.before - outcome.after
@@ -120,8 +120,10 @@ func compactReport(outcome compactOutcome) string {
 	if len(work) == 0 {
 		work = []string{"kept everything verbatim"}
 	}
-	return fmt.Sprintf("✂ compacted context · %s → %s tokens · kept %d%% verbatim · %s · freed %s",
-		shortTokens(outcome.before), shortTokens(outcome.after), kept, strings.Join(work, ", "), shortTokens(freed))
+	return "✂ Compaction summary\n" +
+		fmt.Sprintf("   before → after  %s → %s tokens (freed %s)\n", shortTokens(outcome.before), shortTokens(outcome.after), shortTokens(freed)) +
+		fmt.Sprintf("   kept            %d%% verbatim\n", kept) +
+		"   work            " + strings.Join(work, ", ")
 }
 
 // compactPrompt is what the summarizer is fed: exactly the evicted middle with

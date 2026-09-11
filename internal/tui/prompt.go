@@ -52,7 +52,7 @@ func (m *Model) ask() tea.Cmd {
 	}
 	m.prompt.Reset()
 
-	if !m.run.busy {
+	if !m.run.busy && !m.compacting {
 		m.hist.Remember(question, m.Items())
 		m.layout(m.windowHeight)
 		return m.dispatch(question)

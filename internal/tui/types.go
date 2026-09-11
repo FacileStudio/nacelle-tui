@@ -72,6 +72,14 @@ type transcript struct {
 	unprinted    []string
 	compactAt    int64
 	compacting   bool
+	// thrashCount is how many consecutive compaction passes ended with the
+	// conversation still over the trigger threshold — a single very large
+	// result, usually in the kept tail, that eviction and summarization cannot
+	// clear. The automatic triggers back off only once it reaches thrashLimit,
+	// so a single failed pass does not disable auto-compaction for the rest of
+	// the session. A pass that lands under resets it, and a manual /compact
+	// or /clear clears it for a fresh attempt.
+	thrashCount int
 }
 
 // parallelTaskInfo holds info about a single task in a parallel subagent run.

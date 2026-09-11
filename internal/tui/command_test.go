@@ -152,7 +152,7 @@ func TestViewMenuRendering(t *testing.T) {
 
 	m.navigateMenu(tea.KeyPressMsg{Code: tea.KeyDown})
 	lines := strings.Split(visible(m.viewMenu()), "\n")
-	if !strings.HasPrefix(lines[0], "  /clear") || !strings.HasPrefix(lines[1], "→ /cost") {
+	if !strings.HasPrefix(lines[0], "  /clear") || !strings.HasPrefix(lines[1], "→ /compact") {
 		t.Errorf("selection move failed: lines[0]=%q lines[1]=%q", lines[0], lines[1])
 	}
 

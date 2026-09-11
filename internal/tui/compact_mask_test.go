@@ -154,7 +154,7 @@ func TestMaskFallbackKeepsTheConversationStanding(t *testing.T) {
 		t.Errorf("mask fallback changed the message count: %d, was %d", len(m.conversation), len(bigConversation()))
 	}
 	said := spoken(m)
-	if len(said) < 1 || !strings.Contains(strings.Join(said, " "), "✂ compacted context") {
+	if len(said) < 1 || !strings.Contains(strings.Join(said, " "), "✂ Compaction summary") {
 		t.Errorf("mask fallback did not report: %v", said)
 	}
 }
