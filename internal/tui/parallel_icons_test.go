@@ -100,3 +100,28 @@ func TestToolGlyphTurnsRedOnFailure(t *testing.T) {
 		t.Errorf("failed tool glyph not red: %q", raw)
 	}
 }
+
+// The elapsed clock wears the row's run-state tone: yellow while the task
+// runs, green once its duration freezes, red when it failed.
+func TestClockColourFollowsTheRunState(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["t0"] = make([]parallelTaskInfo, 1)
+	pt := &m.parallelTasks["t0"][0]
+	began := time.Now().Add(-time.Minute)
+
+	*pt = parallelTaskInfo{Task: "one", Began: began, Active: true}
+	if raw := m.taskRow(*pt); !strings.HasSuffix(raw, taskTone(*pt).Render(taskClock(*pt))) {
+		t.Errorf("running row %q, want the live clock yellow at its end", raw)
+	}
+
+	*pt = parallelTaskInfo{Task: "one", Began: began, End: began.Add(time.Minute), Active: false}
+	if raw := m.taskRow(*pt); !strings.HasSuffix(raw, taskTone(*pt).Render(taskClock(*pt))) {
+		t.Errorf("finished row %q, want the frozen clock green at its end", raw)
+	}
+
+	*pt = parallelTaskInfo{Task: "one", Began: began, End: began.Add(time.Minute), Err: "boom", Active: false}
+	if raw := m.taskRow(*pt); !strings.HasSuffix(raw, taskTone(*pt).Render(taskClock(*pt))) {
+		t.Errorf("failed row %q, want the frozen clock red at its end", raw)
+	}
+}

@@ -9,7 +9,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/FacileStudio/nacelle"
-	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
 const abandoned nacelle.Stop = "abandoned"
@@ -75,23 +74,20 @@ func (m *Model) working() string {
 		return m.theme.Compacting.Render(m.spin.View() + " compacting session")
 	}
 	doing := waitingVerb(time.Since(m.run.began))
-	tone := m.theme.Waiting
 	switch n := m.running(); n {
 	case 0:
 	case 1:
 		name, ok := m.runningName()
 		if ok {
 			doing = "running " + name
-			tone = toolview.ToolTone(name)
 		}
 	default:
 		doing = fmt.Sprintf("running %d tools", n)
-		tone = m.theme.Tool
 	}
 	if since := m.ongoing(); since != "" {
 		doing += " · " + since
 	}
-	return tone.Render(m.spin.View() + " " + doing)
+	return yellow.Render(m.spin.View() + " " + doing)
 }
 
 func (m *Model) running() int {

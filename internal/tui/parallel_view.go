@@ -34,9 +34,9 @@ func (m *Model) parallelTasksView() string {
 	return strings.Join(lines, "\n")
 }
 
-// whiteClock is the running task's elapsed-clock white, split from the muted
-// stats so the timer reads at a glance while it ticks.
-var whiteClock = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
+// The elapsed clock keeps its own style, split from the muted spend so the
+// timer reads at a glance while it ticks: yellow while the task runs, green
+// once it finishes, red when it fails.
 
 func (m *Model) taskRow(pt parallelTaskInfo) string {
 	const gap = 3
@@ -45,7 +45,7 @@ func (m *Model) taskRow(pt parallelTaskInfo) string {
 	if glyph := m.parallelGlyph(pt); glyph != "" {
 		tool = " " + glyph
 	}
-	clock := whiteClock.Render(taskClock(pt))
+	clock := taskTone(pt).Render(taskClock(pt))
 	spend := ""
 	if s := taskSpend(pt.Usage); s != "" {
 		spend = m.theme.Muted.Render(s) + " "

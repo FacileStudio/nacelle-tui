@@ -30,22 +30,26 @@ func TestTheSpinnerAndTheWaitingPhraseAreOneColouredStatement(t *testing.T) {
 	}
 }
 
-func TestTheStatusColourSaysWhichPhaseTheRunIsIn(t *testing.T) {
+// The busy loader line is yellow for the whole flight, waiting and running a
+// tool alike — its phase is told in text, not colour — while the ✓ ready
+// message keeps its green.
+func TestTheBusyLoaderIsYellowInFlightAndReadyStaysGreen(t *testing.T) {
 	m := sized()
 	m.run.busy = true
 	m.run.began = time.Now()
-	idle := m.status()
-
-	for _, name := range []string{"run_command", "some_mcp_tool"} {
-		m.run.beginTool(nacelle.ToolEvent{ID: "1", Name: name, Input: `{}`}, false)
-		busy := m.status()
-
-		if colourOf(busy) == "" {
-			t.Errorf("status running %q = %q, want a colour rather than a plain line", name, busy)
+	expect := "\x1b[33"
+	for _, say := range []string{"waiting for a response", "running run_command"} {
+		if say == "running run_command" {
+			m.run.beginTool(nacelle.ToolEvent{ID: "1", Name: "run_command", Input: `{}`}, false)
 		}
-		if colourOf(busy) == colourOf(idle) {
-			t.Errorf("status running %q wears the waiting colour, so the phase change is invisible", name)
+		line := m.status()
+		if colourOf(line) != expect || !strings.Contains(visible(line), say) {
+			t.Errorf("busy status %q, want it yellow saying %q", line, say)
 		}
+	}
+	m.run.busy = false
+	if colourOf(m.status()) != "\x1b[32" {
+		t.Errorf("ready status %q, want the done message green as before", m.status())
 	}
 }
 
