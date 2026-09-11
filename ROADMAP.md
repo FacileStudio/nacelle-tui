@@ -32,6 +32,19 @@ This file tracks UI-only work. Core SDK changes live in `../nacelle/ROADMAP.md`.
 
 ---
 
+## Track I — Background scheduling (cron)
+
+A cron for agents: unattended, no daemon. Jobs live inline in `~/.nacelle.yml` under `cron:`; the `nacelle cron` subcommand fronts the existing headless path. The scheduler is systemd/Cron — nacelle only surfaces and arms it.
+
+- **`nacelle cron list`** — show jobs and their armed state. *Done.*
+- **`nacelle cron run <name>`** — run one job headless, deliver the transcript. Defaults are reversed for unattended runs: shell (`commands`) off and `enabled` off, because a run nobody can answer must not reach a live approval prompt. `install` refuses a disabled job so test-run-first is explicit. *Done (Phase 1).*
+- **`nacelle cron install <name>`** — print a systemd service+timer pair (arms via `OnCalendar`, `TimeoutStopSec` from the job's `timeout`) for the user to save and enable. nacelle generates, the user owns. *Done (Phase 1).*
+- **Delivery** — `delivery: "file:<dir>"` appends a status header + transcript to `<dir>/<name>.log`; unset means journal/stdout only. *Done (Phase 1).*
+- **Phase 2 (not yet built): promotion UX** — repeat a chat job, agent offers to schedule it, test-runs it once into the same thread, creates it enabled-by-design, and auto-disables on failure with a notification. Mirrors the `syntheses/background-agent-scheduling.md` reference.
+- **Not doing** — a daemon, a job DB, retry, or parsing systemd/crontab syntax inside nacelle.
+
+---
+
 ## Release process
 
 1. Core lands changes, tags `vX.Y.Z`.
