@@ -56,6 +56,12 @@ func TestMarkdownRendersInTheTerminalSDefaultColours(t *testing.T) {
 		if !strings.Contains(drawn, "Title") || !strings.Contains(drawn, "item") {
 			t.Errorf("drawn = %q, want the content preserved", drawn)
 		}
+		if strings.Contains(drawn, "\x1b]8;") {
+			t.Errorf("drawn = %q, want no OSC 8 hyperlink sequence", drawn)
+		}
+		if strings.Contains(drawn, "background_color") || strings.Contains(drawn, "#373737") {
+			t.Errorf("drawn = %q, want no code-block background colour", drawn)
+		}
 	}
 }
 

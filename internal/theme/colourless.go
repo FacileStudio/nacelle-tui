@@ -62,10 +62,12 @@ func strip(v reflect.Value) {
 func stripField(v reflect.Value, i int) {
 	field := v.Field(i)
 	if isColourField(v.Type().Field(i).Name) {
-		if field.CanSet() && (field.Kind() == reflect.String || field.Kind() == reflect.Pointer) {
+		switch {
+		case field.Kind() == reflect.String && field.CanSet():
+			field.Set(reflect.Zero(field.Type()))
+		case field.Kind() == reflect.Pointer && field.CanSet():
 			field.Set(reflect.Zero(field.Type()))
 		}
-		return
 	}
 	strip(field)
 }

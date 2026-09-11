@@ -3,11 +3,14 @@ package theme
 
 import (
 	"image/color"
+	"regexp"
 	"strings"
 
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 )
+
+var osc8 = regexp.MustCompile(`\x1b\]8;[^\x1b\x07]*(?:\x07|\x1b\\)`)
 
 // PlainTool returns the fallback style for tools without a custom glyph.
 func PlainTool() lipgloss.Style {
@@ -125,5 +128,16 @@ func RenderMarkdown(r *glamour.TermRenderer, text string) string {
 	if err != nil {
 		return text
 	}
+	rendered = dropHyperlinks(rendered)
 	return strings.TrimLeft(strings.TrimRight(rendered, " \n"), "\n")
+}
+
+// dropHyperlinks removes OSC 8 hyperlink sequences.
+//
+// tmux does not speak OSC 8 and forwards the sequences mangled, which leaves
+// kitty — the terminal behind tmux over ssh — with a hyperlink open past its
+// reset: everything after renders underlined. Plain text keeps the link label
+// and reads the same.
+func dropHyperlinks(rendered string) string {
+	return osc8.ReplaceAllString(rendered, "")
 }

@@ -4,6 +4,17 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.49.1] - 2026-09-12
+
+### Fixed
+- Markdown answers could leave every following line underlined in tmux-over-ssh
+  setups: glamour's OSC 8 hyperlink sequences pass through tmux mangled and
+  leave kitty with a hyperlink that never terminates. Links now render as plain
+  text.
+- The colourless style strip left glamour's hardcoded code-block background
+  colour (`#373737`) in place; code blocks now use the terminal's own
+  background.
+
 ## [0.49.0] - 2026-09-11
 
 ### Added
