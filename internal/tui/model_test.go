@@ -213,3 +213,35 @@ func TestAFinishedRunLeavesTheStatusLineAlone(t *testing.T) {
 		t.Errorf("status = %q, want the usual ready line", status)
 	}
 }
+
+// The context and system-prompt notes follow the banner, before anything the
+// user does: the moment they answer is the first the run counter ticks, so
+// the pre-turn cost of the prompt can only be read here.
+func TestStartupNotesFollowTheBanner(t *testing.T) {
+	m := NewModel(nil, "banner", nil, SessionConfig{
+		Startup: LaunchContext{
+			SystemTokens: 12000, ContextTokens: 4000,
+			ContextPaths: []string{"/tmp/CLAUDE.md", "/tmp/AGENTS.md"},
+		},
+	})
+	said := visible(strings.Join(m.unprinted, "\n"))
+	banner, context, system := strings.Index(said, "banner"), strings.Index(said, "context: 2 files loaded"), strings.Index(said, "system prompt loaded · ~12.0k tokens")
+	if banner < 0 || context < 0 || system < 0 || banner > context || context > system {
+		t.Errorf("launch = %q, want banner, then context, then system prompt", said)
+	}
+	if !strings.Contains(said, "/tmp/CLAUDE.md, /tmp/AGENTS.md") {
+		t.Errorf("launch = %q, want both context paths named", said)
+	}
+}
+
+// A launch with no system prompt to report — the zero-config shape tests and
+// stubs build — prints nothing about context or tokens, the same rule the
+// banner's MCP line follows: silence for the ordinary case, not a claim of
+// zero.
+func TestStartupNotesStaySilentWithoutASystemPrompt(t *testing.T) {
+	m := NewModel(nil, "banner", nil, SessionConfig{})
+	said := visible(strings.Join(m.unprinted, "\n"))
+	if strings.Contains(said, "context") || strings.Contains(said, "system prompt") {
+		t.Errorf("launch = %q, want no context or system-prompt note", said)
+	}
+}

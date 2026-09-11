@@ -31,7 +31,8 @@ type instrumentFile struct {
 // filesystem root, plus ~/.agents/AGENTS.md if it exists, and returns them
 // concatenated as extra system-prompt text — most general first, most
 // specific last, empty string if none exist — alongside how many files
-// that was, for the banner to summarize rather than repeat.
+// that was and their paths in the same order, for the banner to summarize
+// rather than repeat.
 //
 // It walks up from root rather than down from it, because the file that
 // matters is the one describing the project the client was launched inside,
@@ -60,16 +61,20 @@ type instrumentFile struct {
 // ... are loaded regardless of project trust unless context loading is
 // disabled" — the trust boundary there is reserved for things that change
 // what the agent itself can do, which nothing this package reads today does.
-func projectContext(root string) (string, int) {
+func projectContext(root string) (string, int, []string) {
 	levels, seen := instrumentLevels(root)
 	if global := globalInstructions(seen); len(global) > 0 {
 		levels = append(levels, global)
 	}
 	count := 0
+	var paths []string
 	for _, level := range levels {
 		count += len(level)
+		for _, f := range level {
+			paths = append(paths, f.path)
+		}
 	}
-	return renderLevels(levels), count
+	return renderLevels(levels), count, paths
 }
 
 // realpath resolves symlinks so the same file reached through two paths —

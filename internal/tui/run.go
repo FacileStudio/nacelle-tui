@@ -20,6 +20,15 @@ func DelegateUsage(u nacelle.Usage) {
 	delegations <- u
 }
 
+// LaunchContext carries the pre-turn prompt accounting the launch notes
+// report: which context files were loaded and the rough token cost of the
+// context and the whole system prompt.
+type LaunchContext struct {
+	ContextPaths  []string
+	ContextTokens int64
+	SystemTokens  int64
+}
+
 // SessionConfig configures the runtime settings for an interactive session.
 type SessionConfig struct {
 	Root              string
@@ -33,6 +42,7 @@ type SessionConfig struct {
 	Resume            string
 	PromptPlaceholder string
 	StartMessage      string
+	Startup           LaunchContext
 }
 
 // UISession holds the complete state needed to run an interactive terminal session.

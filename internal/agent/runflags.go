@@ -83,20 +83,32 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 		DelegateConfig:    get.config,
 		Mode:              *p.config.Mode,
 		TransparentBlocks: *p.config.TransparentBlocks,
-		SessionConfig: tui.SessionConfig{
-			Root:              p.config.Root,
-			Model:             p.config.Model,
-			Backend:           p.config.Backend,
-			Diffs:             *p.config.Diffs,
-			GroupTools:        p.config.GroupTools,
-			ShowThinking:      *p.config.ShowThinking,
-			CompactAt:         resolveCompactAt(*p.config.CompactAt, get.backend),
-			AutoResume:        *p.config.Continue,
-			Resume:            *p.config.Resume,
-			PromptPlaceholder: *p.config.PromptPlaceholder,
-			StartMessage:      *p.config.StartMessage,
-		},
+		SessionConfig:     sessionConfig(p, found, get.backend),
 	}, nil
+}
+
+// sessionConfig folds the runtime settings an interactive session reads into
+// one struct — the banner and the launch notes take theirs from the same
+// snapshot, so the two cannot disagree about what was loaded.
+func sessionConfig(p preparedTools, found loaded, backend nacelle.Backend) tui.SessionConfig {
+	return tui.SessionConfig{
+		Root:              p.config.Root,
+		Model:             p.config.Model,
+		Backend:           p.config.Backend,
+		Diffs:             *p.config.Diffs,
+		GroupTools:        p.config.GroupTools,
+		ShowThinking:      *p.config.ShowThinking,
+		CompactAt:         resolveCompactAt(*p.config.CompactAt, backend),
+		AutoResume:        *p.config.Continue,
+		Resume:            *p.config.Resume,
+		PromptPlaceholder: *p.config.PromptPlaceholder,
+		StartMessage:      *p.config.StartMessage,
+		Startup: tui.LaunchContext{
+			ContextPaths:  found.contextPaths,
+			ContextTokens: tokenEstimate(found.contextChars),
+			SystemTokens:  tokenEstimate(found.systemChars),
+		},
+	}
 }
 
 func buildUISession(v string, noConfig bool) (*tui.UISession, func(), error) {
@@ -119,22 +131,38 @@ type loaded struct {
 	notice       string
 	skills       []skills.Skill
 	contextFiles int
+	contextPaths []string
+	contextChars int
+	systemChars  int
+}
+
+// tokenEstimate guesses the tokens a prompt chunk costs at four characters
+// to the token — the same order of guess a wrapped line makes, since the
+// client has no real count before the first turn. It answers "is the prompt
+// the reason my context is half gone", not an invoice: the run's own
+// counter reports the backend's number once a turn has happened.
+func tokenEstimate(chars int) int64 {
+	return int64(chars / 4)
 }
 
 func augmentSystem(config *settings.Config, mcp connected) loaded {
 	var found loaded
 	config.System += environment(*config, time.Now(), mcp)
 	if *config.ProjectContext {
-		text, files := projectContext(config.Root)
+		text, files, paths := projectContext(config.Root)
 		config.System += text
 		found.contextFiles = files
+		found.contextPaths = paths
+		found.contextChars = len(text)
 	}
 	if !*config.Skills {
+		found.systemChars = len(config.System)
 		return found
 	}
 	res := skills.LoadSkills(config.Root, *config.TrustSkills, config.SkillDirs)
 	config.System += res.System
 	found.notice = res.Notice
 	found.skills = res.Skills
+	found.systemChars = len(config.System)
 	return found
 }

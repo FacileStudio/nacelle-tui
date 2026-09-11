@@ -59,6 +59,10 @@ func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConf
 		m.say(fromClient, strings.TrimRight(c.StartMessage, "\n")+"\n")
 	}
 	m.say(fromClient, banner+"\n")
+	if c.Startup.SystemTokens > 0 {
+		m.say(fromClient, startupContextNote(c.Startup))
+		m.say(fromClient, fmt.Sprintf("system prompt loaded · ~%s tokens", shortTokens(c.Startup.SystemTokens)))
+	}
 	herdr.Report(m.herdrClient, herdr.Idle)
 	return m
 }
