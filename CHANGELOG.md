@@ -4,7 +4,26 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.49.0] - 2026-09-11
+
+### Added
+- **`security.env_isolation`**, off by default. With it on, MCP servers and
+  `run_command` children start with a minimal PATH/HOME base instead of the
+  environment nacelle-tui inherited from the shell. With it off — the
+  default — children see the launching shell's full environment, so servers
+  that shell out to PATH helpers or read exported keys work as they do by
+  hand.
+
+### Changed
+- **`strict_confinement` is renamed `path_isolation`** to match the SDK's
+  `tools.PathIsolation`; same behaviour.
+- Markdown answers render in the terminal's own default colours: glamour's
+  layout kept, its hardcoded palette stripped, emphasis carried by bold and
+  underline only.
+
+### Fixed
+- Command output blocks had two extra spaces between the `▌` border and the
+  text; one space now.
 
 ## [0.48.1] - 2026-09-11
 
