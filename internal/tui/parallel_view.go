@@ -40,6 +40,7 @@ func (m *Model) parallelTasksView() string {
 
 func (m *Model) taskRow(pt parallelTaskInfo) string {
 	const gap = 3
+	width := max(m.width-2, 1)
 	marker := m.parallelMarker(pt)
 	tool := ""
 	if glyph := m.parallelGlyph(pt); glyph != "" {
@@ -51,10 +52,10 @@ func (m *Model) taskRow(pt parallelTaskInfo) string {
 		spend = m.theme.Muted.Render(s) + " "
 	}
 	tail := strings.TrimSpace(spend + clock)
-	room := max(m.width-lipgloss.Width(tool)-lipgloss.Width(tail)-gap, 0)
+	room := max(width-lipgloss.Width(tool)-lipgloss.Width(tail)-gap, 0)
 	title := layout.Truncate(taskTitle(pt), max(room-lipgloss.Width(marker)-1, 0))
 	left := marker + " " + taskTone(pt).Render(title+":")
-	pad := max(m.width-lipgloss.Width(left)-lipgloss.Width(tool)-lipgloss.Width(tail), 0)
+	pad := max(width-lipgloss.Width(left)-lipgloss.Width(tool)-lipgloss.Width(tail), 0)
 	return left + tool + strings.Repeat(" ", pad) + tail
 }
 

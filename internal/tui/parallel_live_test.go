@@ -3,8 +3,11 @@ package tui
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"charm.land/bubbles/v2/spinner"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/FacileStudio/nacelle"
 )
@@ -158,5 +161,21 @@ func TestClearedTasksAreNotDrawn(t *testing.T) {
 	}
 	if rows := parallelTaskRows(m.parallelTasks); rows != 1 {
 		t.Errorf("parallelTaskRows = %d, want 1 (cleared tasks don't reserve a row)", rows)
+	}
+}
+
+// A row is laid out at the width margined shaves to, so its timer tail
+// survives the margin pass instead of being clipped off the right edge.
+func TestTaskRowFitsInsideMargin(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["d0"] = []parallelTaskInfo{
+		{Task: "a long running task title that could push the tail", Active: true, Began: time.Now().Add(-time.Minute)},
+		{Task: "done with spend", Usage: nacelle.Usage{Cost: 0.0123, OutputTokens: 9000}, Began: time.Now().Add(-time.Minute), End: time.Now()},
+	}
+	for _, row := range strings.Split(m.parallelTasksView(), "\n") {
+		if w := lipgloss.Width(row); w > m.width-2 {
+			t.Errorf("row width %d exceeds the shaved width %d, tail gets clipped: %q", w, m.width-2, ansi.Strip(row))
+		}
 	}
 }
