@@ -13,7 +13,9 @@ while on `v0`, a breaking change bumps the minor.
   sitting flat at the top level. The names inside each group are unchanged.
   A pre-0.44 file fails to parse with `KnownFields(true)` naming the flat
   keys, not silently ignoring them; docs/configuration.md carries the full
-  old-key → new-location migration table. Flags and `NACELLE_*` environment
+  old-key → new-location migration table. Three keys also renamed to say
+  what they do: `mode` → `rendering_mode`, `json` → `cron_list_json`, and
+  `reasoning_budget` → `reasoning.budget`. Flags and `NACELLE_*` environment
   variables are untouched.
 
 ## [0.43.1] - 2026-09-11

@@ -80,10 +80,10 @@ func TestContinueFromTheFile(t *testing.T) {
 }
 
 // JSON rides the same UI merge as continue, and this pins that a file layer
-// saying json: true reaches the resolved config instead of being dropped by
+// saying cron_list_json: true reaches the resolved config instead of being dropped by
 // mergeUI.
 func TestJSONFromTheFile(t *testing.T) {
-	written(t, "ui:\n  json: true\n")
+	written(t, "ui:\n  cron_list_json: true\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with json: %v", err)

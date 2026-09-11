@@ -125,7 +125,7 @@ provider:
 reasoning:
   effort: high
   thinking: true
-  reasoning_budget: 8192
+  budget: 8192
 limits:
   compact_at: 100000
   max_iterations: 0
@@ -147,10 +147,11 @@ discovery:
 ui:
   prompt_prefix: '| '
   prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
-  mode: inline
+  rendering_mode: inline
   group_tools: true
   show_thinking: true
   transparent_blocks: false
+  # cron_list_json: false
   # start_message: |-
   #   Welcome to nacelle.
   #     _   _
@@ -175,10 +176,10 @@ Old flat key → new home, for migrating a pre-0.44 file:
 | `backend`, `model`, `base_url`, `api_key` | `provider:` |
 | `max_iterations`, `compact_at` | `limits:` |
 | `bash`, `subagents`, `approve_tools`, `diffs`, `tasks`, `strict_confinement` | `tools:` |
-| `effort`, `thinking`, `reasoning_budget` | `reasoning:` |
+| `effort`, `thinking`, `reasoning_budget` (now `budget`) | `reasoning:` |
 | `fetch` | `web:` |
 | `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
-| `continue`, `resume`, `mode`, `group_tools`, `show_thinking`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks`, `json` | `ui:` |
+| `continue`, `resume`, `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
 | `skill_dirs`, `mcp` | `sources:` |
 
 Every field is optional. A missing file is not an error — most people never write one — but an

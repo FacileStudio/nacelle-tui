@@ -34,7 +34,7 @@ func TestTheReasoningBudgetCrossesEveryLayer(t *testing.T) {
 		t.Errorf("default budget = %d, want 0 meaning no ceiling from here", budget)
 	}
 
-	written(t, "reasoning:\n  reasoning_budget: 8000\n")
+	written(t, "reasoning:\n  budget: 8000\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)

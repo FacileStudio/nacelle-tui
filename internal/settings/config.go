@@ -102,14 +102,14 @@ type Toggles struct {
 type UI struct {
 	Continue          *bool   `yaml:"continue"`
 	Resume            *string `yaml:"resume"`
-	Mode              *string `yaml:"mode"`
+	Mode              *string `yaml:"rendering_mode"`
 	GroupTools        *bool   `yaml:"group_tools"`
 	ShowThinking      *bool   `yaml:"show_thinking"`
 	PromptPrefix      *string `yaml:"prompt_prefix"`
 	PromptPlaceholder *string `yaml:"prompt_placeholder"`
 	StartMessage      *string `yaml:"start_message"`
 	TransparentBlocks *bool   `yaml:"transparent_blocks"`
-	JSON              *bool   `yaml:"json"`
+	JSON              *bool   `yaml:"cron_list_json"`
 }
 
 // Reasoning holds the three settings that decide how hard the model thinks.
@@ -118,7 +118,7 @@ type UI struct {
 type Reasoning struct {
 	Effort   string `yaml:"effort"`
 	Thinking *bool  `yaml:"thinking"`
-	Budget   *int64 `yaml:"reasoning_budget"`
+	Budget   *int64 `yaml:"budget"`
 }
 
 // Web holds the fetch setting, the one network tool that stays mounted.

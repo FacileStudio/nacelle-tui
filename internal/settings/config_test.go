@@ -54,12 +54,12 @@ func TestAMalformedConfigIsAnError(t *testing.T) {
 // environment, and beaten by the flag — the same linear chain as every other
 // setting.
 func TestModeFallsThroughTheWholeChain(t *testing.T) {
-	written(t, "ui:\n  mode: inline\n")
+	written(t, "ui:\n  rendering_mode: inline\n")
 	if config, _ := settings(Config{}); *config.Mode != "inline" {
 		t.Errorf("mode = %q, want inline by default", *config.Mode)
 	}
 
-	written(t, "ui:\n  mode: tui\n")
+	written(t, "ui:\n  rendering_mode: tui\n")
 	if config, _ := settings(Config{}); *config.Mode != "tui" {
 		t.Errorf("mode = %q, want the file's tui", *config.Mode)
 	}
