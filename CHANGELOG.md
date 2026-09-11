@@ -4,6 +4,34 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.43.0] - 2026-09-11
+
+### Added
+- **Background scheduling (cron), phase 1.** `nacelle cron run|list|install`
+  arms a job from the settings file as a systemd service and timer: unattended
+  runs deliver their transcript to a file or a webhook, `install` refuses a
+  disabled job so a test run always comes first, and generated units carry
+  `WorkingDirectory` and a start timeout that actually bounds the run.
+- **`cron list --json`** prints one JSON document on stdout, colors off, for
+  scripts.
+- **TUI render mode** (`-mode tui`): the transcript paints as fixed rows
+  instead of reflowing, with the held scrollback capped so per-frame cost
+  stays bounded on long sessions.
+- **Transparent tool blocks** (`-transparent-blocks`): tool output renders
+  without the surrounding box.
+
+### Fixed
+- **Compaction works on endpoints where reasoning is mandatory.** The
+  summarizer sent an explicit reasoning-off, which OpenRouter endpoints with
+  mandatory reasoning reject with a 400; the request now omits the reasoning
+  key entirely, so models that default off stay off and mandatory models use
+  their own default.
+- **Usage errors exit 2, real errors exit 1.** `cron` dispatch accepts
+  `help`/`-h`/`--help`, per the CLI standard.
+- **Cron delivery targets validate before the billed run**, and a failed log
+  append no longer hides behind a successful run (`errors.Join`).
+- Headless stdout write errors propagate instead of being discarded.
+
 ## [0.42.2] - 2026-09-11
 
 ### Fixed
