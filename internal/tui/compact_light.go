@@ -25,7 +25,7 @@ const thrashLimit = 3
 // — usually because the bloat lives in the kept tail, which a pass never evicts —
 // it hands off to the full summarize pass.
 func (m *Model) compactBeforeSend(ctx context.Context) tea.Cmd {
-	evictCut := len(m.conversation) - keepCount(len(m.conversation))
+	evictCut := alignedEvictCut(m.conversation, len(m.conversation)-keepCount(len(m.conversation)))
 	if evictCut <= 0 {
 		return nil
 	}

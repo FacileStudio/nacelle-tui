@@ -60,7 +60,7 @@ func (m *Model) compactCmd() tea.Cmd {
 		m.say(fromClient, "already compacting")
 		return nil
 	}
-	if evictCut := len(m.conversation) - keepCount(len(m.conversation)); evictCut <= 0 {
+	if evictCut := alignedEvictCut(m.conversation, len(m.conversation)-keepCount(len(m.conversation))); evictCut <= 0 {
 		m.say(fromClient, "nothing to compact — the conversation is too short")
 		return nil
 	}

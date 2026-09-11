@@ -143,7 +143,7 @@ func keepCount(length int) int {
 // Nothing is recorded to the session file — this is the client talking about
 // itself, the same reason the banner is not.
 func (m *Model) beginCompaction(ctx context.Context) tea.Cmd {
-	evictCut := len(m.conversation) - keepCount(len(m.conversation))
+	evictCut := alignedEvictCut(m.conversation, len(m.conversation)-keepCount(len(m.conversation)))
 	if evictCut <= 0 || m.compacting {
 		return nil
 	}
