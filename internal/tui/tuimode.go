@@ -71,14 +71,17 @@ func (m *Model) assembleTUI() tea.View {
 
 // tuiUpper is the scrolling region above the pinned prompt: the held transcript
 // and the run's live output, newest at the bottom, padded to exactly avail rows
-// so the prompt stays anchored. Painting never wraps a held line (markdown and
-// the width styles do that up front), so joining the already-painted rows is
-// enough — what the terminal clips horizontally, it clips.
+// so the prompt stays anchored. Each held entry is one pre-wrapped row — the
+// split happened at print time — so joining the already-painted rows is enough;
+// what the terminal clips horizontally, it clips. The hold is tailed to avail
+// before the live rows join, since only the combined tail can reach the screen.
 func (m *Model) tuiUpper(avail int) []string {
-	var rows []string
-	for _, held := range m.hold {
-		rows = append(rows, strings.Split(held, "\n")...)
+	held := m.hold
+	if len(held) > avail {
+		held = held[len(held)-avail:]
 	}
+	rows := make([]string, 0, avail)
+	rows = append(rows, held...)
 	for _, row := range m.aboveContent() {
 		if row != "" {
 			rows = append(rows, row)

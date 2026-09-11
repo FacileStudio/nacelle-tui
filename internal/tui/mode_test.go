@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -49,6 +50,25 @@ func TestTUIModeHoldsPrintedLinesInsteadOfHandingThemToTheTerminal(t *testing.T)
 	}
 	if len(m.unprinted) != 0 {
 		t.Errorf("unprinted = %v, want it drained into hold", m.unprinted)
+	}
+}
+
+// The hold is a bounded ring of painted rows: past holdRowsCap the oldest rows
+// drop, so a long session cannot charge every frame for rows no frame can
+// show, and the newest rows — the ones a frame can show — always survive.
+func TestTheHoldDropsItsOldestRowsOnceCapped(t *testing.T) {
+	m := tuiModel()
+	for i := range 2 * holdRowsCap {
+		m.printed(fmt.Sprintf("row %d", i))
+	}
+	if len(m.hold) != holdRowsCap {
+		t.Fatalf("hold = %d rows, want it capped at %d", len(m.hold), holdRowsCap)
+	}
+	if want := fmt.Sprintf("row %d", holdRowsCap); m.hold[0] != want {
+		t.Errorf("first held row = %q, want the first row past the cap %q", m.hold[0], want)
+	}
+	if want := fmt.Sprintf("row %d", 2*holdRowsCap-1); m.hold[len(m.hold)-1] != want {
+		t.Errorf("last held row = %q, want the newest row %q", m.hold[len(m.hold)-1], want)
 	}
 }
 

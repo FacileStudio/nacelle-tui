@@ -83,9 +83,20 @@ func (m *Model) layout(height int) {
 	m.liveRows = layout.LiveRows(height, taken)
 }
 
+// holdRowsCap is how many painted rows the alternate-screen transcript keeps.
+// Every frame redraws a tail of it, so an uncapped hold would charge a long
+// session more per frame for rows no frame can show. Past the cap the oldest
+// rows drop ring-buffer style; the newest batch just appended always survives.
+// Generous — several screens tall — so a resize to a taller terminal still
+// finds history to reveal.
+const holdRowsCap = 1000
+
 func (m *Model) printed(text string) tea.Cmd {
 	if m.mode == modeTUI {
 		m.hold = append(m.hold, strings.Split(text, "\n")...)
+		if over := len(m.hold) - holdRowsCap; over > 0 {
+			m.hold = append(m.hold[:0], m.hold[over:]...)
+		}
 		return nil
 	}
 	budget := layout.Budget(m.windowHeight, m.frameRows)

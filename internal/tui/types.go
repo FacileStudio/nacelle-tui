@@ -73,7 +73,10 @@ type transcript struct {
 	// hold is the committed, painted transcript in tui mode. Printing to the
 	// terminal scrollback is a no-op inside an alternate screen (see tea.Println),
 	// so finished lines land here instead and are drawn back into the view each
-	// frame, tail-first, with the prompt pinned to the bottom.
+	// frame, tail-first, with the prompt pinned to the bottom. Each entry is one
+	// pre-wrapped row. It is capped at holdRowsCap with the oldest rows dropped
+	// ring-buffer style, so a long session cannot grow the per-frame redraw
+	// without bound.
 	hold       []string
 	compactAt  int64
 	compacting bool
