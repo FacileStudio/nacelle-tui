@@ -38,8 +38,9 @@ func FromEnv() Config {
 			Tasks:          envBool(EnvPrefix + "TASKS"),
 		},
 		Security: Security{
-			ApproveTools:      envBool(EnvPrefix + "APPROVE_TOOLS"),
-			StrictConfinement: envBool(EnvPrefix + "STRICT_CONFINEMENT"),
+			ApproveTools:  envBool(EnvPrefix + "APPROVE_TOOLS"),
+			PathIsolation: envBool(EnvPrefix + "PATH_ISOLATION"),
+			EnvIsolation:  envBool(EnvPrefix + "ENV_ISOLATION"),
 		},
 		Reasoning: Reasoning{
 			Effort:   os.Getenv(EnvPrefix + "EFFORT"),

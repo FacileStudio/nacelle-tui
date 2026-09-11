@@ -141,7 +141,8 @@ tools:
 
 security:
   approve_tools: false
-  strict_confinement: false
+  path_isolation: false
+  env_isolation: false
 
 discovery:
   project_context: true
@@ -183,7 +184,7 @@ Old flat key → new home, for migrating a pre-0.44 file:
 | `subagents` | `tools.parallel_subagent` |
 | `fetch` | `tools.web_fetch` |
 | `tasks` | `tools.tasks` |
-| `approve_tools`, `strict_confinement` | `security:` |
+| `approve_tools`, `path_isolation`, `env_isolation` | `security:` |
 | `effort`, `thinking`, `reasoning_budget` (now `budget`) | `reasoning:` |
 | `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
 | `continue` | `session:` |

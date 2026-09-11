@@ -138,7 +138,7 @@ func TestEnvironmentMentionsWebFetchOnlyWhenFetchIsMounted(t *testing.T) {
 	}
 }
 
-func TestEnvironmentDescribesConfinementBasedOnStrictConfinement(t *testing.T) {
+func TestEnvironmentDescribesConfinementBasedOnPathIsolation(t *testing.T) {
 
 	on := environment(withApproval(false), time.Now(), connected{})
 	if !strings.Contains(on, "absolute paths") {
@@ -150,7 +150,7 @@ func TestEnvironmentDescribesConfinementBasedOnStrictConfinement(t *testing.T) {
 
 	with := withApproval(false)
 	confined := true
-	with.StrictConfinement = &confined
+	with.PathIsolation = &confined
 	withConfined := environment(with, time.Now(), connected{})
 	if !strings.Contains(withConfined, "cannot reach outside") {
 		t.Errorf("environment() with confinement = %q, want confinement warning", withConfined)

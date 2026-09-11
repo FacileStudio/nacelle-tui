@@ -32,7 +32,8 @@ tools:
 
 security:
   approve_tools: false
-  strict_confinement: false
+  path_isolation: false
+  env_isolation: false
 
 reasoning:
   effort: ""

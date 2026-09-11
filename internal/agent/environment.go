@@ -88,7 +88,7 @@ func sessionBlock(config Config) string {
 	body.WriteString("Working directory: ")
 	body.WriteString(absolute(config.Root))
 	body.WriteString("\n\n")
-	if *config.StrictConfinement {
+	if *config.PathIsolation {
 		body.WriteString("File and directory tools take paths relative to the working directory and cannot reach outside " +
 			"it: absolute paths that sit under the working directory are resolved relative " +
 			"to it, so \"/etc/hosts\" means \"etc/hosts\" inside the working directory.")

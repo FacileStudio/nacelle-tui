@@ -7,6 +7,7 @@ import "github.com/FacileStudio/nacelle/mcp/client"
 func (c *Config) merge(over Config) {
 	c.mergeStrings(over)
 	c.mergeToggles(over)
+	c.mergeSecurity(over)
 	c.mergeUI(over)
 	if over.MaxIterations != nil {
 		c.MaxIterations = over.MaxIterations
@@ -86,14 +87,24 @@ func (c *Config) mergeToggles(over Config) {
 	if over.TrustHooks != nil {
 		c.TrustHooks = over.TrustHooks
 	}
-	if over.ApproveTools != nil {
-		c.ApproveTools = over.ApproveTools
-	}
 	if over.Diffs != nil {
 		c.Diffs = over.Diffs
 	}
 	if over.Tasks != nil {
 		c.Tasks = over.Tasks
+	}
+}
+
+// mergeSecurity overwrites the security toggles over actually mentions.
+func (c *Config) mergeSecurity(over Config) {
+	if over.ApproveTools != nil {
+		c.ApproveTools = over.ApproveTools
+	}
+	if over.PathIsolation != nil {
+		c.PathIsolation = over.PathIsolation
+	}
+	if over.EnvIsolation != nil {
+		c.EnvIsolation = over.EnvIsolation
 	}
 }
 

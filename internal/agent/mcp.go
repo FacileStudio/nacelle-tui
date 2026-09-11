@@ -89,6 +89,9 @@ func mcpTools(config settings.Config, local []nacelle.Tool) (connected, []nacell
 	if err != nil {
 		return connected{}, nil, err
 	}
+	if settings.DerefBool(config.EnvIsolation) {
+		servers = client.WithEnvIsolation(servers, true)
+	}
 
 	set, err := client.Connect(context.Background(), servers...)
 	if err != nil {

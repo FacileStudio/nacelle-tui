@@ -82,19 +82,22 @@ type Toggles struct {
 	Tasks          *bool `yaml:"tasks"`
 }
 
-// Security holds the two settings that decide how much a tool call may do
-// before something stops it: ask before every call runs, confine to the root.
+// Security holds the settings that decide how much a tool call may do
+// before something stops it: ask before every call runs, confine to the
+// root, and whether MCP servers and run_command start with this process's
+// environment or a minimal one.
 type Security struct {
-	ApproveTools      *bool `yaml:"approve_tools"`
-	StrictConfinement *bool `yaml:"strict_confinement"`
+	ApproveTools  *bool `yaml:"approve_tools"`
+	PathIsolation *bool `yaml:"path_isolation"`
+	// EnvIsolation starts MCP servers and run_command children with PATH,
+	// HOME and configured env entries instead of the inherited environment.
+	EnvIsolation *bool `yaml:"env_isolation"`
 }
 
-// UI holds display settings for the interactive client.
-//
-// Diffs shows a git-style diff when the model edits a file. GroupTools
-// collapses consecutive read-only tool calls of one name into a single
-// "running 10 tools" line while they run. ShowThinking expands thinking traces
-// by default rather than collapsing to "thought for 2.9s"; ctrl+t toggles.
+// UI holds display settings for the interactive client. Diffs shows a
+// git-style diff when the model edits a file; GroupTools collapses
+// consecutive read-only tool calls into one line; ShowThinking expands
+// thinking traces by default (ctrl+t toggles).
 //
 // PromptPlaceholder is the ghost text while the prompt is empty, StartMessage
 // prints on launch above the banner, Mode is "inline" or "tui" rendering.
@@ -159,6 +162,7 @@ const DefaultCompactAt int64 = 75_000
 func Defaults(system string) Config {
 	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks, strict :=
 		true, true, true, true, false, false, false, true, true, false
+	envIsolation := false
 	parallelAgents := true
 	iterations, budget := 5, int64(0)
 	compactAt := int64(75000)
@@ -172,7 +176,7 @@ func Defaults(system string) Config {
 		Provider:  Provider{Backend: "anthropic"},
 		Session:   Session{Root: ".", System: system, Continue: &cont, Resume: &resume},
 		Toggles:   Toggles{Bash: &bash, ParallelAgents: &parallelAgents, Fetch: &fetch, Tasks: &tasks},
-		Security:  Security{ApproveTools: &approveTools, StrictConfinement: &strict},
+		Security:  Security{ApproveTools: &approveTools, PathIsolation: &strict, EnvIsolation: &envIsolation},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{

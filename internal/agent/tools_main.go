@@ -2,10 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle/tools"
 
+	"github.com/FacileStudio/nacelle-tui/internal/settings"
 	"github.com/FacileStudio/nacelle-tui/internal/tasks"
 )
 
@@ -27,7 +29,12 @@ import (
 // error paths still hand the caller nil, which is what it wants; only the
 // closing needs a name the returns cannot reach.
 func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
-	opened, err := tools.New(tools.Config{Root: config.Root, AllowBash: *config.Bash, StrictConfinement: *config.StrictConfinement})
+	opened, err := tools.New(tools.Config{
+		Root:          config.Root,
+		AllowBash:     *config.Bash,
+		PathIsolation: *config.PathIsolation,
+		CommandEnv:    commandEnv(config),
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("opening %s: %w", config.Root, err)
 	}
@@ -46,6 +53,19 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 	local = append(local, reaching...)
 
 	return opened, local, nil
+}
+
+// commandEnv is what run_command hands its children. With security
+// .env_isolation off — the default — the process environment is passed
+// whole, so a command sees the PATH, toolchains and exports of the shell
+// nacelle-tui was launched from. With it on, CommandEnv stays nil and the
+// tools package's own minimal base (PATH, HOME) applies, the same guarded
+// posture the MCP servers get.
+func commandEnv(config Config) []string {
+	if settings.DerefBool(config.EnvIsolation) {
+		return nil
+	}
+	return os.Environ()
 }
 
 // withTasks mounts the plan tool when the settings ask for one. It is
