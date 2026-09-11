@@ -11,6 +11,12 @@ import (
 
 const promptRows = 10
 
+// minHeightRows is the shortest the input renders even when it holds a single
+// line, so the field reads as a roomy bar rather than a cramped one row. The
+// bar fills with the blank padding that gives the input its y-padding; the
+// blank row above and below the whole field is added by the view assembly.
+const minHeightRows = 3
+
 // newPrompt builds the compose textarea. prefix is what the first row shows
 // ahead of the caret — "| " out of the box — always followed by one space of
 // margin before the text, and continuation rows get a matching run of spaces so
@@ -22,7 +28,7 @@ func newPrompt(prefix string, placeholder string) textarea.Model {
 	prompt.SetPromptFunc(lipgloss.Width(prefix)+1, continuation(prefix))
 	prompt.ShowLineNumbers = false
 	prompt.DynamicHeight = true
-	prompt.MinHeight = 1
+	prompt.MinHeight = minHeightRows
 	prompt.MaxHeight = promptRows
 	prompt.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("alt+enter"))
 	prompt.SetVirtualCursor(false)

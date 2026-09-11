@@ -142,26 +142,30 @@ func TestAskingShowsTheSpinnerBeforeAnythingArrives(t *testing.T) {
 	}
 }
 
-const long = "this is a deliberately long question, far wider than the window it is " +
-	"being typed into, so a prompt that refuses to wrap has nowhere to put it"
+const long = "This is a deliberately long question, far wider than the window it is " +
+	"being typed into, so a prompt that refuses to wrap has nowhere to put it. " +
+	"And it keeps going well past the second and third line so the growth " +
+	"actually pushes the live region out of the way instead of the prompt " +
+	"silently overflowing the reserved rows."
 
 func TestPromptWrappingAndGrowth(t *testing.T) {
 	m := sized()
+	baseline := m.prompt.Height()
 	m.prompt.SetValue(long)
 
 	if handled, _ := m.key(tea.KeyPressMsg{Code: tea.KeyUp}); handled {
 		t.Error("up was claimed by the client, want it left to the prompt")
 	}
-	if got := m.prompt.Height(); got < 2 {
-		t.Fatalf("prompt height = %d, want it grown past one row", got)
+	if got := m.prompt.Height(); got <= baseline {
+		t.Fatalf("prompt height = %d, want it grown past its baseline %d", got, baseline)
 	}
-	if !strings.Contains(visible(m.prompt.View()), "this is a deliberately long question") {
+	if !strings.Contains(visible(m.prompt.View()), "long question, far wider than the window") {
 		t.Errorf("prompt = %q, want the question actually shown", visible(m.prompt.View()))
 	}
 
 	before := m.liveRows
 	m.layout(m.windowHeight)
-	grew := m.prompt.Height() - 1
+	grew := m.prompt.Height() - baseline
 	if got := m.liveRows; got != before-grew {
 		t.Errorf("live rows = %d, want %d", got, before-grew)
 	}

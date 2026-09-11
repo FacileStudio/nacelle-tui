@@ -9,9 +9,7 @@ import (
 
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/herdr"
-	"github.com/FacileStudio/nacelle-tui/internal/sessions"
 	"github.com/FacileStudio/nacelle-tui/internal/skills"
-	"github.com/FacileStudio/nacelle-tui/internal/usage"
 )
 
 var delegations = make(chan nacelle.Usage, 64)
@@ -45,27 +43,18 @@ type UISession struct {
 	HookNotice     string
 	Gate           *Approvals
 	DelegateConfig nacelle.Config
+	Mode           string
 	SessionConfig
 }
 
 // Launch starts the Bubble Tea UI session loop for the given configuration.
 func Launch(c UISession) error {
 	opened := NewModel(c.Agent, c.Banner, c.Skills, c.SessionConfig)
-	opened.groupTools = c.GroupTools != nil && *c.GroupTools
-	opened.Expanded = c.ShowThinking
-	opened.run.root = c.Root
-	opened.run.diffs = c.Diffs
-	opened.delegate = c.DelegateConfig
-	opened.sink = usage.NewSink(c.Root, c.Model)
-	opened.session = sessions.OpenSession(c.Backend, c.Model, c.Root)
-	herdr.SetSession(opened.herdrClient, opened.session.Path())
+	boot(opened, c)
 	if c.HookNotice != "" {
 		opened.say(fromClient, c.HookNotice)
 	}
-	for _, line := range opened.unprinted {
-		fmt.Println(line)
-	}
-	opened.unprinted = nil
+	startupPrint(opened)
 
 	program := tea.NewProgram(opened)
 	if c.Gate != nil {

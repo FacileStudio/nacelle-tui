@@ -75,6 +75,7 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 		HookNotice:     hookNotice,
 		Gate:           approvalGate,
 		DelegateConfig: get.config,
+		Mode:           *p.config.Mode,
 		SessionConfig: tui.SessionConfig{
 			Root:              p.config.Root,
 			Model:             p.config.Model,

@@ -31,6 +31,7 @@ func FromEnv() Config {
 		System:   os.Getenv(EnvPrefix + "SYSTEM"),
 		Limits:   Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
 		Sources:  Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
+		UI:       UI{Mode: envString(EnvPrefix + "MODE")},
 		Toggles: Toggles{
 			Bash:              envBool(EnvPrefix + "BASH"),
 			Subagents:         envBool(EnvPrefix + "SUBAGENTS"),
@@ -53,6 +54,15 @@ func FromEnv() Config {
 			TrustSkills:    envBool(EnvPrefix + "TRUST_SKILLS"),
 		},
 	}
+}
+
+// envString reads a string setting, returning nil when the variable is unset.
+func envString(name string) *string {
+	raw, ok := os.LookupEnv(name)
+	if !ok || raw == "" {
+		return nil
+	}
+	return &raw
 }
 
 // envBool reads a toggle, returning nil when the variable is unset or is not

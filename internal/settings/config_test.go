@@ -50,6 +50,31 @@ func TestAMalformedConfigIsAnError(t *testing.T) {
 	}
 }
 
+// The mode setting defaults to inline, is set by the file, overridden by the
+// environment, and beaten by the flag — the same linear chain as every other
+// setting.
+func TestModeFallsThroughTheWholeChain(t *testing.T) {
+	written(t, "mode: inline\n")
+	if config, _ := settings(Config{}); *config.Mode != "inline" {
+		t.Errorf("mode = %q, want inline by default", *config.Mode)
+	}
+
+	written(t, "mode: tui\n")
+	if config, _ := settings(Config{}); *config.Mode != "tui" {
+		t.Errorf("mode = %q, want the file's tui", *config.Mode)
+	}
+
+	t.Setenv(EnvPrefix+"MODE", "inline")
+	if config, _ := settings(Config{}); *config.Mode != "inline" {
+		t.Errorf("mode = %q, want the environment to win over the file", *config.Mode)
+	}
+
+	flagMode := "tui"
+	if config, _ := settings(Config{UI: UI{Mode: &flagMode}}); *config.Mode != "tui" {
+		t.Errorf("mode = %q, want the flag to win over the environment", *config.Mode)
+	}
+}
+
 func TestTheFileBeatsTheDefaults(t *testing.T) {
 	written(t, "backend: openrouter\nmodel: deepseek/deepseek-v4-flash-0731\n")
 

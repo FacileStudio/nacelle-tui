@@ -70,8 +70,13 @@ type core struct {
 type transcript struct {
 	conversation []nacelle.Message
 	unprinted    []string
-	compactAt    int64
-	compacting   bool
+	// hold is the committed, painted transcript in tui mode. Printing to the
+	// terminal scrollback is a no-op inside an alternate screen (see tea.Println),
+	// so finished lines land here instead and are drawn back into the view each
+	// frame, tail-first, with the prompt pinned to the bottom.
+	hold       []string
+	compactAt  int64
+	compacting bool
 	// thrashCount is how many consecutive compaction passes ended with the
 	// conversation still over the trigger threshold — a single very large
 	// result, usually in the kept tail, that eviction and summarization cannot

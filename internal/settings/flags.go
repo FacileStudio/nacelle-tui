@@ -21,17 +21,19 @@ type declared struct {
 	// compactAt is a token count, not a turn count, so it shares the width of
 	// budget rather than iterations.
 	compactAt *int64
-	resumeFlags
+	uiFlags
 	sourceFlags
 	discoveryFlags
 }
 
-// resumeFlags is the two ways to restore a past session: continue auto-resumes
-// the newest for the project root, resume names one by id or path. Grouped
-// together so declared stays under filet's struct cap.
-type resumeFlags struct {
+// uiFlags is the -continue, -resume and -mode switches. Grouped
+// together so declared stays under filet's struct cap; continue auto-resumes
+// the newest session, resume names one by id or path, and mode picks between
+// "inline" and "tui" rendering.
+type uiFlags struct {
 	cont   *bool
 	resume *string
+	mode   *string
 }
 
 type togglesFlags struct {
@@ -65,9 +67,10 @@ func declareFlags(fallback Config) declared {
 		model:       flag.String("model", fallback.Model, "model id, defaulting to the backend's own"),
 		root:        flag.String("root", fallback.Root, "directory the file tools may reach"),
 		system:      flag.String("system", fallback.System, "system prompt"),
-		resumeFlags: resumeFlags{
+		uiFlags: uiFlags{
 			cont:   flag.Bool("continue", *fallback.Continue, "auto-resume newest session"),
 			resume: flag.String("resume", *fallback.Resume, "resume a specific session by id or file path"),
+			mode:   flag.String("mode", *fallback.Mode, "inline or tui rendering"),
 		},
 		reasoningFlags: reasoningFlags{
 			effort:   flag.String("effort", fallback.Effort, "none, minimal, low, medium, high, xhigh or max"),
@@ -118,6 +121,7 @@ func typedSetters(f declared) map[string]func(*Config) {
 		"system":           func(c *Config) { c.System = *f.system },
 		"continue":         func(c *Config) { c.Continue = f.cont },
 		"resume":           func(c *Config) { c.Resume = f.resume },
+		"mode":             func(c *Config) { c.Mode = f.mode },
 		"fetch":            func(c *Config) { c.Fetch = f.fetch },
 		"bash":             func(c *Config) { c.Bash = f.bash },
 		"subagents":        func(c *Config) { c.Subagents = f.subagents },

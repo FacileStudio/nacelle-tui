@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 
 	"github.com/FacileStudio/nacelle-tui/internal/layout"
 	"github.com/FacileStudio/nacelle-tui/internal/theme"
@@ -15,29 +14,12 @@ type screen struct {
 	windowHeight int
 	liveRows     int
 	frameRows    int
+	mode         int
 }
 
 func (m *Model) View() tea.View {
 	view := m.assembleView()
 	view.DisableBracketedPasteMode = true
-	return view
-}
-
-func (m *Model) assembleView() tea.View {
-	above := m.aboveContent()
-	aboveHeight := lipgloss.Height(strings.Join(above, "\n"))
-	parts := append(above, m.prompt.View())
-	if below := m.belowContent(); below != "" {
-		parts = append(parts, "", below)
-	}
-	body := strings.Join(parts, "\n")
-	m.frameRows = lipgloss.Height(body)
-
-	view := tea.NewView(body)
-	if position := m.prompt.Cursor(); position != nil {
-		position.Y += aboveHeight
-		view.Cursor = position
-	}
 	return view
 }
 
@@ -101,6 +83,10 @@ func (m *Model) layout(height int) {
 }
 
 func (m *Model) printed(text string) tea.Cmd {
+	if m.mode == modeTUI {
+		m.hold = append(m.hold, strings.Split(text, "\n")...)
+		return nil
+	}
 	budget := layout.Budget(m.windowHeight, m.frameRows)
 	batches := layout.Batches(text, budget, m.width)
 	cmds := make([]tea.Cmd, 0, len(batches))

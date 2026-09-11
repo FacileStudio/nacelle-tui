@@ -84,18 +84,12 @@ type Toggles struct {
 
 // UI holds display settings for the interactive client.
 //
-// GroupTools controls whether consecutive read-only tool calls of the same
-// name collapse into a single line while they run. When true (the default),
-// ten search_content calls show as "running 10 tools" rather than taking ten
-// lines of screen; the completed calls still each print their own line. It is
-// on by default because twenty lines of the same tool name with the same cyan
-// icon are noise; turning it off is for the session where you want to watch
-// every call land.
+// GroupTools collapses consecutive read-only tool calls of one name into a
+// single "running 10 tools" line while they run; each completed call still
+// prints its own line. On by default; off to watch every call land.
 //
-// ShowThinking controls whether thinking traces are expanded by default. When
-// true (the default), every turn's chain of thought is printed in full rather
-// than collapsed to "thought for 2.9s". The ctrl+t key still toggles per-session
-// either way, and show_thinking only sets the starting position.
+// ShowThinking expands thinking traces by default rather than collapsing to
+// "thought for 2.9s"; the ctrl+t key still toggles per-session.
 //
 // PromptPrefix names what the prompt's first row shows ahead of the caret, "| "
 // by default; a wrapped question hangs its later rows under a matching indent.
@@ -103,9 +97,13 @@ type Toggles struct {
 // the left edge — an empty prefix still leaves one leading space.
 // PromptPlaceholder is the ghost text the prompt shows while it is empty.
 // StartMessage is printed as the first thing on launch, above the banner, and may span lines. Empty prints nothing.
+// Mode is "inline" (finished lines into the terminal's own scrollback under
+// the live region) or "tui" (a prompt pinned to the bottom of an alternate
+// screen, the transcript held in its own buffer), like htop or vim.
 type UI struct {
 	Continue          *bool   `yaml:"continue"`
 	Resume            *string `yaml:"resume"`
+	Mode              *string `yaml:"mode"`
 	GroupTools        *bool   `yaml:"group_tools"`
 	ShowThinking      *bool   `yaml:"show_thinking"`
 	PromptPrefix      *string `yaml:"prompt_prefix"`
@@ -177,6 +175,7 @@ func Defaults(system string) Config {
 	fetch := true
 	groupTools, showThinking := true, true
 	cont, resume := false, ""
+	mode := "inline"
 	promptPrefix := "| "
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
@@ -194,7 +193,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Continue: &cont, Resume: &resume, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage},
+		UI: UI{Continue: &cont, Resume: &resume, Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage},
 	}
 }
 
