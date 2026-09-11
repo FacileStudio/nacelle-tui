@@ -4,6 +4,14 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.41.0] - 2026-09-11
+
+### Changed
+- **nacelle bumped to v0.21.0** for the native anthropic agent loop. The
+  anthropic backend now owns its own tool-running loop and drains the sink on a
+  live tick, so a `run_command` on the anthropic path streams one line at a
+  time instead of bursting its output once the command finished.
+
 ## [0.40.0] - 2026-09-11
 
 ### Added
