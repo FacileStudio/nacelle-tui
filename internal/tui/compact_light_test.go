@@ -3,6 +3,7 @@ package tui
 // Tests for the light lever (mask-before-summarize) and the thrash guard.
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
@@ -106,5 +107,56 @@ func TestCheckThrashResetsTheCounterWhenUnder(t *testing.T) {
 	}
 	if m.thrashed() {
 		t.Errorf("thrashed = true after a pass landed under, want it cleared")
+	}
+}
+
+func TestEvictionCanLandUnderRequiresTheMiddleToMatter(t *testing.T) {
+	m := sized()
+	m.conversation = bigConversation()
+	evictCut := len(m.conversation) - keepCount(len(m.conversation))
+
+	m.size = int64(1_000_000)
+	if m.evictionCanLandUnder(evictCut) {
+		t.Errorf("evictionCanLandUnder = true, want false when the kept tail alone already overshoots compactAt")
+	}
+
+	m.size = int64(108_000)
+	if !m.evictionCanLandUnder(evictCut) {
+		t.Errorf("evictionCanLandUnder = false, want true when evicting the ~10k-token middle lands a 108k conversation under compactAt")
+	}
+}
+
+func TestBeginCompactionSkipsTheSummarizerWhenEvictionCannotLandUnder(t *testing.T) {
+	m := sized()
+	m.conversation = bigConversation()
+	m.size = int64(1_000_000)
+
+	if cmd := m.beginCompaction(context.Background()); cmd != nil {
+		t.Errorf("beginCompaction = a Cmd, want nil when the evicted middle cannot land under the threshold — no summarizer call")
+	}
+	if m.compacting {
+		t.Errorf("compacting = true, want no summarizer goroutine spawned")
+	}
+	if said := strings.Join(spoken(m), "\n"); !strings.Contains(said, "kept tail") {
+		t.Errorf("report = %q, want the kept-tail explanation on a skipped pass", said)
+	}
+}
+
+func TestMaskOnlyPassReportsTheKeptTailAndCountsTowardThrash(t *testing.T) {
+	m := sized()
+	m.conversation = bigConversation()
+	m.size = int64(1_000_000)
+	evictCut := len(m.conversation) - keepCount(len(m.conversation))
+
+	cmd := m.maskOnlyPass(evictCut)
+
+	if cmd != nil {
+		t.Errorf("maskOnlyPass = a Cmd, want nil")
+	}
+	if m.thrashCount != 1 {
+		t.Errorf("thrashCount = %d, want 1 after a skip left the context over the threshold", m.thrashCount)
+	}
+	if said := strings.Join(spoken(m), "\n"); !strings.Contains(said, "kept tail") {
+		t.Errorf("report = %q, want the kept-tail explanation", said)
 	}
 }

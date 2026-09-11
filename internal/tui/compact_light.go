@@ -5,6 +5,8 @@ import (
 	"context"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 // thrashLimit is how many consecutive compaction passes must fail to land the
@@ -14,6 +16,70 @@ import (
 // pattern is clear that a pass cannot help. Three is Claude Code's own number
 // for the same guard.
 const thrashLimit = 3
+
+// summarizer builds the small, tool-free agent asked to compact the evicted
+// middle, billed like the work it protects, and nil when there is no backend —
+// tests and offline runs mask instead. Reasoning is turned off: that output
+// budget is the summary's, not a chain of thought's.
+//
+// It lives with the light lever because it is the expensive half of a pass: the
+// file name says light, but the summarizer is what a cheap pass must prove it
+// needs before it is spent.
+func (m *Model) summarizer() *nacelle.Agent {
+	if m.agent == nil {
+		return nil
+	}
+	agent, err := nacelle.New(nacelle.Config{
+		Backend:       m.agent.Backend(),
+		System:        compactSystem,
+		Thinking:      nacelle.Thinking{Effort: nacelle.EffortNone},
+		MaxTokens:     compactMaxTokens,
+		MaxIterations: 1,
+	})
+	if err != nil {
+		return nil
+	}
+	return agent
+}
+
+// evictionCanLandUnder is whether evicting the whole middle and replacing it
+// with a free summary could plausibly land the conversation under compactAt.
+// When the kept tail alone is already over — one giant recent tool result, or
+// several — a pass never touches it, so no summarizer can help. Spending a
+// 120-second LLM call on a pass that cannot land under is waste; the honest
+// move is to mask what little the old turns hold and tell the reader the cost
+// is theirs to free with /clear or chunked reading.
+//
+// The two sides mix the file's two size notions on purpose. m.size is the
+// backend-measured input cost (cache-inclusive), while estTokens(convBytes(
+// evicted)) is the 4:1 bytes-to-tokens guess at the middle — the same
+// conversion maskEvicted uses to size its budget. Both read as "tokens", so
+// the comparison is the file's consistent approximation, directionally right.
+// Where caching makes m.size re-bill the kept tail, the estimate understates
+// what evicting the oldest middle frees, which only ever biases a pass toward
+// the cheap mask — never toward a summarizer that could land under.
+func (m *Model) evictionCanLandUnder(evictCut int) bool {
+	return m.size - estTokens(convBytes(m.conversation, evictCut)) + compactMaxTokens <= m.compactAt
+}
+
+// maskOnlyPass is the skip for a pass whose evicted middle is too small to
+// justify the summarizer: it masks whatever droppable output the old turns
+// hold, reports that the cost lives in the protected kept tail, and returns nil
+// so no summarizer goroutine is spawned. It counts toward the thrash guard when
+// the context stays over the threshold, so the automatic triggers back off
+// instead of repeating the near-no-op pass on every turn.
+func (m *Model) maskOnlyPass(evictCut int) tea.Cmd {
+	before := m.size
+	results, thinking, _ := m.maskEvicted(evictCut)
+	report := compactOutcome{
+		before: before,
+		after:  m.size,
+		done:   compacted{evictCut: evictCut, kept: len(m.conversation)-evictCut, results: results, thinking: thinking},
+	}
+	m.say(fromCompact, compactReport(report) + "\n   cost sits in the kept tail — compaction protects the newest turns; /clear or read in chunks")
+	m.checkThrash()
+	return nil
+}
 
 // compactBeforeSend is the pre-flight entry from send. Called when CountTokens
 // shows the next turn over the trigger threshold, it runs the cheap, backend-free

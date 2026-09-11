@@ -127,7 +127,10 @@ func keepCount(length int) int {
 // model needs the freed context), from settle when a turn ends with the
 // context over threshold and nothing queued, and from the manual /compact
 // command. It is where the running-tool row and the purple status come from:
-// a pass is an LLM call now, so it must not block the update loop.
+// a pass is an LLM call now, so it must not block the update loop. When the
+// evicted middle is too small to plausibly land the conversation under the
+// threshold, the pass skips the summarizer and masks what little old turns
+// hold instead — see evictionCanLandUnder/maskOnlyPass in compact_light.go.
 //
 // The pass is two-stage and tiered, the way the research on long-running
 // agents lands. The summarization stage runs first, on its own goroutine,
@@ -146,6 +149,9 @@ func (m *Model) beginCompaction(ctx context.Context) tea.Cmd {
 	evictCut := alignedEvictCut(m.conversation, len(m.conversation)-keepCount(len(m.conversation)))
 	if evictCut <= 0 || m.compacting {
 		return nil
+	}
+	if !m.evictionCanLandUnder(evictCut) {
+		return m.maskOnlyPass(evictCut)
 	}
 
 	m.compacting = true
@@ -184,26 +190,8 @@ func runCompaction(m *Model, ctx context.Context, results chan compactOutcome, e
 	results <- outcome
 }
 
-// summarizer builds the small, tool-free agent asked to compact the evicted
-// middle, billed like the work it protects, and nil when there is no backend
-// — tests and offline runs mask instead. Reasoning is turned off: that
-// output budget is the summary's, not a chain of thought's.
-func (m *Model) summarizer() *nacelle.Agent {
-	if m.agent == nil {
-		return nil
-	}
-	agent, err := nacelle.New(nacelle.Config{
-		Backend:       m.agent.Backend(),
-		System:        compactSystem,
-		Thinking:      nacelle.Thinking{Effort: nacelle.EffortNone},
-		MaxTokens:     compactMaxTokens,
-		MaxIterations: 1,
-	})
-	if err != nil {
-		return nil
-	}
-	return agent
-}
+// summarizer is in compact_light.go, beside the light lever and the pass-skip
+// gate that decide whether it is spent.
 
 // settleCompaction installs a finished pass and starts the run that was
 // waiting on the freed context, or on the idle path sends the lines the
