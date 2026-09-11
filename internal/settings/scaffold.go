@@ -1,4 +1,3 @@
-// First-boot scaffolding: the explicit-defaults config file.
 package settings
 
 import (
