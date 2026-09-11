@@ -17,14 +17,17 @@ import (
 // owns the title path.
 
 // subagentUpdate is one nested task's live progress: which fan-out, which task,
-// and either the tool it is running now (spend false) or an incremental turn
-// spend (spend true). Both fold into the same row without growing the switch.
+// and either the tool it is running now (plain), an incremental turn spend
+// (spend true), or the completion of the running tool (fin true). All three fold
+// into the same row without growing the switch.
 type subagentUpdate struct {
 	batch string
 	idx   int
 	tool  string
 	usage nacelle.Usage
 	spend bool
+	fin   bool
+	err   string
 }
 
 // subagentUpdates is the channel the delegated fan-outs' live updates arrive on,
@@ -44,6 +47,18 @@ func watchUpdates() tea.Cmd {
 // host with several overlapping fan-outs routes each call to the right batch.
 func ReportSubagentTool(batch string, idx int, tool string) {
 	subagentUpdates <- subagentUpdate{batch: batch, idx: idx, tool: tool}
+}
+
+// ReportSubagentDone is mounted as the parallel tool's ToolDone hook: nacelle
+// calls it on each nested task's stream as a tool finishes, tagged exactly like
+// ReportSubagentTool but carrying the call's error, empty on success. The row
+// colours its glyph green or red from it while the task keeps running.
+func ReportSubagentDone(batch string, idx int, tool string, err error) {
+	msg := ""
+	if err != nil {
+		msg = err.Error()
+	}
+	subagentUpdates <- subagentUpdate{batch: batch, idx: idx, tool: tool, fin: true, err: msg}
 }
 
 // ReportSubagentUsage is mounted as the parallel tool's LiveUsage hook: nacelle
@@ -66,8 +81,15 @@ func (m *Model) recordUpdate(u subagentUpdate) tea.Cmd {
 	if u.spend {
 		pt.Usage = pt.Usage.Add(u.usage)
 		m.foldSubagentSpend(pt, u)
+	} else if u.fin {
+		if u.err == "" {
+			pt.ToolOut = "ok"
+		} else {
+			pt.ToolOut = u.err
+		}
 	} else {
 		pt.Tool = u.tool
+		pt.ToolOut = ""
 	}
 	return watchUpdates()
 }

@@ -90,9 +90,14 @@ type parallelTaskInfo struct {
 	Usage  nacelle.Usage
 	Title  string
 	Tool   string
-	Began  time.Time
-	End    time.Time
-	Active bool
+	// ToolOut is the running tool's completion state: empty while the call is
+	// still going, "ok" when it succeeded, and the error text when it failed.
+	// The row colours the tool's glyph from it — tool tone, green, red — while
+	// the task itself keeps running.
+	ToolOut string
+	Began   time.Time
+	End     time.Time
+	Active  bool
 	// Ledgered is how much of this task's usage has already been folded into
 	// the session total via live spend updates. A detached fan-out's spend
 	// joins m.spent as it streams; finishDetached adds only the residual,

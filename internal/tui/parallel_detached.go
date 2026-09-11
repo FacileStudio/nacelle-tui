@@ -60,6 +60,9 @@ func (m *Model) launchDetached(tasks []string) tea.Cmd {
 			LiveUsage: func(batch string, idx int, usage nacelle.Usage) {
 				subagentUpdates <- subagentUpdate{batch: id, idx: idx, usage: usage, spend: true}
 			},
+			ToolDone: func(batch string, idx int, tool string, err error) {
+				ReportSubagentDone(id, idx, tool, err)
+			},
 		})
 		if err != nil {
 			detached <- detachedResult{batch: id, idx: -1, err: err.Error()}

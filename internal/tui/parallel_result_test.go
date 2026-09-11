@@ -27,12 +27,15 @@ func TestParallelTasksViewRendersOneCompactLinePerTask(t *testing.T) {
 		t.Fatalf("view = %q, want one row per task", got)
 	}
 	for _, line := range lines {
-		if !strings.Contains(line, "≫") {
-			t.Errorf("line %q missing the ≫ glyph", line)
+		if strings.Contains(line, "≫") {
+			t.Errorf("line %q still uses the ≫ glyph, want a spinner", line)
+		}
+		if !strings.HasPrefix(line, m.spin.View()) {
+			t.Errorf("line %q does not lead with a spinner", line)
 		}
 	}
-	if !strings.Contains(raw, "\x1b[33m≫") {
-		t.Errorf("glyph not styled yellow: %q", raw)
+	if !strings.Contains(raw, "\x1b[33m"+m.spin.View()) {
+		t.Errorf("spinner not styled yellow: %q", raw)
 	}
 }
 
@@ -201,31 +204,23 @@ func TestRecordUpdateIgnoresFinishedTool(t *testing.T) {
 	}
 }
 
-// The row shows the subagent's currently-running tool after the title's colon,
-// coloured by the tool's own rules, with the short summary as the title.
-func TestParallelTaskRowShowsTheRunningTool(t *testing.T) {
+// A tool-completion update marks the running tool finished with its outcome, so
+// the row's glyph can flip green or red while the task keeps running. The begin
+// update that follows resets the slot for the next call.
+func TestRecordUpdateAppliesAToolCompletion(t *testing.T) {
 	m := sized()
 	m.parallelTasks = make(map[string][]parallelTaskInfo)
-	m.parallelTasks["t0"] = make([]parallelTaskInfo, 1)
-	m.parallelTasks["t0"][0] = parallelTaskInfo{
-		Task:   "analyze the codebase for todos",
-		Title:  "scan site for todos",
-		Tool:   "run_command",
-		Began:  time.Now(),
-		Active: true,
+	m.parallelTasks["d0"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["d0"][0] = parallelTaskInfo{Task: "one", Tool: "read_file", Active: true}
+
+	m.recordUpdate(subagentUpdate{batch: "d0", idx: 0, tool: "read_file", fin: true, err: "boom"})
+	if m.parallelTasks["d0"][0].ToolOut != "boom" {
+		t.Errorf("completion not recorded: %q", m.parallelTasks["d0"][0].ToolOut)
 	}
 
-	raw := m.taskRow(m.parallelTasks["t0"][0])
-	got := visible(raw)
-
-	if !strings.Contains(got, "≫ scan site for todos:") {
-		t.Errorf("row = %q, want the short title followed by a colon", got)
-	}
-	if !strings.Contains(got, "run_command") {
-		t.Errorf("row = %q, want the running tool name", got)
-	}
-	if !strings.Contains(raw, "\x1b[35mrun_command") {
-		t.Errorf("running tool not coloured with its tool tone: %q", raw)
+	m.recordUpdate(subagentUpdate{batch: "d0", idx: 0, tool: "edit_file"})
+	if m.parallelTasks["d0"][0].ToolOut != "" {
+		t.Errorf("a new tool begin should reset the completion marker: %q", m.parallelTasks["d0"][0].ToolOut)
 	}
 }
 

@@ -146,10 +146,15 @@ func tasksNote() string {
 // and the results land as they finish. A model that keeps planning and issuing
 // more calls after the stub is one that holds the main thread open for nothing.
 func parallelNote() string {
-	return "\nparallel_subagent is non-blocking: it returns a stub and the subagents " +
-		"keep running after your answer ends. Dispatch what you need, then wrap up " +
-		"your turn — do not keep planning or issuing further work after the fan-out " +
-		"has started unless the user asked you to.\n"
+	return "\nparallel_subagent is non-blocking and return-control: once you " +
+		"dispatch a fan-out the harness ends your turn and returns the prompt to " +
+		"ready, so the subagents grind under it. Do not keep calling tools, " +
+		"reading the subagents' files, or planning further work after the fan-out has " +
+		"started — the results stream back to the harness, not to your turn, and it " +
+		"re-engages you to synthesize them when they finish. If the person wants the " +
+		"main thread on something else while the subagents run, that is their next input, " +
+		"not work you should continue on your own. Only keep working if the message that " +
+		"asked for the dispatch explicitly told you to do another task too.\n"
 }
 
 func bashRules(config Config) string {

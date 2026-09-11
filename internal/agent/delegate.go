@@ -25,11 +25,17 @@ func withSubagents(config settings.Config, backend nacelle.Backend, local []nace
 		Tools:         local,
 		MaxIterations: *config.MaxIterations,
 	}, nacelle.ParallelSubAgentOptions{
+		Description: "Delegate independent sub-tasks to parallel assistant runs. " +
+			"Each task runs in its own agent concurrently; dispatch them, then end your turn and " +
+			"return to ready — the person's next input covers any concurrent work, and the harness " +
+			"hands you the completed results to synthesize when they finish. Do not keep planning or " +
+			"issuing further tool calls after the fan-out has started.",
 		Approve:   delegateApprovals(approve),
 		Usage:     tui.DelegateUsage,
 		Detach:    true,
 		Results:   tui.PostDetached,
 		Tool:      tui.ReportSubagentTool,
+		ToolDone:  tui.ReportSubagentDone,
 		LiveUsage: tui.ReportSubagentUsage,
 	})
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 	"github.com/FacileStudio/nacelle"
 	"github.com/FacileStudio/nacelle-tui/internal/layout"
 	"github.com/FacileStudio/nacelle-tui/internal/status"
-	"github.com/FacileStudio/nacelle-tui/internal/toolview"
 )
 
 // parallelTasksView returns a view of the parallel subagent tasks, one line per
@@ -41,9 +40,10 @@ var whiteClock = lipgloss.NewStyle().Foreground(lipgloss.Color("15"))
 
 func (m *Model) taskRow(pt parallelTaskInfo) string {
 	const gap = 3
+	marker := m.parallelMarker(pt)
 	tool := ""
-	if pt.Tool != "" {
-		tool = " " + toolview.ToolTone(pt.Tool).Render(pt.Tool)
+	if glyph := m.parallelGlyph(pt); glyph != "" {
+		tool = " " + glyph
 	}
 	clock := whiteClock.Render(taskClock(pt))
 	spend := ""
@@ -52,14 +52,17 @@ func (m *Model) taskRow(pt parallelTaskInfo) string {
 	}
 	tail := strings.TrimSpace(spend + clock)
 	room := max(m.width-lipgloss.Width(tool)-lipgloss.Width(tail)-gap, 0)
-	title := layout.Truncate(taskTitle(pt), max(room-3, 0))
-	left := taskTone(pt).Render("≫ " + title + ":")
+	title := layout.Truncate(taskTitle(pt), max(room-lipgloss.Width(marker)-1, 0))
+	left := marker + " " + taskTone(pt).Render(title+":")
 	pad := max(m.width-lipgloss.Width(left)-lipgloss.Width(tool)-lipgloss.Width(tail), 0)
 	return left + tool + strings.Repeat(" ", pad) + tail
 }
 
 func taskTone(pt parallelTaskInfo) lipgloss.Style {
 	if !pt.Active {
+		if pt.Err != "" {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+		}
 		return lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("3"))

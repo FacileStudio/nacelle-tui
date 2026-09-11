@@ -142,6 +142,7 @@ func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 func (m *Model) absorbToolResult(tool nacelle.ToolEvent, rawResult string) {
 	if tool.Name == "parallel_subagent" {
 		m.startDetachedParent(tool, rawResult)
+		m.relaxAfterDispatch()
 	}
 	m.run.finishTool(tool)
 	m.finished(&tool)

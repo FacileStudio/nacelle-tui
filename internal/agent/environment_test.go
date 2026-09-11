@@ -80,7 +80,7 @@ func TestEnvironmentTeachesBatchingIndependentToolCalls(t *testing.T) {
 func TestEnvironmentSaysAParallelFanOutEndsTheTurn(t *testing.T) {
 	got := environment(withApproval(false), time.Now())
 
-	for _, want := range []string{"non-blocking", "wrap up"} {
+	for _, want := range []string{"non-blocking and return-control", "ends your turn"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("environment() = %q, want it to tell the model a dispatched fan-out is the point to stop, with %q", got, want)
 		}
