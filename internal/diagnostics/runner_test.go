@@ -25,6 +25,29 @@ func nextCall(t *testing.T, calls <-chan context.Context) context.Context {
 	}
 }
 
+func TestInjectChecksOnlyTheRequestedPath(t *testing.T) {
+	scope := t.Name()
+	dirty := scope + "/dirty.go"
+	clean := scope + "/clean.go"
+	var saw []string
+	stubFilet(t, func(_ context.Context, s string) runOutput {
+		saw = append(saw, s)
+		if s == dirty {
+			return runOutput{code: 1, stdout: dirty + ":1:1: error: one [r]\n"}
+		}
+		return runOutput{code: 0}
+	})
+	if got := Inject(context.Background(), clean); got != cleanLine {
+		t.Errorf("Inject(clean.go) = %q, want silence: findings from dirty.go leaked into a clean file's check", got)
+	}
+	if got := Inject(context.Background(), dirty); !strings.Contains(got, "one") {
+		t.Errorf("Inject(dirty.go) = %q, want its own finding", got)
+	}
+	if len(saw) != 2 || saw[0] != clean || saw[1] != dirty {
+		t.Errorf("scopes checked = %v, want exactly [%s %s] with no repo-wide call", saw, clean, dirty)
+	}
+}
+
 func TestInjectSuppressesRepeatsForOnePath(t *testing.T) {
 	scope := t.Name()
 	stubFilet(t, func(context.Context, string) runOutput {
