@@ -6,6 +6,19 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.48.1] - 2026-09-11
+
+### Fixed
+- **The diff recap footer reads `+n -n`**: one margin space after the spine,
+  one space between the counters (joined with the block background, not a
+  bare reset), instead of two leading spaces and glued figures.
+- **The input prompt's margin space sits inside the backdrop**, so the
+  background bar starts flush against the `▌` spine instead of the gap
+  floating on the terminal's default background.
+- `main.go`'s fallback version string now matches the tag (it trailed at
+  `v0.47.0` through the `0.48.0` release; GoReleaser's ldflags override hid
+  it).
+
 ## [0.48.0] - 2026-09-11
 
 ### Added

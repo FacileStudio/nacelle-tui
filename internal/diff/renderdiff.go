@@ -113,11 +113,11 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 	return toolview.Box(rows, borderColor, transparent, width)
 }
 
-// recap is the box's footer: "+x -y", additions counted in green and removals
-// in red, sharing the block background with the header. Each figure fragment
-// ends in a full reset, so the space joining them must carry the block
-// background itself — a literal space would render bare on the terminal's
-// default background, a visibly different patch in the pane.
+// recap is the box's footer: one margin space, then "+x -y", additions counted
+// in green and removals in red, sharing the block background with the header.
+// Each figure fragment ends in a full reset, so the space joining them must
+// carry the block background itself — a literal space would render bare on the
+// terminal's default background, a visibly different patch in the pane.
 func recap(change EditChange, muted lipgloss.Style, content int, transparent bool) string {
 	added, removed := CountChange(change)
 	var parts []string
@@ -127,7 +127,8 @@ func recap(change EditChange, muted lipgloss.Style, content int, transparent boo
 	if removed > 0 {
 		parts = append(parts, toolview.MatchBackground(lipgloss.NewStyle().Foreground(lipgloss.Color("9")), transparent).Render("-"+strconv.Itoa(removed)))
 	}
-	return cell(block(muted, transparent), "  "+strings.Join(parts, ""), content)
+	gap := block(muted, transparent).Render(" ")
+	return cell(block(muted, transparent), " "+strings.Join(parts, gap), content)
 }
 
 // renderBlock appends one hunk's rows to the box, stopping at the display cap

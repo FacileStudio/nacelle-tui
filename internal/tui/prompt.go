@@ -60,10 +60,11 @@ func promptBackdrop() lipgloss.Style {
 const promptBgClear = "\x1b[49m"
 
 // promptBorder is the gutter for every row: a single white ▌ with no
-// background, then one margin space, so no row of the input sits flush
-// against the left edge.
+// background, then one margin space painted with the input's backdrop, so the
+// background bar starts flush against the spine and the gap reads as part of
+// the field.
 func promptBorder(spine lipgloss.Style) func(textarea.PromptInfo) string {
-	border := promptBgClear + spine.Render("▌") + " "
+	border := promptBgClear + spine.Render("▌") + promptBackdrop().Render(" ")
 	return func(textarea.PromptInfo) string {
 		return border
 	}
