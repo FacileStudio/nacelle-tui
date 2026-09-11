@@ -50,7 +50,7 @@ func TestADiffSitsInAFullWidthBoxWithAColouredSpine(t *testing.T) {
 	diff := RenderDiff(change, 40, "32", muted)
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(diff, "\n"), "\n") {
-		if !strings.HasPrefix(plain(line), "│") {
+		if !strings.HasPrefix(plain(line), "▌") {
 			t.Errorf("line %q lacks the left border", line)
 		}
 		if width := len([]rune(plain(line))); width != 40 {
@@ -93,6 +93,11 @@ func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
 	}
 	if !strings.Contains(recap, "92;48;5;237") || !strings.Contains(recap, "91;48;5;237") {
 		t.Errorf("recap = %q, want both counts on the block background", recap)
+	}
+	// Each figure ends in a full reset, so the space between them must be styled
+	// onto the block background itself, not left bare on the terminal default.
+	if !strings.Contains(recap, "48;5;237m \x1b[m") {
+		t.Errorf("recap = %q, want the gap between the counts on the block background", recap)
 	}
 }
 

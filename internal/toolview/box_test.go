@@ -7,9 +7,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// Box draws one full-width pane per row: a box-drawing vertical spine in the
-// caller's colour over the shared block background, then the row itself, each
-// ending in a newline so a joined block gets a blank row after it.
+// Box draws one full-width pane per row: a heavy box-drawing vertical spine in
+// the caller's colour over the shared block background, then the row itself,
+// each ending in a newline so a joined block gets a blank row after it.
 func TestBoxRendersOneSpinePerRow(t *testing.T) {
 	out := Box([]string{"one", "two"}, "2")
 	if !strings.HasSuffix(out, "\n") {
@@ -21,7 +21,7 @@ func TestBoxRendersOneSpinePerRow(t *testing.T) {
 	}
 	for _, row := range lines {
 		clean := ansi.Strip(row)
-		if !strings.HasPrefix(clean, "│") {
+		if !strings.HasPrefix(clean, "▌") {
 			t.Errorf("row %q lacks the box-drawing left spine", row)
 		}
 		if !strings.Contains(row, "48;5;237") {
@@ -36,16 +36,16 @@ func TestBoxRendersOneSpinePerRow(t *testing.T) {
 // orange pass through untouched. Foreground and background combine into one
 // SGR sequence, so the border row opens with it.
 func TestBoxSpineColoursAreTheTrueHues(t *testing.T) {
-	if !strings.Contains(Box([]string{"x"}, "2"), "\x1b[32;48;5;237m│") {
+	if !strings.Contains(Box([]string{"x"}, "2"), "\x1b[32;48;5;237m▌") {
 		t.Errorf("Box(green) missed the true SGR green spine")
 	}
-	if !strings.Contains(Box([]string{"x"}, "1"), "\x1b[31;48;5;237m│") {
+	if !strings.Contains(Box([]string{"x"}, "1"), "\x1b[31;48;5;237m▌") {
 		t.Errorf("Box(red) missed the true SGR red spine")
 	}
-	if !strings.Contains(Box([]string{"x"}, "5"), "\x1b[35;48;5;237m│") {
+	if !strings.Contains(Box([]string{"x"}, "5"), "\x1b[35;48;5;237m▌") {
 		t.Errorf("Box(magenta) missed the true SGR magenta spine")
 	}
-	if !strings.Contains(Box([]string{"x"}, "208"), "\x1b[38;5;208;48;5;237m│") {
+	if !strings.Contains(Box([]string{"x"}, "208"), "\x1b[38;5;208;48;5;237m▌") {
 		t.Errorf("Box(208) missed the ANSI256 orange spine")
 	}
 	if strings.Contains(Box([]string{"x"}, "2"), "38;5;32") {

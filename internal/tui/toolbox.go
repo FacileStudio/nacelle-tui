@@ -121,7 +121,7 @@ func (m *Model) liveOutputRows(g toolGroup) []string {
 		return nil
 	}
 	content := max(m.width-1, 10)
-	base := m.theme.Muted.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
+	base := m.theme.Plain.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 	rows := make([]string, 0, min(len(lines), commandLineCap))
 	for i, ln := range lines {
@@ -141,7 +141,7 @@ func (m *Model) outputBox(result string, ok bool) string {
 		return ""
 	}
 	content := max(m.width-1, 10)
-	base := m.theme.Muted.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
+	base := m.theme.Plain.Background(lipgloss.Color(toolview.BlockBg)).Width(content)
 	lines := strings.Split(strings.TrimSuffix(result, "\n"), "\n")
 	rows := make([]string, 0, min(len(lines), commandLineCap)+1)
 	for i, ln := range lines {

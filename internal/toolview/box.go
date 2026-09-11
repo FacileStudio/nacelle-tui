@@ -12,8 +12,12 @@ import (
 // out from the surrounding transcript.
 const BlockBg = "237"
 
-// borderChar is the left spine of a tool block, one column wide.
-const borderChar = "│"
+// borderChar is the left spine of a tool block, one column wide. It is the
+// left half-block (▌): a solid filled bar a full cell tall, so it reads as a
+// genuinely thick pane edge no matter how the terminal's box-drawing glyphs
+// set their weights. The light (│) and heavy (┃) verticals both render at the
+// same hairline in many monospace fonts.
+const borderChar = "▌"
 
 // Box renders a full-width, left-bordered container for one tool's result or
 // diff. Besides a single-column border each row is expected to already carry

@@ -26,10 +26,10 @@ func TestARunCommandOutputRendersAsABox(t *testing.T) {
 		t.Errorf("output = %q, want the command's output in the box", visible(said))
 	}
 	for line := range strings.SplitSeq(said, "\n") {
-		if !strings.HasPrefix(visible(line), "│") {
+		if !strings.HasPrefix(visible(line), "▌") {
 			continue
 		}
-		if !strings.HasPrefix(line, "\x1b[32;48;5;237m│") {
+		if !strings.HasPrefix(line, "\x1b[32;48;5;237m▌") {
 			t.Errorf("box row = %q, want the success box's green SGR spine", line)
 		}
 		if len([]rune(visible(line))) != 80 {
@@ -56,7 +56,7 @@ func TestAFailedRunCommandRendersARedOutputBox(t *testing.T) {
 		t.Errorf("output = %q, want the failed command's output in a box", visible(said))
 	}
 	for line := range strings.SplitSeq(said, "\n") {
-		if strings.HasPrefix(visible(line), "│") && !strings.HasPrefix(line, "\x1b[31;48;5;237m│") {
+		if strings.HasPrefix(visible(line), "▌") && !strings.HasPrefix(line, "\x1b[31;48;5;237m▌") {
 			t.Errorf("box row = %q, want the failure box's red SGR spine", line)
 		}
 	}
@@ -91,7 +91,7 @@ func TestTheLiveBoxWearsTheToolColourWhileRunning(t *testing.T) {
 	m.absorb(called("l", "edit_file", `{"path":"view.go"}`))
 
 	view := m.View().Content
-	if !strings.Contains(view, "\x1b[35;48;5;237m│") {
+	if !strings.Contains(view, "\x1b[35;48;5;237m▌") {
 		t.Errorf("view = %q, want the running edit box's magenta spine", view)
 	}
 	if !strings.Contains(view, "\x1b[35m✎") {
@@ -109,7 +109,7 @@ func TestANonEditToolIsNotBoxedWhileRunning(t *testing.T) {
 	m.run.busy = true
 	m.absorb(called("r", "read_file", `{"path":"view.go"}`))
 
-	if strings.Contains(m.View().Content, "│") {
+	if strings.Contains(m.View().Content, "▌") {
 		t.Error("a read call was boxed, want the ordinary held line")
 	}
 }
@@ -123,7 +123,7 @@ func TestARunCommandWithNoOutputRendersNoBox(t *testing.T) {
 		ID: "x", Name: "run_command", Input: `{"command":"true"}`, Result: "",
 	}})
 
-	if strings.Contains(visible(strings.Join(m.unprinted, "\n")), "│") {
+	if strings.Contains(visible(strings.Join(m.unprinted, "\n")), "▌") {
 		t.Error("a command with no output still drew a box")
 	}
 }
@@ -182,7 +182,7 @@ func TestStreamedFragmentsFillTheLiveBoxOneRowEach(t *testing.T) {
 	}
 	rows := 0
 	for line := range strings.SplitSeq(view, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "│") {
+		if strings.HasPrefix(strings.TrimSpace(line), "▌") {
 			rows++
 		}
 	}
@@ -212,7 +212,7 @@ func TestStreamedFragmentsStaySeparateRowsInTheFinishedBox(t *testing.T) {
 	said := visible(strings.Join(m.unprinted, "\n"))
 	rows := 0
 	for line := range strings.SplitSeq(said, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "│") {
+		if strings.HasPrefix(strings.TrimSpace(line), "▌") {
 			rows++
 		}
 	}
@@ -220,7 +220,7 @@ func TestStreamedFragmentsStaySeparateRowsInTheFinishedBox(t *testing.T) {
 		t.Errorf("output = %q, want 4 finished box rows, got %d", said, rows)
 	}
 	raw := strings.Join(m.unprinted, "\n")
-	if !strings.Contains(raw, "\x1b[32;48;5;237m│") {
+	if !strings.Contains(raw, "\x1b[32;48;5;237m▌") {
 		t.Errorf("output = %q, want the finished streamed box's green spine", raw)
 	}
 	if strings.Contains(said, "syntax okcompilinglinkingdone") {
@@ -237,7 +237,7 @@ func TestTheLiveBoxBorderUsesTheToolsOwnColourForRunCommandToo(t *testing.T) {
 	m.absorb(called("c", "run_command", `{"command":"make"}`))
 
 	view := m.View().Content
-	if !strings.Contains(view, "\x1b[35;48;5;237m│") {
+	if !strings.Contains(view, "\x1b[35;48;5;237m▌") {
 		t.Errorf("view = %q, want the running command box's magenta spine", view)
 	}
 	if strings.Contains(view, "38;5;3") {

@@ -104,7 +104,10 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 }
 
 // recap is the box's footer: "+x -y", additions counted in green and removals
-// in red, sharing the block background with the header.
+// in red, sharing the block background with the header. Each figure fragment
+// ends in a full reset, so the space joining them must carry the block
+// background itself — a literal space would render bare on the terminal's
+// default background, a visibly different patch in the pane.
 func recap(change EditChange, muted lipgloss.Style, content int) string {
 	added, removed := CountChange(change)
 	var parts []string
@@ -114,7 +117,8 @@ func recap(change EditChange, muted lipgloss.Style, content int) string {
 	if removed > 0 {
 		parts = append(parts, remFg.Render("-"+fmt.Sprintf("%d", removed)))
 	}
-	return cell(block(muted), "  "+strings.Join(parts, " "), content)
+	sep := block(muted).Render(" ")
+	return cell(block(muted), "  "+strings.Join(parts, sep), content)
 }
 
 // renderBlock appends one hunk's rows to the box, stopping at the display cap
