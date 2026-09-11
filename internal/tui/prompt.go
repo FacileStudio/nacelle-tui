@@ -31,7 +31,7 @@ func newPrompt(placeholder string, muted lipgloss.Style) textarea.Model {
 	prompt.DynamicHeight = true
 	prompt.MinHeight = minHeightRows
 	prompt.MaxHeight = promptRows
-	prompt.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("alt+enter"))
+	prompt.KeyMap.InsertNewline = key.NewBinding(key.WithKeys("alt+enter", "shift+enter"))
 	prompt.SetVirtualCursor(false)
 	backdrop := promptBackdrop()
 	styles := prompt.Styles()

@@ -85,7 +85,7 @@ func (m *Model) promptKey(press tea.KeyPressMsg) (bool, tea.Cmd) {
 		return m.escaped()
 	case "tab":
 		return m.tabKey(), nil
-	case "alt+enter":
+	case "alt+enter", "shift+enter":
 		return false, nil
 	case "enter":
 		return true, m.ask()
