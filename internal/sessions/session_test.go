@@ -133,6 +133,11 @@ func TestRestoreAtLaunch(t *testing.T) {
 		t.Errorf("explicit resume = %v/%q/%q, want one message and no error", convo, name, err)
 	}
 
+	convo, name, err = RestoreAtLaunch(log.Path(), "/repo", false)
+	if convo == nil || len(convo) != 1 || name == "" || err != "" {
+		t.Errorf("absolute-path resume = %v/%q/%q, want one message and no error", convo, name, err)
+	}
+
 	convo, name, err = RestoreAtLaunch("", "/repo", true)
 	if convo == nil || len(convo) != 1 || name == "" || err != "" {
 		t.Errorf("auto resume = %v/%q/%q, want the newest session and no error", convo, name, err)

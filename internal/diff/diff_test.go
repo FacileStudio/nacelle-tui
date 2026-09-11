@@ -83,6 +83,10 @@ func TestARecapSumsAddedAndRemovedLines(t *testing.T) {
 	}
 }
 
+// TestARecapPutsBothCountsOnTheBlockBackground also checks the gap between the
+// two figures: each figure ends in a full reset, so the space joining them must
+// be styled onto the block background itself, not left bare on the terminal
+// default, which would read as a visibly different patch in the pane.
 func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
 	change := EditChange{Path: "f", Before: "a\nb\n", After: "a\nc\n"}
 	var recap string
@@ -94,8 +98,6 @@ func TestARecapPutsBothCountsOnTheBlockBackground(t *testing.T) {
 	if !strings.Contains(recap, "92;48;5;237") || !strings.Contains(recap, "91;48;5;237") {
 		t.Errorf("recap = %q, want both counts on the block background", recap)
 	}
-	// Each figure ends in a full reset, so the space between them must be styled
-	// onto the block background itself, not left bare on the terminal default.
 	if !strings.Contains(recap, "48;5;237m \x1b[m") {
 		t.Errorf("recap = %q, want the gap between the counts on the block background", recap)
 	}

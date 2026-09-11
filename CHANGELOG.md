@@ -4,6 +4,26 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.41.1] - 2026-09-11
+
+### Added
+- **herdr integration documented.** When run inside herdr, nacelle reports its
+  live state and session identity over herdr's socket API; the README now notes
+  this and the one-keystroke restore path after a herdr server restart.
+
+### Changed
+- **The tool box panes read as a solid block under any font.** The left spine is
+  now the half-block (`▌`) — a full-cell bar — instead of a box-drawing vertical
+  that renders at a hairline in many monospace fonts, `run_command` output draws
+  in the terminal-default foreground rather than a muted grey, and the diff
+  recap's `+x -y` join space carries the block background so the footer no
+  longer patches a bare gap.
+
+### Fixed
+- **Resume by absolute transcript path is pinned.** The herdr reporter hands
+  herdr the session's absolute `.jsonl` path; a test now proves that exact form
+  (not just a basename) round-trips through `--resume`.
+
 ## [0.41.0] - 2026-09-11
 
 ### Changed

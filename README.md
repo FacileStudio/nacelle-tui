@@ -98,6 +98,22 @@ Settings live in `~/.nacelle.yml`, created with defaults the first time a
 setting needs writing. Hook trust decisions live in `~/.nacelle/trust.json`,
 keyed by project path and file hash, remembering trust decisions per project.
 
+## herdr
+
+Run inside [herdr](https://herdr.dev), `nacelle` reports its live state and
+session identity over herdr's socket API (`internal/herdr/`). A nacelle pane
+shows as an agent with an idle / working / blocked state, and herdr holds a
+reference to the run's transcript. This needs no herdr binary update and works
+on any machine, including stock herdr.
+
+After a herdr **server restart**, herdr restores a nacelle pane as a plain
+shell in its saved directory — nacelle is not in herdr's compiled-in resume
+table, and no config or plugin adds it. Reopen the session in that directory
+with `nacelle` (auto-resumes the newest session by cwd) or
+`nacelle --resume <transcript-path>`. Real auto-restore awaits herdr adding
+nacelle to its resume table; `--resume` already accepts the exact absolute
+transcript path the reporter reports.
+
 ## Structure
 
 ```
@@ -120,6 +136,7 @@ internal/thinking/  Collapsible reasoning viewport
 internal/toolview/  Compact and grouped tool rendering
 internal/tui/       Bubble Tea v2 model, key handling, rendering, slash commands
 internal/usage/     Token accounting and context window headroom
+internal/herdr/     Reports agent state and session identity to herdr over its socket API
 ```
 
 ---
