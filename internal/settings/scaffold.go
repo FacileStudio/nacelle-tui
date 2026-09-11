@@ -46,13 +46,13 @@ discovery:
   trust_hooks: false
 
 ui:
-  rendering_mode: inline
+  rendering_mode: tui
   group_tools: true
   show_thinking: true
   diffs: true
   prompt_placeholder: "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
   start_message: ""
-  transparent_blocks: false
+  transparent_blocks: true
   cron_list_json: false
 
 sources:

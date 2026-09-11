@@ -103,7 +103,7 @@ func (m *Model) inFlightGroup(g toolGroup) string {
 	if len(rows) == 0 {
 		return ""
 	}
-	return toolview.Box(rows, toolview.ToolBorder(), m.transparent)
+	return toolview.Box(rows, toolview.ToolBorder(), m.transparent, max(m.width, 10))
 }
 
 // liveOutputRows are the streamed output lines of a running run_command, ready
@@ -149,5 +149,5 @@ func (m *Model) outputBox(result string, ok bool) string {
 		}
 		rows = append(rows, base.Render("  "+truncate(unstyled(strings.ReplaceAll(ln, "\r", "")), content-2)))
 	}
-	return toolview.Box(rows, boxBorder(ok), m.transparent)
+	return toolview.Box(rows, boxBorder(ok), m.transparent, max(m.width, 10))
 }

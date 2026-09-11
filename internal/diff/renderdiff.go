@@ -108,7 +108,7 @@ func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss
 		}
 	}
 	rows = append(rows, recap(change, muted, content, transparent))
-	return toolview.Box(rows, borderColor, transparent)
+	return toolview.Box(rows, borderColor, transparent, width)
 }
 
 // recap is the box's footer: "+x -y", additions counted in green and removals

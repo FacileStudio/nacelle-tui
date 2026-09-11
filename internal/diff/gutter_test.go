@@ -34,10 +34,10 @@ func TestDiffLineNumsCountsALargeReplacement(t *testing.T) {
 }
 
 func TestGutterRightAlignsNumberAndMarker(t *testing.T) {
-	if gutter(3, 2, "-") != " 3 - " {
-		t.Errorf("gutter = %q, want a right-aligned number before the marker", gutter(3, 2, "-"))
+	if gutter(3, 2, "-") != "  3 - " {
+		t.Errorf("gutter = %q, want a space, then the right-aligned number before the marker", gutter(3, 2, "-"))
 	}
-	if gutter(5, 1, " ") != "5   " {
+	if gutter(5, 1, " ") != " 5   " {
 		t.Errorf("gutter = %q, want the marker column open on context", gutter(5, 1, " "))
 	}
 }

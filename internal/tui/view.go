@@ -79,6 +79,7 @@ func (m *Model) belowContent() string {
 	return strings.Join(below, "\n")
 }
 
+// reflowHold re-wraps the alternate-screen transcript for the new width. The
 func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
 	widthChanged := size.Width != m.width
 	m.width, m.windowHeight = size.Width, size.Height
@@ -89,6 +90,7 @@ func (m *Model) resize(size tea.WindowSizeMsg) tea.Cmd {
 	m.layout(size.Height)
 
 	if widthChanged {
+		m.reflowHold()
 		m.restyle()
 	}
 	return nil
@@ -123,14 +125,5 @@ func (m *Model) printed(text string) tea.Cmd {
 		}
 		return nil
 	}
-	budget := layout.Budget(m.windowHeight, m.frameRows)
-	batches := layout.Batches(text, budget, m.width)
-	cmds := make([]tea.Cmd, 0, len(batches))
-	for _, batch := range batches {
-		cmds = append(cmds, tea.Println(batch))
-	}
-	if len(cmds) == 1 {
-		return cmds[0]
-	}
-	return tea.Sequence(cmds...)
+	return m.printBatches(text)
 }

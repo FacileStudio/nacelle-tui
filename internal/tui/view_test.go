@@ -229,9 +229,10 @@ func TestOnlyPrintedHandsABatchToTheTerminal(t *testing.T) {
 		t.Fatalf("reading directory: %v", err)
 	}
 	set := token.NewFileSet()
+	skip := map[string]bool{"view.go": true, "printbatch.go": true}
 	for _, entry := range entries {
 		name := entry.Name()
-		if !strings.HasSuffix(name, ".go") || name == "view.go" {
+		if !strings.HasSuffix(name, ".go") || skip[name] {
 			continue
 		}
 		parsed, err := parser.ParseFile(set, name, nil, 0)

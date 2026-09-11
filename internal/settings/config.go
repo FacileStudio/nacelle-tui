@@ -165,7 +165,7 @@ func Defaults(system string) Config {
 	fetch := true
 	groupTools, showThinking := true, true
 	cont, resume := false, ""
-	mode, transparent, json := "inline", false, false
+	mode, transparent, json := "tui", true, false
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
 	return Config{

@@ -50,18 +50,18 @@ func TestAMalformedConfigIsAnError(t *testing.T) {
 	}
 }
 
-// The mode setting defaults to inline, is set by the file, overridden by the
+// The mode setting defaults to tui, is set by the file, overridden by the
 // environment, and beaten by the flag — the same linear chain as every other
 // setting.
 func TestModeFallsThroughTheWholeChain(t *testing.T) {
-	written(t, "ui:\n  rendering_mode: inline\n")
-	if config, _ := settings(Config{}); *config.Mode != "inline" {
-		t.Errorf("mode = %q, want inline by default", *config.Mode)
-	}
-
 	written(t, "ui:\n  rendering_mode: tui\n")
 	if config, _ := settings(Config{}); *config.Mode != "tui" {
-		t.Errorf("mode = %q, want the file's tui", *config.Mode)
+		t.Errorf("mode = %q, want tui by default", *config.Mode)
+	}
+
+	written(t, "ui:\n  rendering_mode: inline\n")
+	if config, _ := settings(Config{}); *config.Mode != "inline" {
+		t.Errorf("mode = %q, want the file's inline", *config.Mode)
 	}
 
 	t.Setenv(EnvPrefix+"MODE", "inline")

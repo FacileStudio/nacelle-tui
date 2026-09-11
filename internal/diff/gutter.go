@@ -42,8 +42,10 @@ func gutterWidth(nums []int) int {
 }
 
 // gutter lays out one row's number at the right of the gutter, then the diff
-// marker and a space, so the marker column lines up down the whole pane.
+// marker and a space, so the marker column lines up down the whole pane. A
+// single space opens the gutter, so the numbers sit off the pane's left
+// border instead of against it.
 func gutter(no, ln int, marker string) string {
 	num := strconv.Itoa(no)
-	return strings.Repeat(" ", ln-len(num)) + num + " " + marker + " "
+	return " " + strings.Repeat(" ", ln-len(num)) + num + " " + marker + " "
 }
