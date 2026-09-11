@@ -155,8 +155,7 @@ func (m *Model) beginCompaction(ctx context.Context) tea.Cmd {
 	m.run.compactChan = resultsChan
 
 	go runCompaction(m, ctx, resultsChan, evictCut)
-
-	return waitForCompact(resultsChan)
+	return tea.Batch(waitForCompact(resultsChan), m.spin.Tick)
 }
 
 // runCompaction is the pass's own goroutine. It asks the backend for a
@@ -186,9 +185,9 @@ func runCompaction(m *Model, ctx context.Context, results chan compactOutcome, e
 }
 
 // summarizer builds the small, tool-free agent asked to compact the evicted
-// middle. It runs on the same backend as the session, so the summary is
-// billed exactly like the work it protects, and it is nil when there is no
-// backend — tests and offline runs mask instead of summarizing.
+// middle, billed like the work it protects, and nil when there is no backend
+// — tests and offline runs mask instead. Reasoning is turned off: that
+// output budget is the summary's, not a chain of thought's.
 func (m *Model) summarizer() *nacelle.Agent {
 	if m.agent == nil {
 		return nil
@@ -196,7 +195,7 @@ func (m *Model) summarizer() *nacelle.Agent {
 	agent, err := nacelle.New(nacelle.Config{
 		Backend:       m.agent.Backend(),
 		System:        compactSystem,
-		Thinking:      nacelle.Thinking{},
+		Thinking:      nacelle.Thinking{Effort: nacelle.EffortNone},
 		MaxTokens:     compactMaxTokens,
 		MaxIterations: 1,
 	})
@@ -207,10 +206,10 @@ func (m *Model) summarizer() *nacelle.Agent {
 }
 
 // settleCompaction installs a finished pass and starts the run that was
-// waiting on the freed context. A summary that came back replaces the evicted
-// middle; no summary (no backend, the call failed, or it came back empty)
-// falls back to the mask on the UI thread. Either way the pass reports what
-// it did, and it never leaves the conversation larger than it started.
+// waiting on the freed context, or on the idle path sends the lines the
+// reader typed during the pass. A summary replaces the evicted middle or the
+// mask stands, and it never grows the conversation. Delivery lives here, not
+// chained in settle, where a detached sequence would race this install.
 func (m *Model) settleCompaction(outcome compactOutcome) tea.Cmd {
 	m.compacting = false
 	m.run.compactChan = nil
@@ -227,6 +226,7 @@ func (m *Model) settleCompaction(outcome compactOutcome) tea.Cmd {
 		m.say(fromCompact, compactReport(done))
 	} else {
 		m.applyMaskFallback(outcome)
+		m.say(fromCompact, "compaction summary came back empty — masked instead")
 	}
 
 	m.checkThrash()
@@ -234,7 +234,7 @@ func (m *Model) settleCompaction(outcome compactOutcome) tea.Cmd {
 	if m.run.busy && m.agent != nil {
 		return m.startRun(m.run.bgCtx)
 	}
-	return nil
+	return m.deliver()
 }
 
 // waitForCompact takes exactly one outcome and re-arms itself from Update,

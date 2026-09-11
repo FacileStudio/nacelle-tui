@@ -23,7 +23,7 @@ import (
 type blocking struct{}
 
 func (blocking) Name() string                       { return "blocking" }
-func (blocking) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{} }
+func (blocking) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{Effort: true} }
 
 func (blocking) CountTokens(context.Context, nacelle.Request) (int64, error) { return 0, nil }
 
@@ -41,7 +41,7 @@ func (blocking) Stream(ctx context.Context, _ nacelle.Request) iter.Seq2[nacelle
 type summarizing struct{ answer string }
 
 func (summarizing) Name() string                       { return "summarizing" }
-func (summarizing) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{} }
+func (summarizing) Capabilities() nacelle.Capabilities { return nacelle.Capabilities{Effort: true} }
 
 func (summarizing) CountTokens(context.Context, nacelle.Request) (int64, error) { return 0, nil }
 

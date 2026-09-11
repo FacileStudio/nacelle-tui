@@ -120,8 +120,12 @@ func (m *Model) ongoing() string {
 	return lasted(time.Since(m.run.began))
 }
 
+// spun advances the spinner. A compaction pass keeps it (and the running-row
+// timer that redraws with it) ticking even though run.busy is false on the
+// idle and /compact paths — without it that row freezes at the frame and
+// elapsed time it had when the pass started.
 func (m *Model) spun(message spinner.TickMsg) tea.Cmd {
-	return m.spin.Spun(message, m.run.busy || m.hasLiveParallel())
+	return m.spin.Spun(message, m.run.busy || m.hasLiveParallel() || m.compacting)
 }
 
 func cutShort(stop nacelle.Stop) string {

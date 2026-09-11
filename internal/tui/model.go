@@ -171,13 +171,16 @@ func (m *Model) keyOrPrompt(press tea.KeyPressMsg) tea.Cmd {
 // finishCompaction closes out a finished pass: the run that was holding the
 // channel collapses, and the pending run resumes now that the context is free.
 // Nothing queued means nothing waited on the pass, so there is no run to start.
+// On the idle path — no run waiting — the lines typed while the pass ran are
+// delivered here, exactly as settleCompaction does with an outcome, so a pass
+// that ended without one never strands them.
 func (m *Model) finishCompaction() tea.Cmd {
 	m.compacting = false
 	m.run.compactChan = nil
 	if m.run.busy && m.agent != nil {
 		return m.startRun(m.run.bgCtx)
 	}
-	return nil
+	return m.deliver()
 }
 
 // promptRoute forwards unhandled messages to the prompt and refreshes the dropdown.

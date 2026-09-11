@@ -146,3 +146,36 @@ func TestAskQueuesWhileACompactionIsInFlight(t *testing.T) {
 		t.Errorf("busy = true, want the model left idle so the pass finishes without a run")
 	}
 }
+
+// A line queued during the pass must be sent against the rebuilt conversation
+// once the outcome lands, or it is silently swallowed and the reader has to
+// resend it. Delivery runs inside settleCompaction here, not chained after the
+// pass in settle: a sequence executes on its own goroutine and would race the
+// install, sending against the pre-compaction state or stranding the line.
+func TestSettleCompactionDeliversLinesQueuedDuringThePass(t *testing.T) {
+	m := sized()
+	m.agent = answering(t)
+	m.conversation = bigConversation()
+	m.compacting = true
+
+	m.prompt.SetValue("typed during the pass")
+	m.ask()
+	if m.Len() != 1 {
+		t.Fatalf("queue = %d, want the typed line queued while the pass runs", m.Len())
+	}
+
+	outcome := compactOutcome{before: int64(125_000), evictCut: len(m.conversation) - keepCount(len(m.conversation)), summary: "Decisions:\n- done."}
+	m.settleCompaction(outcome)
+	defer m.run.cancel()
+
+	if m.compacting {
+		t.Errorf("compacting still true after the outcome is installed")
+	}
+	if m.Len() != 0 {
+		t.Errorf("queue = %d, want the queued line delivered", m.Len())
+	}
+	last := m.conversation[len(m.conversation)-1]
+	if text, ok := last.Parts[0].(nacelle.Text); !ok || text.Text != "typed during the pass" {
+		t.Errorf("last message = %v, want the queued line sent against the rebuilt conversation", last.Parts)
+	}
+}

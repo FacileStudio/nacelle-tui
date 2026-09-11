@@ -104,7 +104,7 @@ func (m *Model) send(text string) tea.Cmd {
 	if count, err := m.agent.CountTokens(ctx, m.conversation); err == nil && m.compactAt > 0 && !m.thrashed() && count > m.compactAt+compactSlack {
 		m.size = count
 		if waiting := m.compactBeforeSend(ctx); waiting != nil {
-			return tea.Batch(waiting, m.spin.Tick)
+			return waiting
 		}
 	}
 
