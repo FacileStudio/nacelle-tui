@@ -173,7 +173,7 @@ func TestTaskRowFitsInsideMargin(t *testing.T) {
 		{Task: "a long running task title that could push the tail", Active: true, Began: time.Now().Add(-time.Minute)},
 		{Task: "done with spend", Usage: nacelle.Usage{Cost: 0.0123, OutputTokens: 9000}, Began: time.Now().Add(-time.Minute), End: time.Now()},
 	}
-	for _, row := range strings.Split(m.parallelTasksView(), "\n") {
+	for row := range strings.SplitSeq(m.parallelTasksView(), "\n") {
 		if w := lipgloss.Width(row); w > m.width-2 {
 			t.Errorf("row width %d exceeds the shaved width %d, tail gets clipped: %q", w, m.width-2, ansi.Strip(row))
 		}
