@@ -80,30 +80,51 @@ func TestValidateDelivery(t *testing.T) {
 	}
 }
 
+// hoistCases is the table behind TestHoistJSON: each entry is the argv to
+// install, the leading flags and subcommand arguments to pass, and the rest
+// value plus rewritten os.Args the call should produce.
+var hoistCases = []struct {
+	argv, prefix, sub, rest, want []string
+}{
+	{
+		argv: []string{"nacelle", "cron", "list", "--json"},
+		sub:  []string{"list", "--json"},
+		rest: []string{"list"},
+		want: []string{"nacelle", "--json", "cron", "list"},
+	},
+	{
+		argv:   []string{"nacelle", "-json", "cron", "list"},
+		prefix: []string{"-json"},
+		sub:    []string{"list"},
+		rest:   []string{"list"},
+		want:   []string{"nacelle", "-json", "cron", "list"},
+	},
+	{
+		argv: []string{"nacelle", "cron", "list", "-json=false"},
+		sub:  []string{"list", "-json=false"},
+		rest: []string{"list"},
+		want: []string{"nacelle", "-json=false", "cron", "list"},
+	},
+	{
+		argv: []string{"nacelle", "cron", "run", "brief"},
+		sub:  []string{"run", "brief"},
+		rest: []string{"run", "brief"},
+		want: []string{"nacelle", "cron", "run", "brief"},
+	},
+}
+
 func TestHoistJSON(t *testing.T) {
 	saved := os.Args
 	defer func() { os.Args = saved }()
 
-	os.Args = []string{"nacelle", "cron", "list", "--json"}
-	if rest := hoistJSON([]string{"list", "--json"}); strings.Join(rest, " ") != "list" {
-		t.Errorf("rest = %v, want the json token stripped", rest)
-	}
-	if got := strings.Join(os.Args, " "); got != "nacelle --json cron list" {
-		t.Errorf("os.Args = %q, want the flag hoisted ahead of cron", got)
-	}
-
-	os.Args = []string{"nacelle", "cron", "list", "-json=false"}
-	hoistJSON([]string{"list", "-json=false"})
-	if got := strings.Join(os.Args, " "); got != "nacelle -json=false cron list" {
-		t.Errorf("os.Args = %q, want -json=false hoisted too", got)
-	}
-
-	os.Args = []string{"nacelle", "cron", "run", "brief"}
-	if rest := hoistJSON([]string{"run", "brief"}); strings.Join(rest, " ") != "run brief" {
-		t.Errorf("rest = %v, want the args untouched", rest)
-	}
-	if got := strings.Join(os.Args, " "); got != "nacelle cron run brief" {
-		t.Errorf("os.Args = %q, want it untouched when no -json is typed", got)
+	for _, tc := range hoistCases {
+		os.Args = tc.argv
+		if rest := hoistJSON(tc.prefix, tc.sub); strings.Join(rest, " ") != strings.Join(tc.rest, " ") {
+			t.Errorf("hoistJSON(%v, %v) rest = %v, want %v", tc.prefix, tc.sub, rest, tc.rest)
+		}
+		if got := strings.Join(os.Args, " "); got != strings.Join(tc.want, " ") {
+			t.Errorf("hoistJSON(%v, %v) os.Args = %q, want %q", tc.prefix, tc.sub, got, tc.want)
+		}
 	}
 }
 
