@@ -4,6 +4,27 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.46.0] - 2026-09-11
+
+### Changed
+- **The prompt has no configurable prefix.** `prompt_prefix` is gone; the
+  prompt text starts directly after the status bar. The setting was useless
+  next to the placeholder and only pushed the first typed line down.
+
+### Added
+- **A numbered gutter on diff views.** Every code row is numbered in a left
+  gutter — green on additions, red on removals, muted on context. Removals keep
+  their old-file count, everything else the new-file count.
+- **Softened diff backdrops.** Added/removed line backgrounds fade to about
+  20% over the pane backdrop instead of painting solid ANSI blocks, so the
+  pane's own tint still shows through.
+
+### Fixed
+- **The prompt no longer wastes a blank row in `inline` mode.** A spurious
+  empty line appeared under the prompt whenever the status line repainted; the
+  prompt now hugs its content, with a little breathing room above the status
+  line instead.
+
 ## [0.45.1] - 2026-09-11
 
 ### Fixed
