@@ -123,8 +123,10 @@ func lcsTable(before, after []string) [][]int {
 
 // hunks groups diff operations into the blocks actually shown: each change,
 // padded with up to context unchanged neighbours, its neighbourhood merged
-// with the next change's when the two overlap.
-func hunks(ops []diffOp, context int) [][]diffOp {
+// with the next change's when the two overlap. The matching slices of the
+// line-number list come back alongside, so the gutter can number every row
+// without re-walking the ops.
+func hunks(ops []diffOp, nums []int, context int) (blocks [][]diffOp, blockNums [][]int) {
 	var ranges [][2]int
 	for at, op := range ops {
 		if op.kind == ' ' {
@@ -138,9 +140,11 @@ func hunks(ops []diffOp, context int) [][]diffOp {
 		ranges = append(ranges, [2]int{start, end})
 	}
 
-	blocks := make([][]diffOp, 0, len(ranges))
+	var bs [][]diffOp
+	var bns [][]int
 	for _, r := range ranges {
-		blocks = append(blocks, ops[r[0]:r[1]+1])
+		bs = append(bs, ops[r[0]:r[1]+1])
+		bns = append(bns, nums[r[0]:r[1]+1])
 	}
-	return blocks
+	return bs, bns
 }

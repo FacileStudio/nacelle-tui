@@ -11,11 +11,21 @@ import (
 )
 
 var (
-	// addedStyle tints a changed line's text green on a dark green backdrop.
-	addedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color("22"))
-	// removedStyle tints a changed line's text red on a dark red backdrop.
-	removedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color("52"))
+	// addedStyle tints a changed line's text green over a subtle green wash:
+	// the pure dark green blended to ~20% onto the pane's grey backdrop.
+	addedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Background(lipgloss.Color("#2E412E"))
+	// removedStyle tints a changed line's text red over a subtle red wash.
+	removedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Background(lipgloss.Color("#412E2E"))
 )
+
+// diffPane bundles the render settings every block shares — the content width,
+// the gutter width and the block backdrop — so renderBlock stays under the
+// package's parameter budget.
+type diffPane struct {
+	Content  int
+	Gutter   int
+	Backdrop lipgloss.Style
+}
 
 func truncate(s string, limit int) string {
 	if limit <= 0 {
@@ -64,32 +74,35 @@ func CountChange(change EditChange) (added, removed int) {
 }
 
 // RenderDiff draws one change as a full-width box: a coloured left border, a
-// header naming the file, the additions in green and the removals in red each
-// on their own tinted background, and a recap footer of "+x -y". borderColor
-// is the caller's verdict on the edit — green or red when it finished, the
-// tool's own colour while it is still running.
+// header naming the file, a numbered gutter up front, the additions in green
+// and the removals in red each on their own faint wash, and a recap footer of
+// "+x -y". Line numbers are green on additions, red on removals and muted on
+// context. borderColor is the caller's verdict on the edit — green or red when
+// it finished, the tool's own colour while it is still running.
 func RenderDiff(change EditChange, width int, borderColor string, muted lipgloss.Style, transparent bool) string {
 	if change.Path == "" || change.Before == change.After {
 		return ""
 	}
 	ops := diffOps(splitLines(change.Before), splitLines(change.After))
-	blocks := hunks(ops, contextLines)
+	nums := diffLineNums(ops)
+	blocks, blockNums := hunks(ops, nums, contextLines)
 	if len(blocks) == 0 {
 		return ""
 	}
 	content := max(width-1, 10)
 	backdrop := block(muted, transparent)
+	pane := diffPane{Content: content, Gutter: gutterWidth(nums), Backdrop: backdrop}
 
 	rows := make([]string, 0, shownDiffLines+2)
 	rows = append(rows, cell(backdrop, "  "+change.Path, content))
 	shown := 0
 	for i, blk := range blocks {
 		if i > 0 {
-			rows = append(rows, cell(backdrop, "  …", content))
+			rows = append(rows, cell(backdrop, strings.Repeat(" ", pane.Gutter+3)+"…", content))
 			shown++
 		}
 		var cut bool
-		rows, shown, cut = renderBlock(rows, blk, content, shown, backdrop)
+		rows, shown, cut = renderBlock(rows, blk, blockNums[i], pane, shown)
 		if cut {
 			break
 		}
@@ -120,20 +133,20 @@ func recap(change EditChange, muted lipgloss.Style, content int, transparent boo
 // with a marker saying the diff was cut rather than pretending it wasn't. It
 // returns the grown slice, how many rows are through, and whether the cap was
 // reached.
-func renderBlock(rows []string, blk []diffOp, content, shown int, backdrop lipgloss.Style) ([]string, int, bool) {
-	for _, op := range blk {
+func renderBlock(rows []string, blk []diffOp, nums []int, pane diffPane, shown int) ([]string, int, bool) {
+	for i, op := range blk {
 		if shown >= shownDiffLines {
-			rows = append(rows, cell(backdrop, "  … more", content))
+			rows = append(rows, cell(pane.Backdrop, strings.Repeat(" ", pane.Gutter+3)+"… more", pane.Content))
 			return rows, shown, true
 		}
 		var row string
 		switch op.kind {
 		case '-':
-			row = cell(removedStyle, "  - "+truncate(op.text, content-4), content)
+			row = cell(removedStyle, gutter(nums[i], pane.Gutter, "-")+truncate(op.text, pane.Content-pane.Gutter-3), pane.Content)
 		case '+':
-			row = cell(addedStyle, "  + "+truncate(op.text, content-4), content)
+			row = cell(addedStyle, gutter(nums[i], pane.Gutter, "+")+truncate(op.text, pane.Content-pane.Gutter-3), pane.Content)
 		default:
-			row = cell(backdrop, "    "+truncate(op.text, content-5), content)
+			row = cell(pane.Backdrop, gutter(nums[i], pane.Gutter, " ")+truncate(op.text, pane.Content-pane.Gutter-3), pane.Content)
 		}
 		rows = append(rows, row)
 		shown++

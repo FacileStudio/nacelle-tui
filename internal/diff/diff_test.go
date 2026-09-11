@@ -29,7 +29,7 @@ func TestADiffShowsRemovalsAndAdditions(t *testing.T) {
 	if !strings.Contains(text, "+ TWO") {
 		t.Errorf("diff = %q, want the added line", text)
 	}
-	for _, landmark := range []string{"    one", "    three"} {
+	for _, landmark := range []string{"1   one", "3   three"} {
 		if !strings.Contains(text, landmark) {
 			t.Errorf("diff = %q, want %q kept as context", text, strings.TrimSpace(landmark))
 		}
@@ -66,11 +66,11 @@ func TestADiffColoursRemovalsRedAndAdditionsGreen(t *testing.T) {
 	change := EditChange{Path: "f", Before: "old\n", After: "new\n"}
 	diff := RenderDiff(change, 80, "32", muted, false)
 
-	if !strings.Contains(diff, "91") || !strings.Contains(diff, "48;5;52") {
-		t.Errorf("diff = %q, want removals in red on a dark red ground", diff)
+	if !strings.Contains(diff, "91") || !strings.Contains(diff, "48;2;65;46;46") {
+		t.Errorf("diff = %q, want removals in red on a faint red wash", diff)
 	}
-	if !strings.Contains(diff, "92") || !strings.Contains(diff, "48;5;22") {
-		t.Errorf("diff = %q, want additions in green on a dark green ground", diff)
+	if !strings.Contains(diff, "92") || !strings.Contains(diff, "48;2;46;65;46") {
+		t.Errorf("diff = %q, want additions in green on a faint green wash", diff)
 	}
 }
 
@@ -108,8 +108,8 @@ func TestACreatedFileIsAllAdditions(t *testing.T) {
 	diff := RenderDiff(change, 80, "32", muted, false)
 	text := plain(diff)
 
-	if strings.Contains(diff, "48;5;52") {
-		t.Errorf("diff = %q, want no red ground for a new file", diff)
+	if strings.Contains(diff, "48;2;65;46;46") {
+		t.Errorf("diff = %q, want no red wash for a new file", diff)
 	}
 	if !strings.Contains(text, "+ package main") {
 		t.Errorf("diff = %q, want the written line as an addition", text)

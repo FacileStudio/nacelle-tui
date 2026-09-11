@@ -149,7 +149,6 @@ discovery:
   trust_skills: false
   trust_hooks: false
 ui:
-  prompt_prefix: '| '
   prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
   rendering_mode: inline
   group_tools: true
@@ -189,7 +188,7 @@ Old flat key → new home, for migrating a pre-0.44 file:
 | `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
 | `continue` | `session:` |
 | `resume` | dropped from the file — `-resume` on the command line only |
-| `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `diffs`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
+| `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `diffs`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
 | `skill_dirs`, `mcp` | `sources:` |
 
 Every field is optional. A missing file is not an error — on first boot
@@ -198,10 +197,8 @@ there; deleting it regenerates it. But an unreadable or malformed one is: a
 unreadable or malformed one is: a config silently ignored is worse than no config, because the
 setting carefully written is simply not in effect and nothing says so.
 
-`prompt_prefix` is what the input prompt's first row shows ahead of the caret, `| ` by default, and
-continuation rows of a wrapped question hang under a matching indent. Set it to `''` for none: an
-empty prefix draws nothing, so the first row opens at the margin and no two-space indent is added
-on wrapped rows. `prompt_placeholder` is the ghost text shown while the prompt is empty.
+`prompt_placeholder` is the ghost text shown while the prompt is empty. The prompt has no prefix:
+the first row opens at a single margin space, and wrapped rows of a long question hang under it.
 
 `start_message` is printed as the first thing on launch, above the version banner. It is a plain
 string that may span lines, so use a `|`-literal (or `|-` to drop the trailing newline) to put a
@@ -535,13 +532,15 @@ in the file it is looking:
 
 ```
 ⏺ edit_file(toolline.go) · 4ms
-    func (m *model) finished(tool *nacelle.ToolEvent) {
-  -   line := m.run.running[tool.ID]
-  +   line, held := m.run.running[tool.ID]
-      delete(m.run.running, tool.ID)
+   1   func (m *model) finished(tool *nacelle.ToolEvent) {
+   2 -   line := m.run.running[tool.ID]
+   2 +   line, held := m.run.running[tool.ID]
+   3       delete(m.run.running, tool.ID)
 ```
 
-The colours are ANSI indices rather than fixed values, so they follow the terminal's own scheme.
+Line numbers run down the left gutter — green on additions, red on removals, muted on context.
+Added and removed lines each sit on a faint wash (the pure green or red blended to ~20% onto the
+pane's backdrop) rather than a solid block, so a long change stays readable without shouting.
 The diff is cut to the window width so nothing wraps in scrollback, and capped at four hundred
 lines with a `… more` marker saying it was cut rather than pretending it wasn't. A wholesale
 rewrite too large to align line by line reads as one block of removals against additions.
