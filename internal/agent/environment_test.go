@@ -123,6 +123,21 @@ func TestEnvironmentMentionsRunCommandOnlyWhenBashIsMounted(t *testing.T) {
 	}
 }
 
+func TestEnvironmentMentionsWebFetchOnlyWhenFetchIsMounted(t *testing.T) {
+	got := environment(withApproval(false), time.Now())
+	if !strings.Contains(got, "web_fetch") {
+		t.Errorf("environment() = %q, want the fetch tool named when fetch is on", got)
+	}
+
+	config := withApproval(false)
+	off := false
+	config.Fetch = &off
+
+	if got := environment(config, time.Now()); strings.Contains(got, "web_fetch") {
+		t.Errorf("environment() = %q, want no word about web_fetch when fetch is off", got)
+	}
+}
+
 func TestEnvironmentDescribesConfinementBasedOnStrictConfinement(t *testing.T) {
 
 	on := environment(withApproval(false), time.Now())

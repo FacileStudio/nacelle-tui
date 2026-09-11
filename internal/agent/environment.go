@@ -27,9 +27,6 @@ You are an AI assistant with access to tools for reading and writing files, sear
 **Shell**
 - run_command — run a shell command from the working directory
 
-**Web**
-- web_fetch — read one web page and get back its text
-
 **Planning and delegation**
 - tasks — lay out work as a list of steps, shown live to the user
 - parallel_subagent — delegate independent sub-tasks to parallel assistant runs
@@ -80,7 +77,7 @@ func DefaultSystemPrompt() string {
 }
 
 func environment(config Config, now time.Time) string {
-	return sessionBlock(config) + sessionMeta(now) + approvalNote(config) + bashRules(config) + tasksNote() + parallelNote()
+	return sessionBlock(config) + sessionMeta(now) + approvalNote(config) + bashRules(config) + webNote(config) + tasksNote() + parallelNote()
 }
 
 func sessionBlock(config Config) string {
