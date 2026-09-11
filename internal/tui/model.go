@@ -31,13 +31,14 @@ const forceQuit = 3 * time.Second
 // ascii banner — above the banner itself, each separated by a blank row.
 func NewModel(agent *nacelle.Agent, banner string, skills []skill, c SessionConfig) *Model {
 	byName := bySkillName(skills)
+	base := theme.Themed(true)
 
 	m := &Model{
 		core:       core{agent: agent, banner: banner, autoResume: c.AutoResume, resumePath: c.Resume, herdrClient: herdr.NewFromEnv()},
 		transcript: transcript{compactAt: c.CompactAt},
-		composer:   composer{prompt: newPrompt(c.PromptPlaceholder), hist: history.New()},
+		composer:   composer{prompt: newPrompt(c.PromptPlaceholder, base.Muted), hist: history.New()},
 		look: look{
-			theme: theme.Themed(true),
+			theme: base,
 			spin:  status.NewSpinner(),
 		},
 		account: account{began: time.Now()},
@@ -184,7 +185,13 @@ func (m *Model) finishCompaction() tea.Cmd {
 }
 
 // promptRoute forwards unhandled messages to the prompt and refreshes the dropdown.
+// A wheel is the one thing never handed over: it is exclusive to scrolling the
+// tui transcript, so it can never read as up/down and drag the input's recall
+// history into view.
 func (m *Model) promptRoute(message tea.Msg) tea.Cmd {
+	if msg, ok := message.(tea.MouseWheelMsg); ok {
+		return m.scrollWheel(msg)
+	}
 	var cmd tea.Cmd
 	m.prompt, cmd = m.prompt.Update(message)
 	m.refreshMenu()

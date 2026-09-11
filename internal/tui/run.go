@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -137,11 +138,21 @@ func (m *Model) escaped() (bool, tea.Cmd) {
 	return true, nil
 }
 
+// consume takes the next thing a run produced. A streamed event is recorded and
+// absorbed; an error is committed as a failure — unless it is a cancellation,
+// which is not a failure at all. The reader stopping the run, or a parallel
+// fan-out relaxing the parent to free the prompt, both end the context; the
+// stream then races a trailing context.Canceled past ctx.Done, and painting
+// that red would flash an alarm over an otherwise clean stop. Cancels are
+// swallowed so the run just ends; a genuine backend or tool error still fails
+// loudly.
 func (m *Model) consume(next result) tea.Cmd {
 	if next.err != nil {
-		m.flush()
-		m.run.reported = true
-		m.say(fromFailure, next.err.Error())
+		if !errors.Is(next.err, context.Canceled) {
+			m.flush()
+			m.run.reported = true
+			m.say(fromFailure, next.err.Error())
+		}
 		return waitFor(m.run.results)
 	}
 	m.record(next.event)

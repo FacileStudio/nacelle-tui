@@ -41,7 +41,7 @@ func TestModelParallelCallStubSeedsRows(t *testing.T) {
 		t.Error("pending not cleared after the stub")
 	}
 	joined := strings.Join(spoken(m), "\n")
-	if !strings.Contains(joined, "started 3 parallel agents") {
+	if !strings.Contains(joined, "✓ parallel agents started") {
 		t.Errorf("transcript = %q, want the started announcement", joined)
 	}
 }

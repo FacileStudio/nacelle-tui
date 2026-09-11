@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -137,6 +138,16 @@ func TestTUIModeCursorSitsOnThePromptTextRow(t *testing.T) {
 	}
 }
 
+// containsString reports whether needle appears in any entry of hay.
+func containsString(hay []string, needle string) bool {
+	for _, line := range hay {
+		if strings.Contains(line, needle) {
+			return true
+		}
+	}
+	return false
+}
+
 // Inline mode must keep living in the terminal's own scrollback: the same
 // say-then-print path yields a Cmd here, never a held buffer.
 func TestInlineModeHandsTheTranscriptToTheTerminal(t *testing.T) {
@@ -148,6 +159,72 @@ func TestInlineModeHandsTheTranscriptToTheTerminal(t *testing.T) {
 	}
 	if len(m.hold) != 0 {
 		t.Errorf("hold = %v, want it empty in inline mode", m.hold)
+	}
+}
+
+// window keeps the newest-avail tail of a scrolled slice, moved back by scroll
+// rows, and never lets the read go past the top or below the newest row.
+func TestWindowSlicesToTheNewestTailAndScrolls(t *testing.T) {
+	content := []string{"a", "b", "c", "d", "e"}
+	if got := window(content, 3, 0); !slices.Equal(got, []string{"c", "d", "e"}) {
+		t.Errorf("window(content,3,0) = %v, want c d e", got)
+	}
+	if got := window(content, 3, 2); !slices.Equal(got, []string{"a", "b", "c"}) {
+		t.Errorf("window(content,3,2) = %v, want a b c", got)
+	}
+	if got := window(content, 3, 99); !slices.Equal(got, []string{"a", "b", "c"}) {
+		t.Errorf("over-scroll window = %v, want it clamped to the top", got)
+	}
+	if got := window([]string{"x"}, 3, 1); !slices.Equal(got, []string{"x"}) {
+		t.Errorf("window with content shorter than avail = %v, want x unchanged", got)
+	}
+}
+
+// The scroll wheel moves the tui-mode transcript window back through the held
+// lines, and scrolling back down re-anchors it to the newest row — the whole
+// point of the prompt being pinned to the bottom.
+func TestTUIModeWheelScrollsTheHeldTranscript(t *testing.T) {
+	m := tuiModel()
+	for i := range 60 {
+		m.say(fromClient, fmt.Sprintf("row %02d", i))
+	}
+	m.prints()
+	bottom := strings.Split(ansi.Strip(m.View().Content), "\n")
+	if !containsString(bottom, "row 59") {
+		t.Fatalf("at the bottom the newest row should be visible in\n%s", strings.Join(bottom, "\n"))
+	}
+	if containsString(bottom, "row 00") {
+		t.Fatalf("at the bottom the oldest row should not yet be visible in\n%s", strings.Join(bottom, "\n"))
+	}
+	for range 30 {
+		m.route(tea.MouseWheelMsg{Button: tea.MouseWheelUp})
+	}
+	if m.scrollTop <= 0 {
+		t.Fatalf("scrollTop = %d after wheel up, want > 0", m.scrollTop)
+	}
+	if !containsString(strings.Split(ansi.Strip(m.View().Content), "\n"), "row 00") {
+		t.Error("after scrolling up the oldest row should surface")
+	}
+	for range 100 {
+		m.route(tea.MouseWheelMsg{Button: tea.MouseWheelDown})
+	}
+	if m.scrollTop != 0 {
+		t.Errorf("scrollTop = %d after scrolling down, want 0 (re-anchored)", m.scrollTop)
+	}
+	if !containsString(strings.Split(ansi.Strip(m.View().Content), "\n"), "row 59") {
+		t.Error("after scrolling down the newest row should return")
+	}
+}
+
+// A wheel must never reach the prompt, where it could be read as up/down and
+// drag the input's recall history into view. Routing it through scrollWheel
+// always claims it, so the prompt text is untouched by a wheel message.
+func TestTUIModeWheelNeverNavigatesPromptHistory(t *testing.T) {
+	m := tuiModel()
+	m.prompt.SetValue("a draft")
+	m.route(tea.MouseWheelMsg{Button: tea.MouseWheelUp})
+	if got := m.prompt.Value(); got != "a draft" {
+		t.Errorf("prompt value = %q after a wheel, want the untouched draft", got)
 	}
 }
 

@@ -1,7 +1,11 @@
 package tui
 
 import (
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // relaxAfterDispatch cancels a busy parent run the moment a model-callable
@@ -33,5 +37,33 @@ func TestRelaxAfterDispatchLeavesAnIdlePromptAlone(t *testing.T) {
 
 	if cancelled {
 		t.Error("an idle prompt was cancelled — only a busy dispatch-turn should stop")
+	}
+}
+
+// When parallel agent rows sit under the prompt, one blank line must separate
+// the prompt from the agent block so the two do not read as one column of text.
+func TestTUIModeSpacesTheAgentsFromThePrompt(t *testing.T) {
+	m := tuiModel()
+	m.parallelTasks = map[string][]parallelTaskInfo{
+		"detach1": {{Task: "research the docs", Active: true, Began: time.Now()}},
+	}
+	lines := strings.Split(ansi.Strip(m.View().Content), "\n")
+	promptRow, agentRow := -1, -1
+	for i, ln := range lines {
+		if strings.Contains(ln, "placeholder") {
+			promptRow = i
+		}
+		if strings.Contains(ln, "research the docs") {
+			agentRow = i
+		}
+	}
+	if promptRow < 0 || agentRow < 0 {
+		t.Fatalf("no prompt or agent row in\n%s", strings.Join(lines, "\n"))
+	}
+	if agentRow != promptRow+2 {
+		t.Errorf("agent at row %d, prompt at %d, want one blank row between them", agentRow, promptRow)
+	}
+	if strings.TrimSpace(lines[agentRow-1]) != "" {
+		t.Errorf("row between prompt and agents = %q, want blank", lines[agentRow-1])
 	}
 }

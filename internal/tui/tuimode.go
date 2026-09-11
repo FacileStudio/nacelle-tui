@@ -18,6 +18,11 @@ const (
 	modeTUI    int = 1
 )
 
+// wheelStep is how many transcript rows one wheel notch pulls the tui-mode
+// window back. Small, so a flick is not a page — the window re-anchors to the
+// newest row with the prompt the moment the wheel comes back down.
+const wheelStep = 3
+
 func renderMode(name string) int {
 	if name == "tui" {
 		return modeTUI
@@ -55,13 +60,14 @@ func (m *Model) assembleTUI() tea.View {
 	avail := max(m.windowHeight-1-lipgloss.Height(prompt)-belowRows, 1)
 	parts := append(m.tuiUpper(avail), "", prompt)
 	if below != "" {
-		parts = append(parts, below)
+		parts = append(parts, "", below)
 	}
 	body := strings.Join(parts, "\n")
 	m.frameRows = lipgloss.Height(body)
 
 	view := tea.NewView(body)
 	view.AltScreen = true
+	view.MouseMode = tea.MouseModeCellMotion
 	if position := m.prompt.Cursor(); position != nil {
 		position.Y += avail + 1
 		view.Cursor = position
@@ -84,27 +90,62 @@ func (m *Model) assembleTUI() tea.View {
 // matter how the live region was spaced. The trailing blank aboveContent passes
 // over when the menu is closed is stripped here so it cannot double with the
 // prompt's own separator row and push the pinned cursor a row down.
+//
+// full runs oldest to newest — the held transcript (top) then the live region
+// (bottom) — and window drops scrollTop from the newest row before the tail, so
+// the wheel can surface earlier lines above the live region; at scrollTop 0 it
+// is exactly the newest-avail tail no scroll can show differently. Rows are
+// padded up top to exactly avail so the prompt stays anchored whether the
+// window reaches the top of the scrollback or not.
 func (m *Model) tuiUpper(avail int) []string {
-	held := m.hold
-	if len(held) > avail {
-		held = held[len(held)-avail:]
-	}
-	rows := make([]string, 0, avail)
-	rows = append(rows, held...)
+	live := make([]string, 0, len(m.hold)+avail)
 	for _, row := range m.aboveContent() {
-		rows = append(rows, strings.Split(row, "\n")...)
+		live = append(live, strings.Split(row, "\n")...)
 	}
-	for len(rows) > 0 && rows[len(rows)-1] == "" {
-		rows = rows[:len(rows)-1]
+	for len(live) > 0 && live[len(live)-1] == "" {
+		live = live[:len(live)-1]
 	}
-	if len(rows) > avail {
-		rows = rows[len(rows)-avail:]
-	}
+	full := append(append([]string{}, m.hold...), live...)
+	rows := window(full, avail, m.scrollTop)
 	var padded []string
 	for pad := avail - len(rows); pad > 0; pad-- {
 		padded = append(padded, "")
 	}
 	return append(padded, rows...)
+}
+
+// window slices content down to its last-avail rows moved back by scroll lines,
+// clamped so it never goes past the top of the content or below the newest row.
+func window(content []string, avail, scroll int) []string {
+	if len(content) <= avail {
+		return content
+	}
+	if scroll < 0 {
+		scroll = 0
+	}
+	if maxScroll := len(content) - avail; scroll > maxScroll {
+		scroll = maxScroll
+	}
+	return content[len(content)-avail-scroll : len(content)-scroll]
+}
+
+// scrollWheel moves the tui-mode transcript window in response to the wheel and
+// always claims the message, so a wheel has never fallen through to the prompt
+// as history. Inline mode never requests the mouse — the terminal scrolls its
+// own scrollback there — and returns no Cmd either way.
+func (m *Model) scrollWheel(msg tea.MouseWheelMsg) tea.Cmd {
+	if m.mode == modeTUI {
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			m.scrollTop += wheelStep
+		case tea.MouseWheelDown:
+			m.scrollTop -= wheelStep
+		}
+		if m.scrollTop < 0 {
+			m.scrollTop = 0
+		}
+	}
+	return nil
 }
 
 // assembleInline is the scrollback render: everything already said lives in the

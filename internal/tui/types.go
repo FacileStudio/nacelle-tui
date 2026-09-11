@@ -78,6 +78,11 @@ type transcript struct {
 	// ring-buffer style, so a long session cannot grow the per-frame redraw
 	// without bound.
 	hold       []string
+	// scrollTop is how many transcript rows the scroll wheel has pulled the
+	// tui-mode window back from the newest row. Held lines are drawn tail-first
+	// with the prompt pinned; scrolling up raises this so earlier rows surface
+	// above the live region, scrolling down returns it to 0 (the newest row).
+	scrollTop  int
 	compactAt  int64
 	compacting bool
 	// thrashCount is how many consecutive compaction passes ended with the

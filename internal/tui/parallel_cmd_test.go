@@ -26,8 +26,8 @@ func TestParallelCommandLaunchesDetachedFanOut(t *testing.T) {
 	if len(m.conversation) != 0 {
 		t.Errorf("conversation = %v, want nothing sent to the parent", m.conversation)
 	}
-	if !strings.Contains(printed, "started 3 parallel agents") {
-		t.Errorf("printed = %q, want the started announcement", printed)
+	if !strings.Contains(printed, "✓ parallel agents started") {
+		t.Errorf("printed = %q, want the green started announcement", printed)
 	}
 }
 
@@ -66,8 +66,8 @@ func TestParallelCommandWithSingleTaskIsStillDetached(t *testing.T) {
 	if len(m.parallelTasks) != 1 {
 		t.Errorf("parallelTasks = %v, want one batch", m.parallelTasks)
 	}
-	if !strings.Contains(printed, "started 1 parallel agent") {
-		t.Errorf("printed = %q, want the started announcement", printed)
+	if !strings.Contains(printed, "✓ parallel agent started") {
+		t.Errorf("printed = %q, want the green started announcement", printed)
 	}
 }
 

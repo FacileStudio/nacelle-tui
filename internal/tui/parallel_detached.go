@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -95,10 +94,12 @@ func (m *Model) registerParallel(batch string, tasks []string) tea.Cmd {
 	}
 	m.parallelTasks[batch] = list
 	m.titleParallelTasks(batch, tasks)
-	m.say(fromClient, fmt.Sprintf("started %d parallel agents", len(tasks)))
+	m.announceStart(len(tasks))
 	m.layout(m.windowHeight)
 	return m.spin.Tick
 }
+
+// announceStart, the fan-out confirmation, lives in parallel_wait.go.
 
 // nextDetachID hands out a batch key for a detached fan-out. The "detach"
 // prefix keeps it apart from the model-tool path's nacelle batch keys, which
