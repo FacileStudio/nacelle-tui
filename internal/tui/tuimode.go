@@ -78,7 +78,12 @@ func (m *Model) assembleTUI() tea.View {
 // aboveContent is split on newlines first, because it can hand over a multi-line
 // string (the status line is always two rows): an appended entry must be one
 // visual row or the len()-based count understates the padded height, pushing
-// the prompt a row off the bottom and the cursor a row off the text.
+// the prompt a row off the bottom and the cursor a row off the text. Blank
+// separator rows are kept, not dropped, so the status line keeps its breathing
+// room: without them the spinner row sat flush against the content above no
+// matter how the live region was spaced. The trailing blank aboveContent passes
+// over when the menu is closed is stripped here so it cannot double with the
+// prompt's own separator row and push the pinned cursor a row down.
 func (m *Model) tuiUpper(avail int) []string {
 	held := m.hold
 	if len(held) > avail {
@@ -87,10 +92,10 @@ func (m *Model) tuiUpper(avail int) []string {
 	rows := make([]string, 0, avail)
 	rows = append(rows, held...)
 	for _, row := range m.aboveContent() {
-		if row == "" {
-			continue
-		}
 		rows = append(rows, strings.Split(row, "\n")...)
+	}
+	for len(rows) > 0 && rows[len(rows)-1] == "" {
+		rows = rows[:len(rows)-1]
 	}
 	if len(rows) > avail {
 		rows = rows[len(rows)-avail:]
@@ -105,11 +110,17 @@ func (m *Model) tuiUpper(avail int) []string {
 // assembleInline is the scrollback render: everything already said lives in the
 // terminal's own history, and the view draws only the live region, the prompt,
 // and the menu beneath it. The prompt is separated from the content above and
-// below by one blank row each, so it reads as its own band.
+// below by one blank row each, so it reads as its own band. aboveContent
+// already ends in a blank row when the menu is closed, so the separator is only
+// added when the content does not already breathe.
 func (m *Model) assembleInline() tea.View {
 	above := m.aboveContent()
 	aboveHeight := lipgloss.Height(strings.Join(above, "\n"))
-	parts := append(above, "", m.prompt.View())
+	parts := above
+	if last := len(parts) - 1; last < 0 || parts[last] != "" {
+		parts = append(parts, "")
+	}
+	parts = append(parts, m.prompt.View())
 	if below := m.belowContent(); below != "" {
 		parts = append(parts, "", below)
 	}
