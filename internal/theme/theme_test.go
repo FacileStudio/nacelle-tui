@@ -42,6 +42,23 @@ func TestAnAnswerIsRenderedAsMarkdownRatherThanShownRaw(t *testing.T) {
 	}
 }
 
+// The markdown palette is the terminal's own: no SGR colour or background
+// escape anywhere in a render covering every coloured element of the style —
+// heading, code span, fenced block with chroma tokens, list, quote, link.
+// Emphasis is bold, not paint.
+func TestMarkdownRendersInTheTerminalSDefaultColours(t *testing.T) {
+	source := "# Title\n\n- item\n\n> quoted\n\n[link](https://x)\n\n```go\nx := 1\n```\n"
+	for _, style := range []string{"dark", "light"} {
+		drawn := RenderMarkdown(Prettier(style, 80), source)
+		if strings.Contains(drawn, "\x1b[38;") || strings.Contains(drawn, "\x1b[48;") {
+			t.Errorf("drawn = %q, want no colour escape", drawn)
+		}
+		if !strings.Contains(drawn, "Title") || !strings.Contains(drawn, "item") {
+			t.Errorf("drawn = %q, want the content preserved", drawn)
+		}
+	}
+}
+
 func TestOnlyTheReaderSQuestionCarriesABackground(t *testing.T) {
 	p := Themed(true)
 	question := p.Question.Render("| what is in go.mod?")
