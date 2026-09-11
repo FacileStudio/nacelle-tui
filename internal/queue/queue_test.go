@@ -92,6 +92,9 @@ func TestQueueView(t *testing.T) {
 	if len(lines) != 1 || !strings.Contains(lines[0], "first question") {
 		t.Errorf("lines = %v, want [first question]", lines)
 	}
+	if !strings.Contains(lines[0], "▌ ") {
+		t.Errorf("line = %q, want the half-block spine prefix", lines[0])
+	}
 }
 
 func TestQueueViewOverflow(t *testing.T) {
@@ -106,5 +109,8 @@ func TestQueueViewOverflow(t *testing.T) {
 	}
 	if !strings.Contains(lines[MaxRows], "and 2 more") {
 		t.Errorf("last line = %q, want overflow count", lines[MaxRows])
+	}
+	if !strings.Contains(lines[MaxRows], "▌ ") {
+		t.Errorf("last line = %q, want the half-block spine prefix on the overflow row too", lines[MaxRows])
 	}
 }

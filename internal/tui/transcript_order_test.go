@@ -136,3 +136,28 @@ func TestTurnBoundaryIsSeparatedFromTheAnswerAboveIt(t *testing.T) {
 		t.Errorf("said = %q, want a blank row between the answer and the turn boundary", said)
 	}
 }
+
+// The reader's question is a block of its own: it sits a blank row under the
+// thinking trace and a blank row over whatever follows, the same breathing
+// room a turn boundary gets, so it reads as the thing you scrolled up to find
+// rather than a question glued to the tool call it prompted.
+func TestReaderQuestionIsSeparatedFromTheTraceAroundItByBlankRows(t *testing.T) {
+	m := sized()
+	m.say(fromThinking, "thinking out loud")
+	m.say(fromReader, "a question")
+	m.say(fromTool, "$ read_file(x)")
+
+	said := visible(strings.Join(m.unprinted, "\n"))
+	thinkingAt := strings.Index(said, "thinking out loud")
+	questionAt := strings.Index(said, "a question")
+	toolAt := strings.Index(said, "$ read_file(x)")
+	if thinkingAt < 0 || questionAt < 0 || toolAt < 0 {
+		t.Fatalf("said = %q, want thinking, question, and tool line", said)
+	}
+	if above := said[thinkingAt:questionAt]; strings.Count(above, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the thinking trace and the question", said)
+	}
+	if below := said[questionAt:toolAt]; strings.Count(below, "\n") < 2 {
+		t.Errorf("said = %q, want a blank row between the question and the tool line", said)
+	}
+}

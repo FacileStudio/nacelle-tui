@@ -17,10 +17,10 @@ func TestSayingSomethingQueuesItForTheTerminal(t *testing.T) {
 	}
 }
 
-// The reader's own question is rendered with a muted background and a bold
-// pipe prefix so it stands out from the model's markdown answer without
-// reading like a chat bubble.
-func TestReaderQuestionIsPaintedWithMutedBackgroundAndBoldPipePrefix(t *testing.T) {
+// The reader's own question is rendered with a muted background and the same
+// half-block left spine (▌) the tool boxes draw, so it stands out from the
+// model's markdown answer without reading like a chat bubble.
+func TestReaderQuestionIsPaintedWithMutedBackgroundAndHalfBlockSpine(t *testing.T) {
 	m := sized()
 	m.say(fromReader, "a question")
 
@@ -32,8 +32,8 @@ func TestReaderQuestionIsPaintedWithMutedBackgroundAndBoldPipePrefix(t *testing.
 	if !strings.Contains(line, "a question") {
 		t.Errorf("spoken line = %q, want the question text", line)
 	}
-	if !strings.Contains(line, "| ") {
-		t.Errorf("spoken line = %q, want bold pipe prefix", line)
+	if !strings.Contains(line, "▌ ") {
+		t.Errorf("spoken line = %q, want the half-block spine prefix", line)
 	}
 }
 

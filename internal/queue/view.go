@@ -49,7 +49,11 @@ func (q *Queue) NextToSend(editing int) int {
 	return -1
 }
 
-// View returns rendered strings for waiting messages.
+// View returns rendered strings for waiting messages. Every line carries the
+// same left half-block spine (▌) the tool boxes and prompt draw, one cell and
+// one space ahead of the text, so the queue reads as a bordered pane. The
+// passing-in style carries the tone; the spine gets no block background of its
+// own.
 func (q *Queue) View(editing, width int, style lipgloss.Style) []string {
 	shown, hidden := q.Waiting(editing), 0
 	if len(shown) > MaxRows {
@@ -59,10 +63,10 @@ func (q *Queue) View(editing, width int, style lipgloss.Style) []string {
 	w := max(width-2, 0)
 	lines := make([]string, 0, q.Height(editing))
 	for _, text := range shown {
-		lines = append(lines, style.Width(width).Render("| "+layout.Truncate(layout.Unstyled(text), w)))
+		lines = append(lines, style.Width(width).Render("▌ "+layout.Truncate(layout.Unstyled(text), w)))
 	}
 	if hidden > 0 {
-		lines = append(lines, style.Width(width).Render("| "+layout.Truncate(fmt.Sprintf("and %d more", hidden), w)))
+		lines = append(lines, style.Width(width).Render("▌ "+layout.Truncate(fmt.Sprintf("and %d more", hidden), w)))
 	}
 	return lines
 }

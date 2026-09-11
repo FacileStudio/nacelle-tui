@@ -67,7 +67,7 @@ func (m *Model) say(who speaker, text string) {
 	switch who {
 	case fromThinking, fromTool, fromResult:
 		painted += "\n"
-	case fromTurn:
+	case fromReader, fromTurn:
 		if !strings.HasSuffix(m.lastSaid(), "\n") {
 			painted = "\n" + painted
 		}
@@ -79,10 +79,11 @@ func (m *Model) say(who speaker, text string) {
 
 // lastSaid is the last line already committed to the scrollback queue, or the
 // empty string when nothing has been said yet. The turn boundary closes the
-// answer it streamed under, so it gets a leading blank row to keep it apart
-// from that answer — unless the line above already ends in a newline (a
-// multi-line answer, or a preceding widget line), in which case the join's own
-// newline already supplies the blank.
+// answer it streamed under, and the question is the block you scroll back to
+// find, so both get a leading blank row to keep them apart from what precedes
+// them — unless the line above already ends in a newline (a multi-line answer,
+// or a preceding widget line), in which case the join's own newline already
+// supplies the blank.
 func (m *Model) lastSaid() string {
 	if len(m.unprinted) == 0 {
 		return ""
@@ -118,7 +119,8 @@ func (m *Model) prints() tea.Cmd {
 // spends the left margin on something the styling already says, and reads
 // like a chat log rather than like a session. The reader's own question is
 // the thing they scroll back to find, so that is what gets a muted background
-// plus a bold pipe prefix; the answer is the thing being read, so it gets
+// plus the same left half-block spine (▌) the tool boxes and the prompt draw,
+// reading as a bordered pane; the answer is the thing being read, so it gets
 // none, and is rendered as the markdown the model almost certainly wrote it
 // in.
 //
@@ -140,7 +142,7 @@ func (m *Model) paint(who speaker, text string) string {
 	width := max(m.width, 1)
 	switch who {
 	case fromReader:
-		return m.theme.Question.Width(width).Render("| " + text)
+		return m.theme.Question.Width(width).Render("▌ " + text)
 	case fromModel:
 		return m.markdown(text)
 	case fromThinking:
