@@ -4,6 +4,16 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.42.2] - 2026-09-11
+
+### Fixed
+- **The eviction cut never splits a tool pair.** A compaction pass could land
+  its cut between an assistant `tool_use` message and the immediately-following
+  user `tool_result` message, so the rebuilt tail opened with a tool result
+  whose call id had been evicted. Anthropic rejects that with a 400. The cut is
+  now pulled back one message to keep the pair together, and the three cut sites
+  (post-turn, `/compact`, manual) all route through the same alignment.
+
 ## [0.42.1] - 2026-09-11
 
 ### Fixed
