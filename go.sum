@@ -10,6 +10,8 @@ github.com/FacileStudio/nacelle v0.20.0 h1:ATiHPji9QRLFa5FrF6yB6UcWUpoSdV3Dct0o8
 github.com/FacileStudio/nacelle v0.20.0/go.mod h1:mj0Tdpo3BfFUoeuH3o8U716RS+86ml+rPXaROlcWWcg=
 github.com/FacileStudio/nacelle v0.21.0 h1:9HwKjJEEfVn5gh4YffKKTI935FJspTHJzM97DAnc68M=
 github.com/FacileStudio/nacelle v0.21.0/go.mod h1:mj0Tdpo3BfFUoeuH3o8U716RS+86ml+rPXaROlcWWcg=
+github.com/FacileStudio/nacelle v0.22.0 h1:q49aubbrg1AUn5waNpp7oGpWQ+ZLENh3jx5WwU6kyQQ=
+github.com/FacileStudio/nacelle v0.22.0/go.mod h1:mj0Tdpo3BfFUoeuH3o8U716RS+86ml+rPXaROlcWWcg=
 github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ4pzQ=
 github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
 github.com/alecthomas/assert/v2 v2.7.0 h1:QtqSACNS3tF7oasA8CU6A6sXZSBDqnm7RfpLl9bZqbE=

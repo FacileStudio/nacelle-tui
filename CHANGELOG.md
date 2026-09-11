@@ -4,15 +4,29 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
-## [Unreleased]
+## [0.42.0] - 2026-09-11
 
 ### Added
 - **`/compact` compacts on demand.** Run a compaction pass now, at a natural
   break, instead of waiting to overshoot the threshold. It fires only while
   idle, says why when it cannot (disabled, too short, run in flight, already
   compacting), and clears the thrash notice so a fresh attempt is made.
+- **A parallel fan-out returns the prompt to ready.** Dispatching
+  `parallel_subagent` (or `/parallel`) no longer leaves the main thread pecking
+  at work it cannot read: the harness ends the model's turn the moment the
+  batch registers, so the subagents grind under a live prompt and the main only
+  re-engages to synthesize when they finish. Any concurrent main-thread work is
+  your next input, not a turn the model drags on.
+- **Parallel rows show the running tool's outcome.** Each row's leading marker
+  is a yellow spinner while the task runs, a green ✓ once it finishes and a red
+  ✗ when it fails; alongside, the current tool's icon (`$`, `☰`, `✎`, …) keeps
+  its own tone while the call is in flight and flips green or red the moment the
+  call lands (nacelle v0.22.0's `ToolDone`).
 
 ### Changed
+- **nacelle bumped to v0.22.0** for the `ToolDone` parallel-outcome callback,
+  replacing the local `replace`-directed checkout this release built on during
+  development.
 - **Context compacts by itself after a turn that overshoots.** Compaction used
   to wait for the next message to be sent, so a turn that ended with the
   conversation over the threshold sat at that size until you typed again. A
