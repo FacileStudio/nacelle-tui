@@ -232,9 +232,9 @@ func frontmatter(content string) (string, bool) {
 		return "", false
 	}
 	rest := content[len("---\n"):]
-	end := strings.Index(rest, "\n---")
-	if end < 0 {
+	head, _, found := strings.Cut(rest, "\n---")
+	if !found {
 		return "", false
 	}
-	return rest[:end], true
+	return head, true
 }
