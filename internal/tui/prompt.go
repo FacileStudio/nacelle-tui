@@ -12,10 +12,9 @@ import (
 const promptRows = 10
 
 // minHeightRows is the shortest the input renders even when it holds a single
-// line, so the field reads as a roomy bar rather than a cramped one row. The
-// bar fills with the blank padding that gives the input its y-padding; the
-// blank row above and below the whole field is added by the view assembly.
-const minHeightRows = 3
+// line, so the field reads as a single line rather than a padded bar. The blank
+// row above the whole field is added by the view assembly.
+const minHeightRows = 1
 
 // newPrompt builds the compose textarea. prefix is what the first row shows
 // ahead of the caret — "| " out of the box — always followed by one space of

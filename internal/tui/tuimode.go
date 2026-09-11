@@ -38,12 +38,13 @@ func (m *Model) assembleView() tea.View {
 
 // assembleTUI is the alternate-screen render. Every frame it builds the whole
 // screen: the held transcript and live region tailed to whatever rows the screen
-// can spare, and the prompt pinned to the bottom with exactly one blank row
-// above and below, so it reads as a fixed input bar the way vim keeps its
+// can spare, and the prompt pinned to the bottom with nothing beneath it and
+// one blank row above, so it reads as a fixed input bar the way vim keeps its
 // status line. There is no terminal scrollback to lean on inside an alternate
 // screen, so finished lines are held in m.hold and drawn back here; when the
 // transcript grows past the screen, the oldest rows scroll off rather than the
-// prompt moving.
+// prompt moving. The prompt's own top row is where its text and cursor live, so
+// the cursor offset must land exactly there.
 func (m *Model) assembleTUI() tea.View {
 	prompt := m.prompt.View()
 	below := m.belowContent()
@@ -51,9 +52,8 @@ func (m *Model) assembleTUI() tea.View {
 	if below != "" {
 		belowRows = lipgloss.Height(below)
 	}
-	avail := max(m.windowHeight-lipgloss.Height(prompt)-2-belowRows, 1)
+	avail := max(m.windowHeight-1-lipgloss.Height(prompt)-belowRows, 1)
 	parts := append(m.tuiUpper(avail), "", prompt)
-	parts = append(parts, "")
 	if below != "" {
 		parts = append(parts, below)
 	}
@@ -75,6 +75,10 @@ func (m *Model) assembleTUI() tea.View {
 // split happened at print time — so joining the already-painted rows is enough;
 // what the terminal clips horizontally, it clips. The hold is tailed to avail
 // before the live rows join, since only the combined tail can reach the screen.
+// aboveContent is split on newlines first, because it can hand over a multi-line
+// string (the status line is always two rows): an appended entry must be one
+// visual row or the len()-based count understates the padded height, pushing
+// the prompt a row off the bottom and the cursor a row off the text.
 func (m *Model) tuiUpper(avail int) []string {
 	held := m.hold
 	if len(held) > avail {
@@ -83,9 +87,10 @@ func (m *Model) tuiUpper(avail int) []string {
 	rows := make([]string, 0, avail)
 	rows = append(rows, held...)
 	for _, row := range m.aboveContent() {
-		if row != "" {
-			rows = append(rows, row)
+		if row == "" {
+			continue
 		}
+		rows = append(rows, strings.Split(row, "\n")...)
 	}
 	if len(rows) > avail {
 		rows = rows[len(rows)-avail:]

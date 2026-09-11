@@ -73,11 +73,9 @@ func TestTheHoldDropsItsOldestRowsOnceCapped(t *testing.T) {
 }
 
 // The whole point of the mode: the prompt is pinned to the bottom of an
-// alternate screen with exactly one blank row above and one below it, like a
-// vim status bar, instead of riding the live region up and down.
-// The prompt is pinned: a single blank row sits at the very bottom, the rows
-// between the prompt's text and it are the prompt's own y-padding, and one blank
-// row separates the transcript from the prompt above it.
+// alternate screen. The prompt's text sits on the very last row — nothing is
+// drawn beneath it — with a single blank row between it and the transcript
+// above, like a vim status bar, instead of riding the live region up and down.
 func TestTUIModePinsThePromptToTheBottom(t *testing.T) {
 	m := tuiModel()
 	m.say(fromReader, "a line of transcript")
@@ -96,13 +94,11 @@ func TestTUIModePinsThePromptToTheBottom(t *testing.T) {
 	if first < 0 {
 		t.Fatalf("no prompt line in\n%s", strings.Join(lines, "\n"))
 	}
-	if strings.TrimSpace(lines[len(lines)-1]) != "" {
-		t.Errorf("row below prompt = %q, want the single bottom blank", lines[len(lines)-1])
+	if last != len(lines)-1 {
+		t.Errorf("prompt text ends at row %d, want it on the very last row %d", last, len(lines)-1)
 	}
-	for i := last + 1; i < len(lines)-1; i++ {
-		if strings.TrimSpace(lines[i]) != "" {
-			t.Errorf("prompt padding row %d = %q, want blank", i, lines[i])
-		}
+	if first != last {
+		t.Errorf("prompt spans rows %d..%d, want a single row", first, last)
 	}
 	if strings.TrimSpace(lines[first-1]) != "" {
 		t.Errorf("row above prompt = %q, want blank", lines[first-1])
@@ -115,6 +111,29 @@ func TestTUIModeRendersOnTheAlternateScreen(t *testing.T) {
 	m := tuiModel()
 	if !m.View().AltScreen {
 		t.Error("tui mode view is not marked for the alternate screen")
+	}
+}
+
+// The cursor must land on the prompt's own text row. The status line is two
+// rows inside one string, so the upper-region row count used to undercount by
+// one and the cursor sat a row above the typing line. The cursor's y is set by
+// an absolute offset into the whole frame, so it should match the row the text
+// renders on.
+func TestTUIModeCursorSitsOnThePromptTextRow(t *testing.T) {
+	m := tuiModel()
+	m.say(fromReader, "a line of transcript")
+	m.say(fromModel, "and another line")
+
+	view := m.View()
+	if view.Cursor == nil {
+		t.Fatal("tui mode view has no cursor")
+	}
+	lines := strings.Split(ansi.Strip(view.Content), "\n")
+	if view.Cursor.Y < 0 || view.Cursor.Y >= len(lines) {
+		t.Fatalf("cursor y = %d, outside the %d-row frame", view.Cursor.Y, len(lines))
+	}
+	if !strings.Contains(lines[view.Cursor.Y], "placeholder") {
+		t.Errorf("cursor at row %d = %q, want the prompt's text row", view.Cursor.Y, lines[view.Cursor.Y])
 	}
 }
 
@@ -132,27 +151,16 @@ func TestInlineModeHandsTheTranscriptToTheTerminal(t *testing.T) {
 	}
 }
 
-// The prompt reads as a roomier bar rather than a cramped line: even with a
-// single line of input it keeps its MinHeight floor, which is the y-padding
-// that makes the field taller than one row.
-func TestThePromptHasVerticalPadding(t *testing.T) {
+// The prompt reads as a single line rather than a padded bar: a single line of
+// input renders exactly one row, with the text on that row — no blank padding
+// rows inside the field. It grows only when the input actually wraps.
+func TestThePromptHasNoPadding(t *testing.T) {
 	m := sized()
 	lines := strings.Split(ansi.Strip(m.prompt.View()), "\n")
-	if len(lines) < minHeightRows {
-		t.Errorf("prompt rendered %d rows for one line of input, want at least %d", len(lines), minHeightRows)
+	if len(lines) != minHeightRows {
+		t.Errorf("prompt rendered %d rows for one line of input, want %d", len(lines), minHeightRows)
 	}
-	if aNonBlankRow(lines) < 0 {
-		t.Errorf("no text row found in\n%s", strings.Join(lines, "\n"))
+	if strings.TrimSpace(lines[0]) == "" {
+		t.Errorf("text row %d is empty in\n%s", 0, strings.Join(lines, "\n"))
 	}
-}
-
-// aNonBlankRow is the index of the first row with visible text, or -1 when the
-// screen is all blank.
-func aNonBlankRow(lines []string) int {
-	for i, line := range lines {
-		if strings.TrimSpace(line) != "" {
-			return i
-		}
-	}
-	return -1
 }

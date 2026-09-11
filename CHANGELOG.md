@@ -4,6 +4,23 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.45.1] - 2026-09-11
+
+### Fixed
+- **The input prompt now sits flush at the bottom of the screen.** In `tui` mode
+  the prompt used to float a row up with blank lines beneath it; in `inline`
+  mode it drifted up when fresh content arrived. `tuiUpper` was counting the
+  two-row status bar as a single row, so `len()` understated the region and the
+  prompt (and cursor) landed a row too high. Each `aboveContent` entry is now
+  split into its visual rows and nothing is painted beneath the prompt.
+- **The cursor no longer sits a row above the typing line.** The cursor's y was
+  computed from the same off-by-one region count; with the count fixed it lands
+  exactly on the prompt's text row.
+- **The prompt is one line tall by default.** Its `MinHeight` floor dropped
+  from 3 rows to 1, so an empty or one-line input reads as a single line and
+  only grows when the input actually wraps. The two padding rows under the text
+  are gone.
+
 ## [0.45.0] - 2026-09-11
 
 ### Changed
