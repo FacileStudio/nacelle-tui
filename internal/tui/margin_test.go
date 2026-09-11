@@ -19,7 +19,7 @@ import (
 // to a row shaved to m.width-2, never an extra row.
 func TestLiveRowsCarryAMargin(t *testing.T) {
 	m := sized()
-	m.Queue.Add("a queued message")
+	m.Add("a queued message")
 	m.run.busy = true
 	m.Expanded = true
 	m.run.reasoning.WriteString("some reasoning")
@@ -44,7 +44,7 @@ func TestLiveRowsCarryAMargin(t *testing.T) {
 // waiting messages never touch the counts.
 func TestTheQueueSitsOneBlankRowBelowTheStats(t *testing.T) {
 	m := sized()
-	m.Queue.Add("a queued message")
+	m.Add("a queued message")
 	rows := strings.Split(strings.Join(m.aboveContent(), "\n"), "\n")
 	queueAt := -1
 	for i, row := range rows {
