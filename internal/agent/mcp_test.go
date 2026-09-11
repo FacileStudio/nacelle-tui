@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"context"
+	"encoding/json"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -88,5 +90,34 @@ func TestNoMCPKeyAnywhereLeavesMCPUnset(t *testing.T) {
 	}
 	if len(config.MCPFiles) != 0 {
 		t.Errorf("mcp_files = %v, want nothing configured", config.MCPFiles)
+	}
+}
+
+func TestUnwrapCallToolAsksByTheBridgedName(t *testing.T) {
+	var seen []string
+	gate := unwrapCallTool(func(_ context.Context, name string, _ json.RawMessage) bool {
+		seen = append(seen, name)
+		return true
+	})
+	if !gate(context.Background(), "call_tool", []byte(`{"name":"srv_echo","arguments":{"hi":true}}`)) {
+		t.Fatal("call_tool was refused")
+	}
+	if len(seen) != 1 || seen[0] != "srv_echo" {
+		t.Fatalf("asked about %v, want only srv_echo", seen)
+	}
+	if !gate(context.Background(), "read_file", nil) || len(seen) != 2 || seen[1] != "read_file" {
+		t.Fatalf("a plain tool did not pass through: %v", seen)
+	}
+	if !gate(context.Background(), "call_tool", []byte(`{"arguments":{}}`)) {
+		t.Fatal("call_tool without a name was refused")
+	}
+	if len(seen) != 3 || seen[2] != "call_tool" {
+		t.Fatalf("malformed input did not fall back to call_tool: %v", seen)
+	}
+}
+
+func TestUnwrapCallToolLeavesApprovalOffAlone(t *testing.T) {
+	if unwrapCallTool(nil) != nil {
+		t.Fatal("nil approve came back non-nil")
 	}
 }

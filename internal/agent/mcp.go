@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -96,6 +97,31 @@ func mcpTools(config settings.Config, local []nacelle.Tool) (connected, []nacell
 	bridged := set.Tools()
 	return connected{set: set, servers: len(servers), tools: len(bridged), names: enabledNames(defs), catalog: len(bridged) > mcpCatalogThreshold},
 		grown(local, bridged), nil
+}
+
+// unwrapCallTool makes the approval gate see the bridged tool a call_tool
+// invocation names, rather than call_tool itself. In catalog mode every
+// bridged tool runs through that one tool, so asked as-is the gate would show
+// "call_tool" for all of them and one Allow-for-session would open every
+// bridged tool at once. When the input does not carry a legible name the
+// original call stands, malformed input being the refusal the gate exists to
+// catch. Applied to nil unchanged, so approval-off stays approval-off.
+func unwrapCallTool(approve nacelle.Approve) nacelle.Approve {
+	if approve == nil {
+		return nil
+	}
+	return func(ctx context.Context, name string, input json.RawMessage) bool {
+		if name == "call_tool" {
+			var in struct {
+				Name      string          `json:"name"`
+				Arguments json.RawMessage `json:"arguments"`
+			}
+			if err := json.Unmarshal(input, &in); err == nil && in.Name != "" {
+				return approve(ctx, in.Name, in.Arguments)
+			}
+		}
+		return approve(ctx, name, input)
+	}
 }
 
 // enabledNames keeps the server names Parse will act on — the map's keys

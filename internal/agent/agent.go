@@ -42,6 +42,7 @@ type built struct {
 // /parallel fan-out runs its own agents from the same tools, system prompt and
 // iteration ceiling instead of a hand-built subset.
 func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve, hooks map[nacelle.HookPoint][]nacelle.Hook) (built, error) {
+	approve = unwrapCallTool(approve)
 	backend, err := chosen(config)
 	if err != nil {
 		return built{}, err
