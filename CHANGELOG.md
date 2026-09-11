@@ -4,6 +4,21 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.43.1] - 2026-09-11
+
+### Fixed
+- **Flags typed ahead of the `cron` subcommand are honoured.** The dispatch
+  only recognised `cron` as the very first argument, so `nacelle --json cron
+  list` opened the TUI instead of printing the job list; the scan now skips
+  leading dash-tokens. A flag that takes a value still belongs after the
+  subcommand.
+- **The search glob quirk is fixed at the source.** nacelle v0.22.1 makes
+  `search_content` and `find_files` match relative globs against the walk's
+  paths; this release picks it up.
+
+### Changed
+- nacelle v0.22.0 → v0.22.1.
+
 ## [0.43.0] - 2026-09-11
 
 ### Added
