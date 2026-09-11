@@ -4,6 +4,22 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.50.0] - 2026-09-12
+
+### Added
+- Post-edit diagnostics loop: filet findings for a file just written by
+  `edit_file`/`write_file` are injected into the session automatically
+  (errors only, attribution-diffed so repeats are not re-injected, 2s
+  timeout with a background warm). Kill switch: `tools.diagnostics: false`.
+- `diagnostics` tool: on-demand filet check of one file or the repo,
+  compiler-style `file:line:col` output.
+
+### Fixed
+- Subagent task rows laid out at full terminal width while the margin pass
+  clips to two cells narrower, cutting off the timer at the right edge.
+- `example.nacelle.yml` still listed the removed `parallel_subagent` key,
+  so the example config failed to parse.
+
 ## [0.49.1] - 2026-09-12
 
 ### Fixed

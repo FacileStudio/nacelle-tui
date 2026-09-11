@@ -55,7 +55,7 @@ func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve
 		return built{}, err
 	}
 	local = withTasks(config, local)
-	if settings.DerefBool(config.Toggles.Diagnostics) {
+	if settings.DerefBool(config.Diagnostics) {
 		local = append(local, diagnostics.Tool())
 		hooks = withDiagnosticsHook(hooks)
 	}
