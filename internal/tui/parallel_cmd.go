@@ -14,7 +14,7 @@ import (
 // launches the fan-out. It does not go through the parent model: the work runs
 // in detached nested agents cloned from the main agent's own Config, and the
 // main thread stays free — the point of /parallel is that you keep chatting
-// while the subagents grind. The model's own `parallel_subagent` tool is the
+// while the parallel_agents grind. The model's own `parallel_agents` tool is the
 // same detached deal: it returns a stub immediately and the fan-out streams
 // back through the Results hook, so neither path pins the main thread to the
 // fan-out's duration.
@@ -47,7 +47,7 @@ func splitParallelTasks(args string) []string {
 	return out
 }
 
-// delegateApprove is the approval policy the detached subagents answer to. It
+// delegateApprove is the approval policy the detached parallel_agents answer to. It
 // is the same rule agent.delegateApprovals applies to the model-callable tool:
 // a delegate inherits the parent's policy, and a session with approvals off
 // hands the delegate an allow-all rather than the SDK's deny-all default.

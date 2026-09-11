@@ -25,7 +25,7 @@ func Run(v string) error {
 	if handled, err := checkPrintFlag(); handled {
 		return err
 	}
-	sess, cleanup, err := buildUISession(v)
+	sess, cleanup, err := bootOrAsk(v)
 	if err != nil {
 		return err
 	}
@@ -40,8 +40,11 @@ type preparedTools struct {
 	local  []nacelle.Tool
 }
 
-func setupAgentTools() (preparedTools, error) {
+func setupAgentTools(noConfig bool) (preparedTools, error) {
 	flags := settings.FromFlags(settings.Defaults(""))
+	if noConfig {
+		flags.NoConfig = &noConfig
+	}
 	config, err := settings.Settings(DefaultSystemPrompt(), flags)
 	if err != nil {
 		return preparedTools{}, err
@@ -97,8 +100,8 @@ func setupAgentSession(p preparedTools, v string) (*tui.UISession, error) {
 	}, nil
 }
 
-func buildUISession(v string) (*tui.UISession, func(), error) {
-	prep, err := setupAgentTools()
+func buildUISession(v string, noConfig bool) (*tui.UISession, func(), error) {
+	prep, err := setupAgentTools(noConfig)
 	if err != nil {
 		return nil, nil, err
 	}

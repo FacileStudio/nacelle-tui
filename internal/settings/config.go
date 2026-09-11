@@ -35,14 +35,17 @@ type Provider struct {
 }
 
 // Session is the launch settings that are not display choices — where the
-// session starts, what its base prompt says, whether it resumes. Inlined so
-// root:, system:, continue: and resume: stay top-level keys in the file.
+// session starts, what its base prompt says, whether it resumes. They live
+// under the session: group in the file, except resume: which is flag-only.
 type Session struct {
 	Root     string  `yaml:"root"`
-	System   string  `yaml:"system"`
+	System   string  `yaml:"system_prompt"`
 	Continue *bool   `yaml:"continue"`
-	Resume   *string `yaml:"resume"`
+	Resume   *string `yaml:"-"`
 }
+
+// NoConfig skips the file entirely; it comes from -no-config, never the
+// file it is about to ignore.
 
 // Config is one layer of settings. Every field is a pointer or an empty-able
 // string so a layer can say nothing about a setting rather than saying zero:
@@ -52,8 +55,10 @@ type Session struct {
 // dotfile is the reasonable home for it; a vendor key is better kept in the
 // environment, since a file holding a live OPENAI_API_KEY can never be committed.
 type Config struct {
+	NoConfig *bool `yaml:"-"`
+
 	Provider `yaml:"provider"`
-	Session  `yaml:",inline"`
+	Session  `yaml:"session"`
 
 	Limits `yaml:"limits"`
 
@@ -61,7 +66,7 @@ type Config struct {
 
 	Reasoning `yaml:"reasoning"`
 
-	Web `yaml:"web"`
+	Security `yaml:"security"`
 
 	Discovery `yaml:"discovery"`
 
@@ -72,21 +77,25 @@ type Config struct {
 	Cron    []CronJob  `yaml:"cron"`
 }
 
-// Toggles is the on/off settings: whether the model may run commands, whether
-// the client will prompt for approval before a tool call runs, whether to show
-// a diff when a file is changed, whether the model gets the parallel delegate
-// tool, and whether the model is confined to the working directory. Every
-// toggle is a pointer so "not in this file" can be told from "false".
+// Toggles is the tool-mount settings: whether the model gets each optional
+// tool. Every toggle is a pointer so "not in this file" can be told from "false".
 type Toggles struct {
-	Bash              *bool `yaml:"bash"`
-	Subagents         *bool `yaml:"subagents"`
+	Bash           *bool `yaml:"run_command"`
+	ParallelAgents *bool `yaml:"parallel_agents"`
+	Fetch          *bool `yaml:"web_fetch"`
+	Tasks          *bool `yaml:"tasks"`
+}
+
+// Security holds the two settings that decide how much a tool call may do
+// before something stops it: ask before every call runs, confine to the root.
+type Security struct {
 	ApproveTools      *bool `yaml:"approve_tools"`
-	Diffs             *bool `yaml:"diffs"`
-	Tasks             *bool `yaml:"tasks"`
 	StrictConfinement *bool `yaml:"strict_confinement"`
 }
 
 // UI holds display settings for the interactive client.
+//
+// Diffs shows a git-style diff when the model edits a file.
 //
 // GroupTools collapses consecutive read-only tool calls of one name into a
 // single "running 10 tools" line while they run; each completed call still
@@ -105,6 +114,7 @@ type UI struct {
 	Mode              *string `yaml:"rendering_mode"`
 	GroupTools        *bool   `yaml:"group_tools"`
 	ShowThinking      *bool   `yaml:"show_thinking"`
+	Diffs             *bool   `yaml:"diffs"`
 	PromptPrefix      *string `yaml:"prompt_prefix"`
 	PromptPlaceholder *string `yaml:"prompt_placeholder"`
 	StartMessage      *string `yaml:"start_message"`
@@ -119,11 +129,6 @@ type Reasoning struct {
 	Effort   string `yaml:"effort"`
 	Thinking *bool  `yaml:"thinking"`
 	Budget   *int64 `yaml:"budget"`
-}
-
-// Web holds the fetch setting, the one network tool that stays mounted.
-type Web struct {
-	Fetch *bool `yaml:"fetch"`
 }
 
 // Discovery holds the three settings that decide what this session folds into
@@ -168,7 +173,7 @@ const DefaultCompactAt int64 = 75_000
 func Defaults(system string) Config {
 	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks, strict :=
 		true, true, true, true, false, false, false, true, true, false
-	subagents := true
+	parallelAgents := true
 	iterations, budget := 5, int64(0)
 	compactAt := int64(75000)
 	fetch := true
@@ -179,10 +184,10 @@ func Defaults(system string) Config {
 	promptPlaceholder := "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
 	startMessage := ""
 	return Config{
-		Web:       Web{Fetch: &fetch},
 		Provider:  Provider{Backend: "anthropic"},
 		Session:   Session{Root: ".", System: system, Continue: &cont, Resume: &resume},
-		Toggles:   Toggles{Bash: &bash, Subagents: &subagents, ApproveTools: &approveTools, Diffs: &diffs, Tasks: &tasks, StrictConfinement: &strict},
+		Toggles:   Toggles{Bash: &bash, ParallelAgents: &parallelAgents, Fetch: &fetch, Tasks: &tasks},
+		Security:  Security{ApproveTools: &approveTools, StrictConfinement: &strict},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{
@@ -191,7 +196,7 @@ func Defaults(system string) Config {
 			TrustSkills:    &trustSkills,
 			TrustHooks:     &trustHooks,
 		},
-		UI: UI{Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
+		UI: UI{Mode: &mode, GroupTools: &groupTools, ShowThinking: &showThinking, Diffs: &diffs, PromptPrefix: &promptPrefix, PromptPlaceholder: &promptPlaceholder, StartMessage: &startMessage, TransparentBlocks: &transparent, JSON: &json},
 	}
 }
 
@@ -224,14 +229,30 @@ func Load(path string) (Config, error) {
 
 	var settings Config
 	if err := decoder.Decode(&settings); err != nil && !errors.Is(err, io.EOF) {
-		return Config{}, fmt.Errorf("parsing %s: %w", path, err)
+		return Config{}, &ParseError{Path: path, Err: err}
 	}
 	return settings, nil
 }
 
+// ParseError is an invalid settings file: Load refused it. The interactive
+// client catches it to offer a default-settings boot instead of dying.
+type ParseError struct {
+	Path string
+	Err  error
+}
+
+func (e *ParseError) Error() string { return "parsing " + e.Path + ": " + e.Err.Error() }
+func (e *ParseError) Unwrap() error { return e.Err }
+
 // Settings resolves every layer in one place: flag beats environment beats
 // file beats default. The scaffold runs before the file is read.
 func Settings(system string, flags Config) (Config, error) {
+	if flags.NoConfig != nil && *flags.NoConfig {
+		resolved := Defaults(system)
+		resolved.merge(FromEnv())
+		resolved.merge(flags)
+		return resolved, nil
+	}
 	if created, err := Scaffold(ConfigPath()); err != nil {
 		return Config{}, err
 	} else if created {

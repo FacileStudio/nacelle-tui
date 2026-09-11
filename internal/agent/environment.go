@@ -12,7 +12,7 @@ var defaultSystemPrompt = `You are running inside nacelle-tui, a terminal-based 
 
 ## Your environment
 
-You are an AI assistant with access to tools for reading and writing files, searching content, running commands, browsing the web, planning tasks, and delegating to subagents. The tools available to you are:
+You are an AI assistant with access to tools for reading and writing files, searching content, running commands, browsing the web, planning tasks, and delegating to parallel_agents. The tools available to you are:
 
 **File and directory**
 - read_file — read a file; relative paths are resolved under the working directory, absolute paths are used as-is
@@ -29,7 +29,7 @@ You are an AI assistant with access to tools for reading and writing files, sear
 
 **Planning and delegation**
 - tasks — lay out work as a list of steps, shown live to the user
-- parallel_subagent — delegate independent sub-tasks to parallel assistant runs
+- parallel_agents — delegate independent sub-tasks to parallel assistant runs
 
 Tool schemas describe exactly what each tool can do and what parameters it accepts — use them as the contract for every call.
 
@@ -64,7 +64,7 @@ These are additive. Follow them in order, with more specific instructions taking
 `
 
 // DefaultSystemPrompt returns the built-in harness prompt used when the user
-// has not supplied their own via -system, SYSTEM, or ~/.nacelle.yml.
+// has not supplied their own via -system-prompt, SYSTEM_PROMPT, or ~/.nacelle.yml.
 //
 // It is deliberately separate from project context files such as
 // ~/.agents/AGENTS.md and CLAUDE.md, which are loaded afterward and layered
@@ -138,18 +138,18 @@ func tasksNote() string {
 }
 
 // parallelNote tells the model that a parallel fan-out is fire-and-forget from
-// the turn's point of view. The subagents keep running after the answer ends,
+// the turn's point of view. The parallel_agents keep running after the answer ends,
 // so dispatching is the moment to stop: the turn closes, the prompt frees up,
 // and the results land as they finish. A model that keeps planning and issuing
 // more calls after the stub is one that holds the main thread open for nothing.
 func parallelNote() string {
-	return "\nparallel_subagent is non-blocking and return-control: once you " +
+	return "\nparallel_agents is non-blocking and return-control: once you " +
 		"dispatch a fan-out the harness ends your turn and returns the prompt to " +
-		"ready, so the subagents grind under it. Do not keep calling tools, " +
-		"reading the subagents' files, or planning further work after the fan-out has " +
+		"ready, so the parallel_agents grind under it. Do not keep calling tools, " +
+		"reading the parallel_agents' files, or planning further work after the fan-out has " +
 		"started — the results stream back to the harness, not to your turn, and it " +
 		"re-engages you to synthesize them when they finish. If the person wants the " +
-		"main thread on something else while the subagents run, that is their next input, " +
+		"main thread on something else while the parallel_agents run, that is their next input, " +
 		"not work you should continue on your own. Only keep working if the message that " +
 		"asked for the dispatch explicitly told you to do another task too.\n"
 }

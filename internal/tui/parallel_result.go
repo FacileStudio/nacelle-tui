@@ -8,11 +8,11 @@ import (
 )
 
 // This file is the shared chromosome of a parallel fan-out: how the model's own
-// parallel_subagent call becomes row state, how streamed results get back onto
+// parallel_agents call becomes row state, how streamed results get back onto
 // the update loop, and the row helpers both the /parallel command and the model
 // path read. The launcher and per-result handlers live in parallel_detached.go.
 
-// rememberParallelCall stashes the tasks a model's parallel_subagent call asked
+// rememberParallelCall stashes the tasks a model's parallel_agents call asked
 // for, keyed by the tool call's ID, so the non-blocking stub result that follows
 // can seed the batch's rows. The fan-out itself runs detached inside nacelle;
 // the turn only needs to know the tasks to draw them.
@@ -29,7 +29,7 @@ func (m *Model) rememberParallelCall(tool nacelle.ToolEvent) {
 	m.pending[tool.ID] = input.Tasks
 }
 
-// startDetachedParent consumes the stub a non-blocking parallel_subagent call
+// startDetachedParent consumes the stub a non-blocking parallel_agents call
 // returned — `{"started":N,"batch":key}` — and registers that batch's rows. The
 // results stream in tagged with the same batch, so they land exactly like the
 // /parallel command's do.

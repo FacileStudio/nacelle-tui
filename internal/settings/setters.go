@@ -20,6 +20,7 @@ func uiSetters(f declared) map[string]func(*Config) {
 		"mode":               func(c *Config) { c.Mode = f.mode },
 		"transparent-blocks": func(c *Config) { c.TransparentBlocks = f.transparent },
 		"json":               func(c *Config) { c.JSON = f.json },
+		"no-config":          func(c *Config) { c.NoConfig = f.noConfig },
 	}
 }
 
@@ -29,10 +30,10 @@ func coreSetters(f declared) map[string]func(*Config) {
 		"model":            func(c *Config) { c.Model = *f.model },
 		"effort":           func(c *Config) { c.Effort = *f.effort },
 		"root":             func(c *Config) { c.Root = *f.root },
-		"system":           func(c *Config) { c.System = *f.system },
+		"system-prompt":    func(c *Config) { c.System = *f.system },
 		"fetch":            func(c *Config) { c.Fetch = f.fetch },
 		"bash":             func(c *Config) { c.Bash = f.bash },
-		"subagents":        func(c *Config) { c.Subagents = f.subagents },
+		"parallel-agents":  func(c *Config) { c.ParallelAgents = f.parallelAgents },
 		"thinking":         func(c *Config) { c.Thinking = f.thinking },
 		"project-context":  func(c *Config) { c.ProjectContext = f.projectContext },
 		"skills":           func(c *Config) { c.Skills = f.skills },

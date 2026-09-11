@@ -7,13 +7,13 @@ import (
 	"github.com/FacileStudio/nacelle"
 )
 
-// The model's own parallel_subagent call is non-blocking. The call only stashes
+// The model's own parallel_agents call is non-blocking. The call only stashes
 // the tasks it asked for; the stub result — "started", with a batch key — is
 // what seeds the rows and announces the fan-out, so the parent's turn keeps
 // going instead of waiting on the whole run.
 func TestModelParallelCallStubSeedsRows(t *testing.T) {
 	m := sized()
-	tool := nacelle.ToolEvent{ID: "call1", Name: nacelle.ParallelSubAgentToolName, Input: `{"tasks":["a","b","c"]}`}
+	tool := nacelle.ToolEvent{ID: "call1", Name: nacelle.ParallelAgentsToolName, Input: `{"tasks":["a","b","c"]}`}
 
 	m.absorbToolCall(tool)
 	if _, ok := m.pending["call1"]; !ok {
@@ -50,7 +50,7 @@ func TestModelParallelCallStubSeedsRows(t *testing.T) {
 // task's spend into the session total, exactly like a /parallel fan-out's do.
 func TestModelParallelStubResultsRouteToBatch(t *testing.T) {
 	m := sized()
-	tool := nacelle.ToolEvent{ID: "call1", Name: nacelle.ParallelSubAgentToolName, Input: `{"tasks":["a","b"]}`}
+	tool := nacelle.ToolEvent{ID: "call1", Name: nacelle.ParallelAgentsToolName, Input: `{"tasks":["a","b"]}`}
 	m.absorbTool(tool)
 	m.absorbToolResult(tool, `{"started":2,"batch":"psa-2"}`)
 	before := m.spent.OutputTokens

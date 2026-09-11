@@ -16,7 +16,7 @@ func TestFetchIsOnByDefaultAndTheFileCanTurnItOff(t *testing.T) {
 		t.Error("fetch = false, want reading a page to be available without asking")
 	}
 
-	written(t, "web:\n  fetch: false\n")
+	written(t, "tools:\n  web_fetch: false\n")
 	if config, err = resolveSettings(Config{}); err != nil {
 		t.Fatalf("settings: %v", err)
 	}
@@ -28,12 +28,12 @@ func TestFetchIsOnByDefaultAndTheFileCanTurnItOff(t *testing.T) {
 func TestTheBannerNamesFetchOnlyWhenItIsOff(t *testing.T) {
 	on, off := true, false
 
-	quiet := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Web: Web{Fetch: &on}}), loaded{}, connected{})
+	quiet := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Toggles: Toggles{Fetch: &on}}), loaded{}, connected{})
 	if strings.Contains(quiet, "fetch") {
 		t.Errorf("banner = %q, want nothing said about fetch when it is on", quiet)
 	}
 
-	loud := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Web: Web{Fetch: &off}}), loaded{}, connected{})
+	loud := testBanner(&answeringStub{}, asSettled(Config{Session: Session{Root: "."}, Toggles: Toggles{Fetch: &off}}), loaded{}, connected{})
 	if !strings.Contains(loud, "fetch off") {
 		t.Errorf("banner = %q, want the reason a page cannot be read on screen", loud)
 	}

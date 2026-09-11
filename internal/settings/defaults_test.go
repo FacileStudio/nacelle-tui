@@ -35,7 +35,7 @@ func TestDiffsDefaultOnAndTurnableOff(t *testing.T) {
 		t.Error("diffs = false, want it on by default")
 	}
 
-	written(t, "tools:\n  diffs: false\n")
+	written(t, "ui:\n  diffs: false\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings: %v", err)
@@ -45,22 +45,32 @@ func TestDiffsDefaultOnAndTurnableOff(t *testing.T) {
 	}
 }
 
-// Resume is a string that defaults empty and only names a session when a
-// layer says so. This proves the default and that the `resume:` key decodes
-// without tripping KnownFields(true), so a config that carries it keeps
-// loading rather than becoming a startup error.
-func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
+// Resume is flag-only: defaults empty, and the file cannot set it. This pins
+// both — the default stays empty, and a `resume:` key in the file is refused
+// by KnownFields(true) rather than silently ignored, so nobody thinks the
+// file picked the session.
+func TestResumeDefaultsEmptyAndIsRefusedInTheFile(t *testing.T) {
 	fallback := defaults()
 	if *fallback.Resume != "" {
 		t.Errorf("resume = %q, want the empty default", *fallback.Resume)
 	}
-	written(t, "resume: 2026-09-10T14-000Z.jsonl\n")
-	config, err := settings(Config{})
-	if err != nil {
-		t.Fatalf("settings with resume: %v", err)
+	written(t, "session:\n  resume: 2026-09-10T14-000Z.jsonl\n")
+	if _, err := settings(Config{}); err == nil {
+		t.Error("session.resume in the file parsed, want a refusal: resume is flag-only")
 	}
-	if *config.Resume != "2026-09-10T14-000Z.jsonl" {
-		t.Errorf("resume = %q, want the file's session id", *config.Resume)
+}
+
+// -no-config skips the file entirely: an invalid ~/.nacelle.yml must not block
+// a boot that asked to ignore it, and the other layers (env, flags) still apply.
+func TestNoConfigSkipsAnInvalidFile(t *testing.T) {
+	written(t, "totally_not_yaml: [[[")
+	on := true
+	config, err := settings(Config{NoConfig: &on})
+	if err != nil {
+		t.Fatalf("no-config boot with a broken file: %v", err)
+	}
+	if config.Backend != "anthropic" {
+		t.Errorf("backend = %q, want the default", config.Backend)
 	}
 }
 
@@ -69,7 +79,7 @@ func TestResumeDefaultsEmptyAndComesFromTheFile(t *testing.T) {
 // reached the resolved config — so this pins the merge that keeps auto-resume
 // switchable.
 func TestContinueFromTheFile(t *testing.T) {
-	written(t, "continue: true\n")
+	written(t, "session:\n  continue: true\n")
 	config, err := settings(Config{})
 	if err != nil {
 		t.Fatalf("settings with continue: %v", err)

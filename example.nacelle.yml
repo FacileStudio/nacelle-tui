@@ -7,25 +7,24 @@ provider:
   base_url: ""
   api_key: ""
 
-root: .
-system: ""
-continue: false
-resume: ""
+session:
+  root: .
+  system_prompt: ""
+  continue: false
 
 limits:
   max_iterations: 5
   compact_at: 75000
 
 tools:
-  bash: true
-  subagents: true
-  approve_tools: false
-  diffs: true
+  run_command: true
+  web_fetch: true
   tasks: true
-  strict_confinement: false
+  parallel_subagent: true
 
-web:
-  fetch: true
+security:
+  approve_tools: false
+  strict_confinement: false
 
 reasoning:
   effort: ""
@@ -42,6 +41,7 @@ ui:
   rendering_mode: inline
   group_tools: true
   show_thinking: true
+  diffs: true
   prompt_prefix: "| "
   prompt_placeholder: "Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\\ forces it."
   start_message: ""

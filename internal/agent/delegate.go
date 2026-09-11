@@ -10,13 +10,13 @@ import (
 	"github.com/FacileStudio/nacelle-tui/internal/tui"
 )
 
-// withSubagents mounts the delegation tools when the settings ask for them.
+// withParallelAgents mounts the delegation tools when the settings ask for them.
 // It exists so build stays a readable sequence of wiring rather than growing a
 // branch per optional tool: the delegates share the parent's wrapped backend,
 // system prompt, tools and iteration ceiling, and report their spend to the
 // session the same way the parent's own turns do.
-func withSubagents(config settings.Config, backend nacelle.Backend, local []nacelle.Tool, approve nacelle.Approve) ([]nacelle.Tool, error) {
-	if !*config.Subagents {
+func withParallelAgents(config settings.Config, backend nacelle.Backend, local []nacelle.Tool, approve nacelle.Approve) ([]nacelle.Tool, error) {
+	if !*config.ParallelAgents {
 		return local, nil
 	}
 	parallel, err := nacelle.NewParallelSubAgentTool(nacelle.Config{

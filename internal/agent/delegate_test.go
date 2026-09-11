@@ -39,21 +39,21 @@ func TestADelegateStillObeysTheParentsGate(t *testing.T) {
 	}
 }
 
-// The delegate set is the parallel tool alone: subagents defaults on, so the
+// The delegate set is the parallel tool alone: parallel_agents defaults on, so the
 // mount is active in every ordinary session, and the single subagent tool is
 // not wired beside it.
-func TestSubagentsMountsOnlyTheParallelTool(t *testing.T) {
+func TestParallelAgentsMountsOnlyTheParallelTool(t *testing.T) {
 	config := settings.Defaults("")
 	on := true
-	config.Subagents = &on
+	config.ParallelAgents = &on
 
-	tools, err := withSubagents(config, &answeringStub{}, make([]nacelle.Tool, 0), nil)
+	tools, err := withParallelAgents(config, &answeringStub{}, make([]nacelle.Tool, 0), nil)
 	if err != nil {
-		t.Fatalf("withSubagents: %v", err)
+		t.Fatalf("withParallelAgents: %v", err)
 	}
 	for _, tool := range tools {
-		if tool.Name() != nacelle.ParallelSubAgentToolName {
-			t.Errorf("mounted %q, want only the parallel_subagent tool", tool.Name())
+		if tool.Name() != nacelle.ParallelAgentsToolName {
+			t.Errorf("mounted %q, want only the parallel_agents tool", tool.Name())
 		}
 	}
 	if len(tools) == 0 {

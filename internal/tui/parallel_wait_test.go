@@ -5,7 +5,7 @@ import (
 )
 
 // relaxAfterDispatch cancels a busy parent run the moment a model-callable
-// parallel fan-out registers, so the turn returns to ready and the subagents
+// parallel fan-out registers, so the turn returns to ready and the parallel_agents
 // grind under a live prompt instead of the model pecking at work it cannot read.
 func TestRelaxAfterDispatchCancelsABusyRun(t *testing.T) {
 	m := sized()

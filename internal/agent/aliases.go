@@ -25,8 +25,8 @@ type Approvals = approval.Approvals
 // Sources aliases settings.Sources.
 type Sources = settings.Sources
 
-// Web aliases settings.Web.
-type Web = settings.Web
+// Security aliases settings.Security.
+type Security = settings.Security
 
 // Toggles aliases settings.Toggles.
 type Toggles = settings.Toggles

@@ -68,8 +68,8 @@ func (c *Config) mergeToggles(over Config) {
 	if over.Bash != nil {
 		c.Bash = over.Bash
 	}
-	if over.Subagents != nil {
-		c.Subagents = over.Subagents
+	if over.ParallelAgents != nil {
+		c.ParallelAgents = over.ParallelAgents
 	}
 	if over.Thinking != nil {
 		c.Thinking = over.Thinking

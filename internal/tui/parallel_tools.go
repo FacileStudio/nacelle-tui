@@ -111,7 +111,7 @@ func (m *Model) foldSubagentSpend(pt *parallelTaskInfo, u subagentUpdate) {
 }
 
 // isDetachedBatch reports whether a batch key belongs to a /parallel fan-out
-// rather than to the model's parallel_subagent tool call. The two are told apart
+// rather than to the model's parallel_agents tool call. The two are told apart
 // by the "detach" prefix launchDetached hands out, and they pay for it here: a
 // model-callable fan-out's spend already reaches the session total through
 // nacelle's Usage hook (delegations), so folding its live updates in again would

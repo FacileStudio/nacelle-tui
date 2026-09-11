@@ -120,7 +120,7 @@ func TestDetachedLiveSpendJoinsTheSessionTotalAsItStreams(t *testing.T) {
 	}
 }
 
-// A model-called parallel_subagent already reaches the session total through
+// A model-called parallel_agents already reaches the session total through
 // nacelle's Usage hook (the delegations channel), so folding its live spend in
 // here too would double-count it. Only detached batches fold live.
 func TestModelPathLiveSpendStaysOutOfTheSessionTotal(t *testing.T) {

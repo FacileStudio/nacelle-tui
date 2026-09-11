@@ -27,25 +27,24 @@ func providerEnv() Provider {
 func FromEnv() Config {
 	return Config{
 		Provider: providerEnv(),
-		Session:  Session{Root: os.Getenv(EnvPrefix + "ROOT"), System: os.Getenv(EnvPrefix + "SYSTEM")},
+		Session:  Session{Root: os.Getenv(EnvPrefix + "ROOT"), System: os.Getenv(EnvPrefix + "SYSTEM_PROMPT")},
 		Limits:   Limits{MaxIterations: envInt(EnvPrefix + "MAX_ITERATIONS"), CompactAt: envInt64(EnvPrefix + "COMPACT_AT")},
 		Sources:  Sources{SkillDirs: envList(EnvPrefix + "SKILL_DIRS")},
-		UI:       UI{Mode: envString(EnvPrefix + "MODE"), TransparentBlocks: envBool(EnvPrefix + "TRANSPARENT_BLOCKS")},
+		UI:       UI{Mode: envString(EnvPrefix + "MODE"), TransparentBlocks: envBool(EnvPrefix + "TRANSPARENT_BLOCKS"), Diffs: envBool(EnvPrefix + "DIFFS")},
 		Toggles: Toggles{
-			Bash:              envBool(EnvPrefix + "BASH"),
-			Subagents:         envBool(EnvPrefix + "SUBAGENTS"),
+			Bash:           envBool(EnvPrefix + "BASH"),
+			ParallelAgents: envBool(EnvPrefix + "PARALLEL_AGENTS"),
+			Fetch:          envBool(EnvPrefix + "FETCH"),
+			Tasks:          envBool(EnvPrefix + "TASKS"),
+		},
+		Security: Security{
 			ApproveTools:      envBool(EnvPrefix + "APPROVE_TOOLS"),
-			Diffs:             envBool(EnvPrefix + "DIFFS"),
-			Tasks:             envBool(EnvPrefix + "TASKS"),
 			StrictConfinement: envBool(EnvPrefix + "STRICT_CONFINEMENT"),
 		},
 		Reasoning: Reasoning{
 			Effort:   os.Getenv(EnvPrefix + "EFFORT"),
 			Thinking: envBool(EnvPrefix + "THINKING"),
 			Budget:   envInt64(EnvPrefix + "REASONING_BUDGET"),
-		},
-		Web: Web{
-			Fetch: envBool(EnvPrefix + "FETCH"),
 		},
 		Discovery: Discovery{
 			ProjectContext: envBool(EnvPrefix + "PROJECT_CONTEXT"),

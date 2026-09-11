@@ -20,7 +20,7 @@ import (
 // see delegate.go, which solves the same problem the same way.
 //
 // It is not wired in here. withTasks in tools_main.go appends tasksTool{} to
-// the local set, and it has to run after withSubagents: a delegate inherits
+// the local set, and it has to run after withParallelAgents: a delegate inherits
 // every tool the parent holds when its own tool is built, and there is one
 // plan on one screen. This file only has to be safe to call.
 type tasksTool struct{}

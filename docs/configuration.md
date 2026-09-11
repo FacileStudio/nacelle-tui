@@ -92,10 +92,10 @@ could tell apart.
 
 | Layer | Source | Notes |
 |---|---|---|
-| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue`, `-resume` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence. `-resume` names one session by id or file path and, when given, beats `-continue` |
-| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
+| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system-prompt`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-fetch`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue`, `-resume`, `-no-config` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence. `-resume` names one session by id or file path and, when given, beats `-continue`. `-no-config` skips `~/.nacelle.yml` entirely: defaults plus environment plus flags. An invalid file gets a coloured report and one prompt — yes boots with defaults, no exits with the documentation link |
+| Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM_PROMPT`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.bash: true`, `reasoning.thinking: true`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `discovery.trust_hooks: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `tools.approve_tools: false`, `tools.diffs: true`, `limits.max_iterations: 5`, `limits.compact_at: 75000` (absolute tokens), `web.fetch: true`, `tools.tasks: true`, `ui.rendering_mode: inline`, `ui.group_tools: true`, `ui.show_thinking: true` |
+| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.run_command: true`, `reasoning.thinking: true`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `discovery.trust_hooks: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `security.approve_tools: false`, `ui.diffs: true`, `limits.max_iterations: 5`, `limits.compact_at: 75000` (absolute tokens), `tools.web_fetch: true`, `tools.tasks: true`, `tools.parallel_subagent: true`, `ui.rendering_mode: inline`, `ui.group_tools: true`, `ui.show_thinking: true` |
 
 `project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
 there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
@@ -129,29 +129,32 @@ reasoning:
 limits:
   compact_at: 75000
   max_iterations: 5
-root: .
-system: You are a terminal coding assistant.
+session:
+  root: .
+  system_prompt: You are a terminal coding assistant.
+  continue: false
 tools:
-  bash: true
-  approve_tools: false
-  diffs: true
-  subagents: true
+  run_command: true
+  web_fetch: true
   tasks: true
+  parallel_subagent: true
+
+security:
+  approve_tools: false
   strict_confinement: false
-web:
-  fetch: true
+
 discovery:
   project_context: true
   skills: true
   trust_skills: false
-continue: false
-resume: ""
+  trust_hooks: false
 ui:
   prompt_prefix: '| '
   prompt_placeholder: 'Ask something. Esc stops a run, ctrl+c stops or quits, ctrl+\ forces it.'
   rendering_mode: inline
   group_tools: true
   show_thinking: true
+  diffs: true
   transparent_blocks: false
   # cron_list_json: false
   # start_message: |-
@@ -177,12 +180,16 @@ Old flat key → new home, for migrating a pre-0.44 file:
 |---|---|
 | `backend`, `model`, `base_url`, `api_key` | `provider:` |
 | `max_iterations`, `compact_at` | `limits:` |
-| `bash`, `subagents`, `approve_tools`, `diffs`, `tasks`, `strict_confinement` | `tools:` |
+| `bash` | `tools.run_command` |
+| `subagents` | `tools.parallel_subagent` |
+| `fetch` | `tools.web_fetch` |
+| `tasks` | `tools.tasks` |
+| `approve_tools`, `strict_confinement` | `security:` |
 | `effort`, `thinking`, `reasoning_budget` (now `budget`) | `reasoning:` |
-| `fetch` | `web:` |
 | `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
-| `continue`, `resume` (stay top level, they are launch settings not display) | — |
-| `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
+| `continue` | `session:` |
+| `resume` | dropped from the file — `-resume` on the command line only |
+| `mode` (now `rendering_mode`), `json` (now `cron_list_json`), `group_tools`, `show_thinking`, `diffs`, `prompt_prefix`, `prompt_placeholder`, `start_message`, `transparent_blocks` | `ui:` |
 | `skill_dirs`, `mcp` | `sources:` |
 
 Every field is optional. A missing file is not an error — on first boot
@@ -269,7 +276,7 @@ Advice about *which* tool to reach for is deliberately not here; it lives in the
 descriptions, where it travels with the tool that needs it and costs nothing when that tool is
 not mounted.
 
-The persona above it (`defaultSystem`, `main.go`) is the one layer `-system` replaces
+The persona above it (`defaultSystem`, `main.go`) is the one layer `-system-prompt` replaces
 outright, and it stays deliberately short. Codex ships two prompts for one harness — 6.6&nbsp;KB
 for the models post-trained on it, 24&nbsp;KB for general GPT-5 — so prompt size mostly measures
 how much the model was *not* trained on your harness, and Claude is well inside the trained case
@@ -350,12 +357,12 @@ question this client otherwise had no way to check short of a debug build.
 `bash off` earns its place because the symptom arrives from the model rather than from this
 client: asked to build and run something, it answers that it has no terminal and cannot run a
 command. That is true and deliberate — `run_command` is unconfined, so it stays opt-in — but
-nothing connected that answer back to a `bash: false` written once in `~/.nacelle.yml` and
-forgotten. Turn it on with `-bash`, `NACELLE_BASH=1`, or `bash: true`.
+nothing connected that answer back to a `tools.run_command: false` written once in `~/.nacelle.yml` and
+forgotten. Turn it on with `-bash`, `NACELLE_BASH=1`, or `tools.run_command: true`.
 
 ## Reading a page
 
-`fetch:` (`NACELLE_FETCH`, `-fetch`) lets the model read one web page by URL. **On by default**,
+`tools.web_fetch` (`NACELLE_FETCH`, `-fetch`) lets the model read one web page by URL. **On by default**,
 unlike bash, and it is what turns a page's URL into text the model can act on.
 
 It is on by default because it cannot change anything and cannot reach anything but the public
@@ -365,9 +372,9 @@ blocks, and links resolved to absolute URLs so the model can follow one by calli
 again. `text/markdown` is asked for first, which Cloudflare and Vercel answer by converting at
 the edge for roughly 80% fewer tokens.
 
-Turn it off with `fetch: false` for the one risk the guard cannot cover: a fetched page is
+Turn it off with `web_fetch: false` for the one risk the guard cannot cover: a fetched page is
 written by a stranger and read by the model as instructions, so it can ask for another URL with
-something from the conversation in its query string. With `bash: true` that channel already
+something from the conversation in its query string. With `tools.run_command: true` that channel already
 exists through `run_command`; with bash off, this is the only one. The banner says `fetch off`
 when it is off, since a model that cannot read a page it just found needs the reason on screen.
 

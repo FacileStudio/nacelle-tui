@@ -124,7 +124,7 @@ func (m *Model) absorbToolOutput(tool nacelle.ToolEvent, text string) {
 }
 
 func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
-	if tool.Name == "parallel_subagent" {
+	if tool.Name == "parallel_agents" {
 		m.rememberParallelCall(tool)
 	}
 	m.introduceReasoning()
@@ -140,7 +140,7 @@ func (m *Model) absorbToolCall(tool nacelle.ToolEvent) {
 }
 
 func (m *Model) absorbToolResult(tool nacelle.ToolEvent, rawResult string) {
-	if tool.Name == "parallel_subagent" {
+	if tool.Name == "parallel_agents" {
 		m.startDetachedParent(tool, rawResult)
 		m.relaxAfterDispatch()
 	}

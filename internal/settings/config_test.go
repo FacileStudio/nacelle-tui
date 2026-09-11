@@ -92,7 +92,7 @@ func TestTheFileBeatsTheDefaults(t *testing.T) {
 // file, which turned what its README called overrides into two mutually
 // exclusive modes nobody could tell apart.
 func TestTheEnvironmentBeatsTheFileWithoutReplacingIt(t *testing.T) {
-	written(t, "provider:\n  backend: openrouter\n  model: from-the-file\nroot: /from/the/file\n")
+	written(t, "provider:\n  backend: openrouter\n  model: from-the-file\nsession:\n  root: /from/the/file\n")
 	t.Setenv(EnvPrefix+"MODEL", "from-the-environment")
 
 	config, err := settings(Config{})
@@ -144,7 +144,7 @@ func TestATurnedOffToggleIsNotMistakenForAnUnsetOne(t *testing.T) {
 // A value strconv cannot read means the writer meant something; falling through
 // to the layer below is closer to that than silently choosing false.
 func TestAnUnreadableEnvironmentValueFallsThroughRatherThanMeaningFalse(t *testing.T) {
-	written(t, "tools:\n  bash: true\n")
+	written(t, "tools:\n  run_command: true\n")
 	t.Setenv(EnvPrefix+"BASH", "yes-please")
 
 	config, err := settings(Config{})

@@ -120,7 +120,7 @@ type parallelTaskInfo struct {
 
 // parallelState groups the parallel subagent UI state so model stays under
 // filet's field cap. A map keyed by tool ID so that overlapping
-// parallel_subagent calls do not overwrite each other — each call's tasks and
+// parallel_agents calls do not overwrite each other — each call's tasks and
 // result are tracked independently. detachedSeq numbers detached /parallel
 // batches so they get distinct keys without any shared global: the model-tool
 // path keys by nacelle's tool ID, and a model-incrementing counter keeps the

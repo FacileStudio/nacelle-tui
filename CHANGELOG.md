@@ -4,6 +4,28 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [0.45.0] - 2026-09-11
+
+### Changed
+- **`tools.parallel_agents` replaces `tools.parallel_subagent`.** The key,
+  the `NACELLE_PARALLEL_AGENTS` variable and the `-parallel-agents` flag follow
+  the tool's new name in nacelle v0.23.0 (`ParallelAgentsToolName`). A pre-0.45
+  file carrying `parallel_subagent` fails to parse rather than silently
+  disabling the tool.
+- **`session:` group tightened.** `resume` left the file — it is
+  `-resume` on the command line only; a `session.resume` key is refused. The
+  `system` key is renamed `system_prompt` and the `-system` flag is now
+  `-system-prompt` (`NACELLE_SYSTEM_PROMPT`).
+- **`security:` group.** `approve_tools` and `strict_confinement` moved out of
+  `tools:` — both decide how much a tool call may do, neither mounts a tool.
+
+### Added
+- **`-no-config`.** Starts with default settings, ignoring `~/.nacelle.yml`
+  entirely: defaults plus environment plus flags. An invalid settings file no
+  longer dies on the spot: nacelle prints a coloured report of every unknown
+  field and offers one yes/no prompt to boot with defaults; declining exits
+  with the configuration documentation link and the `-no-config` escape hatch.
+
 ## [0.44.0] - 2026-09-11
 
 ### Changed

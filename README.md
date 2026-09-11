@@ -79,6 +79,7 @@ environment variables, then flags. The useful ones:
 | `-bash` | `NACELLE_BASH` | let the model run commands (off by default) |
 | `-continue` | — | auto-resume the newest session for the current project |
 | `-resume` | — | resume a specific session by id or file path |
+| `-no-config` | — | start with default settings, ignoring ~/.nacelle.yml |
 | `-tasks` | `NACELLE_TASKS` | task planning tool (on by default) |
 | `-approve-tools` | `NACELLE_APPROVE_TOOLS` | ask before every tool call runs |
 | `-subagents` | `NACELLE_SUBAGENTS` | give the model the parallel delegate tool (on by default) |
@@ -109,25 +110,24 @@ provider:
   base_url: ""
   api_key: ""
 
-root: .
-system: ""
-continue: false
-resume: ""
+session:
+  root: .
+  system_prompt: ""
+  continue: false
 
 limits:
   max_iterations: 5
   compact_at: 75000
 
 tools:
-  bash: true
-  subagents: true
-  approve_tools: false
-  diffs: true
+  run_command: true
+  web_fetch: true
   tasks: true
-  strict_confinement: false
+  parallel_subagent: true
 
-web:
-  fetch: true
+security:
+  approve_tools: false
+  strict_confinement: false
 
 reasoning:
   effort: ""

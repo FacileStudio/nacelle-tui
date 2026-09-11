@@ -48,7 +48,7 @@ func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve
 	}
 
 	retrying := nacelle.Retry(backend, nacelle.RetryOptions{})
-	local, err = withSubagents(config, retrying, local, approve)
+	local, err = withParallelAgents(config, retrying, local, approve)
 	if err != nil {
 		return built{}, err
 	}

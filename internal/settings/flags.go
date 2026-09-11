@@ -15,7 +15,6 @@ func (p *pathList) Set(v string) error { *p = append(*p, v); return nil }
 type declared struct {
 	backend, model, root, system *string
 	reasoningFlags
-	webFlags
 	togglesFlags
 	iterations *int
 	// compactAt is a token count, not a turn count, so it shares the width of
@@ -38,20 +37,17 @@ type uiFlags struct {
 	mode        *string
 	transparent *bool
 	json        *bool
+	noConfig    *bool
 }
 
 type togglesFlags struct {
-	bash, subagents, approveTools, diffs, tasks *bool
+	bash, parallelAgents, fetch, approveTools, diffs, tasks *bool
 }
 
 type reasoningFlags struct {
 	effort   *string
 	thinking *bool
 	budget   *int64
-}
-
-type webFlags struct {
-	fetch *bool
 }
 
 type sourceFlags struct {
@@ -70,21 +66,19 @@ func declareFlags(fallback Config) declared {
 		backend:     flag.String("backend", fallback.Backend, "anthropic, google, openai, or openrouter"),
 		model:       flag.String("model", fallback.Model, "model id, defaulting to the backend's own"),
 		root:        flag.String("root", fallback.Root, "directory the file tools may reach"),
-		system:      flag.String("system", fallback.System, "system prompt"),
+		system:      flag.String("system-prompt", fallback.System, "system prompt"),
 		uiFlags: uiFlags{
 			cont:        flag.Bool("continue", *fallback.Continue, "auto-resume newest session"),
 			resume:      flag.String("resume", *fallback.Resume, "resume a specific session by id or file path"),
 			mode:        flag.String("mode", *fallback.Mode, "inline or tui rendering"),
 			transparent: flag.Bool("transparent-blocks", *fallback.TransparentBlocks, "drop the backdrop on tool result and diff panes"),
 			json:        flag.Bool("json", *fallback.JSON, "print cron list as one JSON document"),
+			noConfig:    flag.Bool("no-config", false, "start with default settings, ignoring ~/.nacelle.yml"),
 		},
 		reasoningFlags: reasoningFlags{
 			effort:   flag.String("effort", fallback.Effort, "none, minimal, low, medium, high, xhigh or max"),
 			thinking: flag.Bool("thinking", *fallback.Thinking, "stream the model's reasoning"),
 			budget:   flag.Int64("reasoning-budget", *fallback.Budget, "tokens one turn may spend on reasoning; 0 sets no ceiling"),
-		},
-		webFlags: webFlags{
-			fetch: flag.Bool("fetch", *fallback.Fetch, "let the model read a web page by URL; on by default"),
 		},
 		togglesFlags: declareToggles(fallback),
 		iterations:   flag.Int("max-iterations", *fallback.MaxIterations, "how many times the model may be asked"),
@@ -100,11 +94,12 @@ func declareFlags(fallback Config) declared {
 
 func declareToggles(fallback Config) togglesFlags {
 	return togglesFlags{
-		bash:         flag.Bool("bash", *fallback.Bash, "let the model run commands"),
-		subagents:    flag.Bool("subagents", *fallback.Subagents, "give the model a parallel delegate tool that fans independent tasks out to concurrent nested runs; on by default"),
-		approveTools: flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
-		diffs:        flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
-		tasks:        flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),
+		bash:           flag.Bool("bash", *fallback.Bash, "let the model run commands"),
+		parallelAgents: flag.Bool("parallel-agents", *fallback.ParallelAgents, "give the model a parallel delegate tool that fans independent tasks out to concurrent nested runs; on by default"),
+		fetch:          flag.Bool("fetch", *fallback.Fetch, "let the model read a web page by URL; on by default"),
+		approveTools:   flag.Bool("approve-tools", *fallback.ApproveTools, "ask before every tool call runs, y/a/n; off by default, every call runs unasked"),
+		diffs:          flag.Bool("diffs", *fallback.Diffs, "show a git-style diff when the model edits a file; on by default"),
+		tasks:          flag.Bool("tasks", *fallback.Tasks, "give the model a task planning tool to create and update checklists; on by default"),
 	}
 }
 

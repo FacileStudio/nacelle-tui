@@ -56,7 +56,7 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 // delegate calling this would replace what the parent wrote, and nothing
 // afterwards puts it back.
 //
-// So it goes on after withSubagents has taken its copy. Same set, one line
+// So it goes on after withParallelAgents has taken its copy. Same set, one line
 // later, and the delegate never sees it.
 func withTasks(config Config, local []nacelle.Tool) []nacelle.Tool {
 	if !*config.Tasks {

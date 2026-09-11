@@ -38,7 +38,7 @@ func (m *Model) aboveContent() []string {
 }
 
 // belowContent is everything rendered beneath the prompt: the running parallel
-// subagents and the slash-command suggestions. They sit here together so none
+// parallel_agents and the slash-command suggestions. They sit here together so none
 // fights for the same rows, and so the menu's own blank-line separator applies
 // to the whole block rather than doubling between them.
 func (m *Model) belowContent() string {

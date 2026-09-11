@@ -12,16 +12,16 @@ import (
 )
 
 var toolIcons = map[string]string{
-	"run_command":       "$",
-	"edit_file":         "✎",
-	"write_file":        "✚",
-	"read_file":         "☰",
-	"search_files":      "◎",
-	"find_files":        "◎",
-	"grep_files":        "◎",
-	"web_fetch":         "↧",
-	"download":          "↧",
-	"parallel_subagent": "≫",
+	"run_command":     "$",
+	"edit_file":       "✎",
+	"write_file":      "✚",
+	"read_file":       "☰",
+	"search_files":    "◎",
+	"find_files":      "◎",
+	"grep_files":      "◎",
+	"web_fetch":       "↧",
+	"download":        "↧",
+	"parallel_agents": "≫",
 }
 
 var toolStyles = map[string]lipgloss.Style{

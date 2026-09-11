@@ -49,7 +49,7 @@ func TestAskWhenIdleSendsEvenIfTheQueueLineLooksRelated(t *testing.T) {
 	}
 }
 
-// While a parallel_subagent fan-out is running the parent is busy (it is
+// While a parallel_agents fan-out is running the parent is busy (it is
 // mid-turn, waiting on the merged tool result), so a typed message must queue
 // like any other busy-run message — not answer out of band and not go to a
 // subagent. When the fan-out's turn settles, the queued line is delivered as a
