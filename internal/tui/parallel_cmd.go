@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -23,6 +24,9 @@ import (
 // still routes through the parallel machinery — its input is a task list, so a
 // one-item list is the smallest call.
 func (m *Model) handleParallelCommand(args string) tea.Cmd {
+	if args == "cancel" || strings.HasPrefix(args, "cancel ") {
+		return m.cancelParallelCommand(strings.TrimPrefix(args, "cancel"))
+	}
 	tasks := splitParallelTasks(args)
 	if len(tasks) == 0 {
 		m.say(fromClient, "usage: /parallel task1, task2, task3")
@@ -33,6 +37,44 @@ func (m *Model) handleParallelCommand(args string) tea.Cmd {
 		return nil
 	}
 	return m.launchDetached(tasks)
+}
+
+// cancelParallelCommand stops live detached fan-outs: `/parallel cancel` every
+// one, `/parallel cancel psa-3` just that batch. The SDK's CancelParallel kills
+// the fan-out's context — each still-running task then ends on the Results
+// stream as a cancelled error — and recordDetached marks the rows failed so the
+// status lines stop spinning. Tasks that finished before the cancel keep their
+// results.
+func (m *Model) cancelParallelCommand(args string) tea.Cmd {
+	args = strings.TrimSpace(args)
+	live := m.liveParallelBatches(args)
+	if len(live) == 0 {
+		m.say(fromClient, "no live parallel fan-out to cancel")
+		return nil
+	}
+	for _, batch := range live {
+		nacelle.CancelParallel(batch)
+		m.recordDetached(detachedResult{batch: batch, idx: -1, err: "cancelled"})
+	}
+	m.say(fromClient, "cancelled "+countedNoun(len(live), "fan-out")+" ("+strings.Join(live, ", ")+")")
+	return nil
+}
+
+func (m *Model) liveParallelBatches(only string) []string {
+	live := make([]string, 0, len(m.parallelTasks))
+	for batch, tasks := range m.parallelTasks {
+		if only != "" && batch != only {
+			continue
+		}
+		for _, pt := range tasks {
+			if pt.Active {
+				live = append(live, batch)
+				break
+			}
+		}
+	}
+	sort.Strings(live)
+	return live
 }
 
 // splitParallelTasks turns `/parallel a, b , c` into ["a", "b", "c"].

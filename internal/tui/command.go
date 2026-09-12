@@ -95,6 +95,7 @@ func (m *Model) help() tea.Cmd {
 		"/status — session summary: questions, answers, tools, cached tokens, context size, elapsed time, log size",
 		"/skill:name [what to do] — run a loaded skill directly, instead of waiting for the model to decide to",
 		"/parallel — delegate multiple independent tasks to run concurrently",
+		"/parallel cancel [batch] — stop a live parallel fan-out (or every one, with no batch)",
 		"",
 		"Esc stops a run and nothing else. Ctrl+C stops one too, or quits when idle; ctrl+\\ force-quits.",
 		"Ctrl+T expands the reasoning collapsed to a single line, and keeps showing it in full until pressed again.",

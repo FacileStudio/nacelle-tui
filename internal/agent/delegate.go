@@ -42,7 +42,15 @@ func withParallelAgents(config settings.Config, backend nacelle.Backend, local [
 		return nil, err
 	}
 
-	return append(local, parallel), nil
+	return withParallelCancelTool(append(local, parallel))
+}
+
+func withParallelCancelTool(local []nacelle.Tool) ([]nacelle.Tool, error) {
+	cancel, err := nacelle.NewParallelCancelTool()
+	if err != nil {
+		return nil, err
+	}
+	return append(local, cancel), nil
 }
 
 // delegateApprovals is the policy the nested run answers to. It has to be

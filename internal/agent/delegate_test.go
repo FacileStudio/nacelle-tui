@@ -39,10 +39,10 @@ func TestADelegateStillObeysTheParentsGate(t *testing.T) {
 	}
 }
 
-// The delegate set is the parallel tool alone: parallel_agents defaults on, so the
-// mount is active in every ordinary session, and the single subagent tool is
-// not wired beside it.
-func TestParallelAgentsMountsOnlyTheParallelTool(t *testing.T) {
+// The delegate set is the parallel tool and its cancel tool: parallel_agents
+// defaults on, so the mount is active in every ordinary session, and the cancel
+// tool rides along so a model can stop a fan-out it started and no longer wants.
+func TestParallelAgentsMountsTheParallelAndCancelTools(t *testing.T) {
 	config := settings.Defaults("")
 	on := true
 	config.ParallelAgents = &on
@@ -51,12 +51,14 @@ func TestParallelAgentsMountsOnlyTheParallelTool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("withParallelAgents: %v", err)
 	}
+	names := map[string]bool{}
 	for _, tool := range tools {
-		if tool.Name() != nacelle.ParallelAgentsToolName {
-			t.Errorf("mounted %q, want only the parallel_agents tool", tool.Name())
-		}
+		names[tool.Name()] = true
 	}
-	if len(tools) == 0 {
-		t.Error("no delegate tool mounted")
+	if len(tools) != 2 {
+		t.Errorf("mounted %d tools, want the parallel tool and its cancel", len(tools))
+	}
+	if !names[nacelle.ParallelAgentsToolName] || !names[nacelle.ParallelCancelToolName] {
+		t.Errorf("mounted %v, want parallel_agents and parallel_cancel", names)
 	}
 }
