@@ -1,6 +1,7 @@
 // Gate execution for project-configured gate chains: one deterministic check
 // run against a scope with its own timeout budget, exec indirection kept on a
 // package var so tests can stand in fake gates.
+
 package diagnostics
 
 import (

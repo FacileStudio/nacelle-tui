@@ -16,11 +16,11 @@ func TestGatesComeFromTheFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if len(config.Automation.Gates) != 1 {
-		t.Fatalf("gates = %+v, want one", config.Automation.Gates)
+	if len(config.Gates) != 1 {
+		t.Fatalf("gates = %+v, want one", config.Gates)
 	}
 	want := GateSpec{Name: "tests", Command: []string{"go", "test", "./..."}, Scope: "repo", TimeoutSecs: 300}
-	got := config.Automation.Gates[0]
+	got := config.Gates[0]
 	if got.Name != want.Name || !slices.Equal(got.Command, want.Command) ||
 		got.Scope != want.Scope || got.TimeoutSecs != want.TimeoutSecs {
 		t.Errorf("gate = %+v, want %+v", got, want)
@@ -41,8 +41,8 @@ func TestGatesFileOverridesTheMainSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if len(config.Automation.Gates) != 1 || config.Automation.Gates[0].Name != "from-the-gates-file" {
-		t.Errorf("gates = %+v, want the gates file's chain alone", config.Automation.Gates)
+	if len(config.Gates) != 1 || config.Gates[0].Name != "from-the-gates-file" {
+		t.Errorf("gates = %+v, want the gates file's chain alone", config.Gates)
 	}
 }
 

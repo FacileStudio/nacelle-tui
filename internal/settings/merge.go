@@ -31,12 +31,12 @@ func (c *Config) merge(over Config) {
 		c.MCP[name] = def
 	}
 	c.MCPFiles = append(c.MCPFiles, over.MCPFiles...)
-	c.Automation.Hooks = append(c.Automation.Hooks, over.Automation.Hooks...)
-	if len(over.Automation.Cron) > 0 {
-		c.Automation.Cron = over.Automation.Cron
+	c.Hooks = append(c.Hooks, over.Hooks...)
+	if len(over.Cron) > 0 {
+		c.Cron = over.Cron
 	}
-	if len(over.Automation.Gates) > 0 {
-		c.Automation.Gates = over.Automation.Gates
+	if len(over.Gates) > 0 {
+		c.Gates = over.Gates
 	}
 }
 

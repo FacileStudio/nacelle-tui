@@ -151,7 +151,7 @@ func TestSkillDirsFromTheEnvironmentAreColonSeparatedAndBeatTheFile(t *testing.T
 // gates runs none, and the file or a --gates-file fills the chain in.
 func TestGatesDefaultEmpty(t *testing.T) {
 	fallback := defaults()
-	if len(fallback.Automation.Gates) != 0 {
-		t.Errorf("gates = %+v, want the empty default", fallback.Automation.Gates)
+	if len(fallback.Gates) != 0 {
+		t.Errorf("gates = %+v, want the empty default", fallback.Gates)
 	}
 }

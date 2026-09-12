@@ -26,7 +26,7 @@ func TestCronSurvivesSettingsResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if len(cfg.Automation.Cron) != 1 || cfg.Automation.Cron[0].Name != "brief" {
-		t.Errorf("settings resolution lost the cron job: got %+v", cfg.Automation.Cron)
+	if len(cfg.Cron) != 1 || cfg.Cron[0].Name != "brief" {
+		t.Errorf("settings resolution lost the cron job: got %+v", cfg.Cron)
 	}
 }

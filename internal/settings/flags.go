@@ -154,9 +154,9 @@ func resolveGates(resolved Config, path string) (Config, error) {
 		if err != nil {
 			return Config{}, err
 		}
-		resolved.Automation.Gates = gates
+		resolved.Gates = gates
 	}
-	for _, g := range resolved.Automation.Gates {
+	for _, g := range resolved.Gates {
 		if g.Name == "" || len(g.Command) == 0 {
 			return Config{}, &ParseError{Path: "gates", Err: errors.New("every gate needs a name and a command")}
 		}

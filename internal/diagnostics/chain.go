@@ -2,6 +2,7 @@
 // entry points. File-scoped gates run on the post-edit injection path; repo
 // gates run only when the pull tool asks for the whole tree. No configured
 // chain keeps every caller on the built-in filet path.
+
 package diagnostics
 
 import (
@@ -31,8 +32,8 @@ type chainHolder struct {
 }
 
 func current() gateChain {
-	if v := installed.Load(); v != nil {
-		return v.(chainHolder).chain
+	if v, ok := installed.Load().(chainHolder); ok {
+		return v.chain
 	}
 	return nil
 }
