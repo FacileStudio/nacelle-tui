@@ -3,6 +3,7 @@ package settings
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.yaml.in/yaml/v4"
@@ -41,5 +42,15 @@ func TestScaffoldRoundTripsToTheDefaults(t *testing.T) {
 	}
 	if _, err := os.Stat(path); err != nil {
 		t.Errorf("existing file vanished: %v", err)
+	}
+}
+
+// The scaffold must name every setting or the file stops being the
+// discoverability surface it exists to be: a key missing from the template is
+// a setting nobody finds, and the round-trip above cannot catch it because an
+// unmentioned key just falls through to the default it already matches.
+func TestTemplateScaffoldsDenyElevation(t *testing.T) {
+	if !strings.Contains(Template, "deny_elevation: true") {
+		t.Error("the template does not scaffold deny_elevation: true")
 	}
 }

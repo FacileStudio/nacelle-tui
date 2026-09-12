@@ -92,10 +92,10 @@ could tell apart.
 
 | Layer | Source | Notes |
 |---|---|---|
-| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system-prompt`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-fetch`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue`, `-resume`, `-no-config` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence. `-resume` names one session by id or file path and, when given, beats `-continue`. `-no-config` skips `~/.nacelle.yml` entirely: defaults plus environment plus flags. An invalid file gets a coloured report and one prompt — yes boots with defaults, no exits with the documentation link |
+| Flags | `-backend`, `-model`, `-effort`, `-root`, `-system-prompt`, `-bash`, `-thinking`, `-project-context`, `-skills`, `-trust-skills`, `-skill-dir`, `-mcp`, `-fetch`, `-approve-tools`, `-diffs`, `-max-iterations`, `-compact-at`, `-tasks`, `-continue`, `-resume`, `-gates-file`, `-no-config` | Only flags actually **typed** are collected, via `flag.Visit` — Go's `flag` package cannot otherwise tell a flag left alone from one passed its own default value. `-skill-dir` and `-mcp` are repeatable (`-mcp a.json -mcp b.json`); every other flag keeps only its last occurrence. `-resume` names one session by id or file path and, when given, beats `-continue`. `-no-config` skips `~/.nacelle.yml` entirely: defaults plus environment plus flags. An invalid file gets a coloured report and one prompt — yes boots with defaults, no exits with the documentation link |
 | Environment | `NACELLE_BACKEND`, `NACELLE_MODEL`, `NACELLE_PROVIDER_BASE_URL`, `NACELLE_PROVIDER_API_KEY`, `NACELLE_EFFORT`, `NACELLE_REASONING_BUDGET`, `NACELLE_ROOT`, `NACELLE_SYSTEM_PROMPT`, `NACELLE_BASH`, `NACELLE_THINKING`, `NACELLE_PROJECT_CONTEXT`, `NACELLE_SKILLS`, `NACELLE_TRUST_SKILLS`, `NACELLE_SKILL_DIRS`, `NACELLE_APPROVE_TOOLS`, `NACELLE_DIFFS`, `NACELLE_MAX_ITERATIONS`, `NACELLE_COMPACT_AT`, `NACELLE_FETCH`, `NACELLE_TASKS` | A misspelt boolean (`NACELLE_BASH=yez`) is treated as unmentioned, not as `false`, and falls through to the layer below. `NACELLE_SKILL_DIRS` is colon-separated, the same convention `PATH` itself uses for a list of directories. `NACELLE_PROVIDER_BASE_URL` and `NACELLE_PROVIDER_API_KEY` belong to the active provider — see [Custom providers](#custom-providers) |
 | File | `~/.nacelle.yml` | Preferences only, **no credentials** — those already have two homes: the environment, and the Anthropic SDK's own profile. `KnownFields(true)`: an unrecognised key (`max_iteration:`, one letter short) is refused rather than silently ignored |
-| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.run_command: true`, `reasoning.thinking: true`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `discovery.trust_hooks: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `security.approve_tools: false`, `ui.diffs: true`, `limits.max_iterations: 5`, `limits.compact_at: 75000` (absolute tokens), `tools.web_fetch: true`, `tools.tasks: true`, `tools.parallel_subagent: true`, `ui.rendering_mode: inline`, `ui.group_tools: true`, `ui.show_thinking: true` |
+| Defaults | — | `provider.backend: anthropic`, `root: .`, `tools.run_command: true`, `reasoning.thinking: true`, `discovery.project_context: true`, `discovery.skills: true`, `discovery.trust_skills: false`, `discovery.trust_hooks: false`, `sources.skill_dirs: []`, `sources.mcp: {}`, `security.approve_tools: false`, `security.deny_elevation: true`, `ui.diffs: true`, `limits.max_iterations: 5`, `limits.compact_at: 75000` (absolute tokens), `tools.web_fetch: true`, `tools.tasks: true`, `tools.parallel_subagent: true`, `ui.rendering_mode: inline`, `ui.group_tools: true`, `ui.show_thinking: true` |
 
 `project_context` and `skills` default **on**, unlike `bash`: each fails soft to nothing when
 there is nothing to find — no `AGENTS.md`/`CLAUDE.md` anywhere above `root`, no
@@ -142,6 +142,7 @@ tools:
 security:
   approve_tools: false
   path_isolation: false
+  deny_elevation: true
   env_isolation: false
 
 discovery:
@@ -172,6 +173,18 @@ sources:
       args: [mcp]
 hooks: []
 cron: []
+# Gates are deterministic checks the session must pass: file-scoped gates run
+# after every edit, repo gates run when the diagnostics tool sweeps the tree.
+# No gates key keeps the built-in filet check.
+gates: []
+# gates:
+#   - name: filet
+#     command: [filet, check]
+#     scope: file
+#   - name: tests
+#     command: [go, test, ./...]
+#     scope: repo
+#     timeout_secs: 300
 ```
 
 Old flat key → new home, for migrating a pre-0.44 file:
@@ -184,7 +197,7 @@ Old flat key → new home, for migrating a pre-0.44 file:
 | `subagents` | `tools.parallel_subagent` |
 | `fetch` | `tools.web_fetch` |
 | `tasks` | `tools.tasks` |
-| `approve_tools`, `path_isolation`, `env_isolation` | `security:` |
+| `approve_tools`, `path_isolation`, `deny_elevation`, `env_isolation` | `security:` |
 | `effort`, `thinking`, `reasoning_budget` (now `budget`) | `reasoning:` |
 | `project_context`, `skills`, `trust_skills`, `trust_hooks` | `discovery:` |
 | `continue` | `session:` |
@@ -397,6 +410,20 @@ own cancellable context, so cancelling one unblocks the other with no separate m
 
 A denial is reported on `ToolEvent.Refused`, not as a tool failure — the SDK converts it into
 a normal tool-result error block for the model to see, the same as any other failed call.
+
+## Deny elevation
+
+`security.deny_elevation` (`NACELLE_DENY_ELEVATION`) refuses `run_command` calls that try to
+elevate privileges: `sudo`, `su`, `doas`, `pkexec`, checked after every chain separator and
+inside subshells, not only at the start of the line. **On by default.** The refusal is an
+ordinary tool error the model reads, so it adapts instead of retrying.
+
+It is a policy guard against accidents and injected instructions, not a sandbox. A string
+check cannot stop a setuid binary that is not sudo, `docker run -u root`, or anything already
+running as root; the OS decides who may elevate, and an account outside the `sudo` group is
+the actual wall. Set it to `false` to allow elevation. Phase 2 adds a pty password flow, where
+sudo prompts on a terminal the harness allocates but never reads, so the agent never sees the
+password. [docs/sudo.md](sudo.md) carries the full analysis.
 
 ## Slash commands
 

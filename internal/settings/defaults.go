@@ -9,6 +9,7 @@ func Defaults(system string) Config {
 	bash, thinking, projectContext, skills, trustSkills, approveTools, trustHooks, diffs, tasks, strict :=
 		true, true, true, true, false, false, false, true, true, false
 	envIsolation := false
+	denyElevation := true
 	parallelAgents := true
 	diagnostics := true
 	iterations, budget := 5, int64(0)
@@ -23,7 +24,7 @@ func Defaults(system string) Config {
 		Provider:  Provider{Backend: "anthropic"},
 		Session:   Session{Root: ".", System: system, Continue: &cont, Resume: &resume},
 		Toggles:   Toggles{Bash: &bash, ParallelAgents: &parallelAgents, Fetch: &fetch, Tasks: &tasks, Diagnostics: &diagnostics},
-		Security:  Security{ApproveTools: &approveTools, PathIsolation: &strict, EnvIsolation: &envIsolation},
+		Security:  Security{ApproveTools: &approveTools, PathIsolation: &strict, DenyElevation: &denyElevation, EnvIsolation: &envIsolation},
 		Limits:    Limits{MaxIterations: &iterations, CompactAt: &compactAt},
 		Reasoning: Reasoning{Thinking: &thinking, Budget: &budget},
 		Discovery: Discovery{

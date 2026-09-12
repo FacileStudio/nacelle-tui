@@ -53,6 +53,9 @@ type Session struct {
 type Config struct {
 	NoConfig *bool `yaml:"-"`
 
+	// GatesFile is the --gates-file path; flag-only, like resume.
+	GatesFile string `yaml:"-"`
+
 	Provider `yaml:"provider"`
 	Session  `yaml:"session"`
 
@@ -68,9 +71,8 @@ type Config struct {
 
 	UI `yaml:"ui"`
 
-	Sources `yaml:"sources"`
-	Hooks   []HookSpec `yaml:"hooks"`
-	Cron    []CronJob  `yaml:"cron"`
+	Sources    `yaml:"sources"`
+	Automation `yaml:",inline"`
 }
 
 // Toggles is the tool-mount settings: whether the model gets each optional
@@ -85,11 +87,17 @@ type Toggles struct {
 
 // Security holds the settings that decide how much a tool call may do
 // before something stops it: ask before every call runs, confine to the
-// root, and whether MCP servers and run_command start with this process's
-// environment or a minimal one.
+// root, refuse a command that tries to elevate its privileges, and whether
+// MCP servers and run_command start with this process's environment or a
+// minimal one.
 type Security struct {
 	ApproveTools  *bool `yaml:"approve_tools"`
 	PathIsolation *bool `yaml:"path_isolation"`
+	// DenyElevation refuses run_command calls that try to elevate
+	// privileges (sudo, su, doas, pkexec): a policy guard against accidents
+	// and injected instructions, not a security boundary; the OS decides
+	// who may elevate.
+	DenyElevation *bool `yaml:"deny_elevation"`
 	// EnvIsolation starts MCP servers and run_command children with PATH,
 	// HOME and configured env entries instead of the inherited environment.
 	EnvIsolation *bool `yaml:"env_isolation"`
@@ -149,6 +157,22 @@ type HookSpec struct {
 	Async   bool     `yaml:"async"`
 }
 
+// GateSpec is one entry under a config's `gates:` key.
+type GateSpec struct {
+	Name        string   `yaml:"name"`
+	Command     []string `yaml:"command"`
+	Scope       string   `yaml:"scope"`
+	TimeoutSecs int      `yaml:"timeout_secs"`
+}
+
+// Automation groups the config's scheduled and chained machinery. It is
+// inline in the YAML, so the keys stay top-level: hooks, cron, gates.
+type Automation struct {
+	Hooks []HookSpec `yaml:"hooks"`
+	Cron  []CronJob  `yaml:"cron"`
+	Gates []GateSpec `yaml:"gates"`
+}
+
 // DerefBool reads a pointer out of a toggle. Every toggle is filled in by
 // defaults, so the pointer is never nil by the time it reaches a caller.
 func DerefBool(b *bool) bool {
@@ -196,7 +220,7 @@ func Settings(system string, flags Config) (Config, error) {
 		resolved := Defaults(system)
 		resolved.merge(FromEnv())
 		resolved.merge(flags)
-		return resolved, nil
+		return applyGatesFile(resolved, flags.GatesFile)
 	}
 	if created, err := Scaffold(ConfigPath()); err != nil {
 		return Config{}, err
@@ -212,5 +236,5 @@ func Settings(system string, flags Config) (Config, error) {
 	resolved.merge(file)
 	resolved.merge(FromEnv())
 	resolved.merge(flags)
-	return resolved, nil
+	return applyGatesFile(resolved, flags.GatesFile)
 }

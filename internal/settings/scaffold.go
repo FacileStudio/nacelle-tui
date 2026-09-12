@@ -34,6 +34,7 @@ tools:
 security:
   approve_tools: false
   path_isolation: false
+  deny_elevation: true
   env_isolation: false
 
 reasoning:

@@ -31,9 +31,12 @@ func (c *Config) merge(over Config) {
 		c.MCP[name] = def
 	}
 	c.MCPFiles = append(c.MCPFiles, over.MCPFiles...)
-	c.Hooks = append(c.Hooks, over.Hooks...)
-	if len(over.Cron) > 0 {
-		c.Cron = over.Cron
+	c.Automation.Hooks = append(c.Automation.Hooks, over.Automation.Hooks...)
+	if len(over.Automation.Cron) > 0 {
+		c.Automation.Cron = over.Automation.Cron
+	}
+	if len(over.Automation.Gates) > 0 {
+		c.Automation.Gates = over.Automation.Gates
 	}
 }
 
@@ -105,6 +108,9 @@ func (c *Config) mergeSecurity(over Config) {
 	}
 	if over.PathIsolation != nil {
 		c.PathIsolation = over.PathIsolation
+	}
+	if over.DenyElevation != nil {
+		c.DenyElevation = over.DenyElevation
 	}
 	if over.EnvIsolation != nil {
 		c.EnvIsolation = over.EnvIsolation

@@ -129,6 +129,7 @@ security:
   approve_tools: false
   path_isolation: false
   env_isolation: false
+  deny_elevation: true
 
 reasoning:
   effort: ""

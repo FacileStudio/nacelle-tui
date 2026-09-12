@@ -26,6 +26,10 @@ tools:
 security:
   approve_tools: false
   path_isolation: false
+  # deny_elevation refuses sudo-style elevation in run_command: a policy guard
+  # against accidents and injected instructions, not a security boundary.
+  # OS-level enforcement is the real wall.
+  deny_elevation: true
   env_isolation: false
 
 reasoning:
@@ -55,3 +59,4 @@ sources:
 
 hooks: []
 cron: []
+gates: []

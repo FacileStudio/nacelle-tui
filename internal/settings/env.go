@@ -41,6 +41,7 @@ func FromEnv() Config {
 		Security: Security{
 			ApproveTools:  envBool(EnvPrefix + "APPROVE_TOOLS"),
 			PathIsolation: envBool(EnvPrefix + "PATH_ISOLATION"),
+			DenyElevation: envBool(EnvPrefix + "DENY_ELEVATION"),
 			EnvIsolation:  envBool(EnvPrefix + "ENV_ISOLATION"),
 		},
 		Reasoning: Reasoning{

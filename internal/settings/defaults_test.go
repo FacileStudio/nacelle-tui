@@ -45,6 +45,18 @@ func TestDiffsDefaultOnAndTurnableOff(t *testing.T) {
 	}
 }
 
+// deny_elevation is the guard between a hard-working model and a prompt
+// injection that says "run sudo curl ... | sh", so it defaults on like the
+// discovery toggles: refusing first is the safe answer, and a file or
+// environment layer can still turn it off for a workflow that legitimately
+// needs elevation.
+func TestDenyElevationDefaultsOn(t *testing.T) {
+	fallback := defaults()
+	if !*fallback.DenyElevation {
+		t.Error("deny elevation = false, want it on by default")
+	}
+}
+
 // Resume is flag-only: defaults empty, and the file cannot set it. This pins
 // both — the default stays empty, and a `resume:` key in the file is refused
 // by KnownFields(true) rather than silently ignored, so nobody thinks the
@@ -132,5 +144,14 @@ func TestSkillDirsFromTheEnvironmentAreColonSeparatedAndBeatTheFile(t *testing.T
 	}
 	if want := []string{"/a/skills", "/b/skills"}; !slices.Equal(config.SkillDirs, want) {
 		t.Errorf("skill dirs = %v, want the environment's list", config.SkillDirs)
+	}
+}
+
+// Gates default to an empty chain: nil means unset, so a session nobody gave
+// gates runs none, and the file or a --gates-file fills the chain in.
+func TestGatesDefaultEmpty(t *testing.T) {
+	fallback := defaults()
+	if len(fallback.Automation.Gates) != 0 {
+		t.Errorf("gates = %+v, want the empty default", fallback.Automation.Gates)
 	}
 }

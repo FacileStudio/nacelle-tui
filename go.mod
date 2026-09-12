@@ -2,6 +2,8 @@ module github.com/FacileStudio/nacelle-tui
 
 go 1.26
 
+replace github.com/FacileStudio/nacelle => ../nacelle
+
 require (
 	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.9

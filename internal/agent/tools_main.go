@@ -33,6 +33,7 @@ func localTools(config Config) (_ *tools.Set, local []nacelle.Tool, err error) {
 		Root:          config.Root,
 		AllowBash:     *config.Bash,
 		PathIsolation: *config.PathIsolation,
+		DenyElevation: *config.DenyElevation,
 		CommandEnv:    commandEnv(config),
 	})
 	if err != nil {
