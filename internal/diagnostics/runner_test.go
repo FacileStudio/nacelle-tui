@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func stubFilet(t *testing.T, fn func(context.Context, string) runOutput) {
+func stubFilet(t *testing.T, fn func(context.Context, string) gateOutput) {
 	t.Helper()
 	old := runFilet
 	runFilet = fn
@@ -30,12 +30,12 @@ func TestInjectChecksOnlyTheRequestedPath(t *testing.T) {
 	dirty := scope + "/dirty.go"
 	clean := scope + "/clean.go"
 	var saw []string
-	stubFilet(t, func(_ context.Context, s string) runOutput {
+	stubFilet(t, func(_ context.Context, s string) gateOutput {
 		saw = append(saw, s)
 		if s == dirty {
-			return runOutput{code: 1, stdout: dirty + ":1:1: error: one [r]\n"}
+			return gateOutput{code: 1, stdout: dirty + ":1:1: error: one [r]\n"}
 		}
-		return runOutput{code: 0}
+		return gateOutput{code: 0}
 	})
 	if got := Inject(context.Background(), clean); got != cleanLine {
 		t.Errorf("Inject(clean.go) = %q, want silence: findings from dirty.go leaked into a clean file's check", got)
@@ -50,8 +50,8 @@ func TestInjectChecksOnlyTheRequestedPath(t *testing.T) {
 
 func TestInjectSuppressesRepeatsForOnePath(t *testing.T) {
 	scope := t.Name()
-	stubFilet(t, func(context.Context, string) runOutput {
-		return runOutput{code: 1, stdout: "a.go:1:1: error: one [r]\na.go:2:2: error: two [r]\n"}
+	stubFilet(t, func(context.Context, string) gateOutput {
+		return gateOutput{code: 1, stdout: "a.go:1:1: error: one [r]\na.go:2:2: error: two [r]\n"}
 	})
 	if got := Inject(context.Background(), scope); !strings.Contains(got, "one") || !strings.Contains(got, "two") {
 		t.Fatalf("first Inject = %q, want both findings", got)
@@ -59,8 +59,8 @@ func TestInjectSuppressesRepeatsForOnePath(t *testing.T) {
 	if got := Inject(context.Background(), scope); got != noNewLine {
 		t.Fatalf("repeat Inject = %q, want %q", got, noNewLine)
 	}
-	stubFilet(t, func(context.Context, string) runOutput {
-		return runOutput{code: 1, stdout: "a.go:1:1: error: one [r]\na.go:2:2: error: two [r]\na.go:3:3: error: three [r]\n"}
+	stubFilet(t, func(context.Context, string) gateOutput {
+		return gateOutput{code: 1, stdout: "a.go:1:1: error: one [r]\na.go:2:2: error: two [r]\na.go:3:3: error: three [r]\n"}
 	})
 	if got := Inject(context.Background(), scope); got != "a.go:3:3: three" {
 		t.Fatalf("Inject after a new finding = %q, want only the new one", got)
@@ -70,12 +70,12 @@ func TestInjectSuppressesRepeatsForOnePath(t *testing.T) {
 func TestInjectTimesOutAndWarmsOncePerPath(t *testing.T) {
 	scope := t.Name()
 	calls := make(chan context.Context, 8)
-	stubFilet(t, func(ctx context.Context, _ string) runOutput {
+	stubFilet(t, func(ctx context.Context, _ string) gateOutput {
 		select {
 		case calls <- ctx:
 		default:
 		}
-		return runOutput{err: context.DeadlineExceeded}
+		return gateOutput{err: context.DeadlineExceeded}
 	})
 	if got := Inject(context.Background(), scope); got != "" {
 		t.Fatalf("Inject = %q, want empty", got)
@@ -98,8 +98,8 @@ func TestInjectTimesOutAndWarmsOncePerPath(t *testing.T) {
 }
 
 func TestRunReportsTimeoutAsAnError(t *testing.T) {
-	stubFilet(t, func(context.Context, string) runOutput {
-		return runOutput{err: context.DeadlineExceeded}
+	stubFilet(t, func(context.Context, string) gateOutput {
+		return gateOutput{err: context.DeadlineExceeded}
 	})
 	got, err := Run(context.Background(), t.Name(), false)
 	if err == nil || !strings.Contains(err.Error(), "timed out") {
@@ -112,9 +112,9 @@ func TestRunReportsTimeoutAsAnError(t *testing.T) {
 
 func TestRunChecksTheSessionRootForRepo(t *testing.T) {
 	var scope string
-	stubFilet(t, func(_ context.Context, s string) runOutput {
+	stubFilet(t, func(_ context.Context, s string) gateOutput {
 		scope = s
-		return runOutput{code: 1, stdout: "b.go:1:1: error: boom [r]\nc.go:2:2: error: pow [r]"}
+		return gateOutput{code: 1, stdout: "b.go:1:1: error: boom [r]\nc.go:2:2: error: pow [r]"}
 	})
 	got, err := Run(context.Background(), "ignored.go", true)
 	if err != nil {
@@ -129,7 +129,7 @@ func TestRunChecksTheSessionRootForRepo(t *testing.T) {
 }
 
 func TestRunTreatsABrokenCheckerAsCleanSilence(t *testing.T) {
-	stubFilet(t, func(context.Context, string) runOutput { return runOutput{code: 7} })
+	stubFilet(t, func(context.Context, string) gateOutput { return gateOutput{code: 7} })
 	got, err := Run(context.Background(), t.Name(), false)
 	if err != nil {
 		t.Fatalf("Run: %v", err)

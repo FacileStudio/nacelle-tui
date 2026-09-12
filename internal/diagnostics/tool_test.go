@@ -36,9 +36,9 @@ func TestToolExposesTheDiagnosticsSchema(t *testing.T) {
 
 func TestToolDecodesInputAndRuns(t *testing.T) {
 	var scope string
-	stubFilet(t, func(_ context.Context, s string) runOutput {
+	stubFilet(t, func(_ context.Context, s string) gateOutput {
 		scope = s
-		return runOutput{code: 1, stdout: "a.go:1:1: error: boom [r]"}
+		return gateOutput{code: 1, stdout: "a.go:1:1: error: boom [r]"}
 	})
 	built := Tool()
 	got, err := built.Run(context.Background(), json.RawMessage(`{"path":"a.go"}`))
@@ -62,9 +62,9 @@ func TestToolDecodesInputAndRuns(t *testing.T) {
 
 func TestToolRejectsMalformedInputBeforeItReachesFilet(t *testing.T) {
 	called := false
-	stubFilet(t, func(context.Context, string) runOutput {
+	stubFilet(t, func(context.Context, string) gateOutput {
 		called = true
-		return runOutput{}
+		return gateOutput{}
 	})
 	if _, err := Tool().Run(context.Background(), json.RawMessage(`{"path":`)); err == nil {
 		t.Fatal("want a decode error from the SDK")

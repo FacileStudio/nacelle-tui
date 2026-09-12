@@ -1,8 +1,13 @@
 package settings
 
 import (
+	"errors"
 	"flag"
+	"io"
+	"os"
 	"strings"
+
+	"go.yaml.in/yaml/v4"
 )
 
 // pathList collects one -skill-dir or -mcp flag per occurrence.
@@ -52,6 +57,7 @@ type reasoningFlags struct {
 
 type sourceFlags struct {
 	skillDirs, mcp *pathList
+	gatesFile      *string
 }
 
 type discoveryFlags struct {
@@ -62,7 +68,7 @@ type discoveryFlags struct {
 // the pointers flag.Parse will fill in.
 func declareFlags(fallback Config) declared {
 	return declared{
-		sourceFlags: declareSources(),
+		sourceFlags: declareSources(fallback),
 		backend:     flag.String("backend", fallback.Backend, "anthropic, google, openai, or openrouter"),
 		model:       flag.String("model", fallback.Model, "model id, defaulting to the backend's own"),
 		root:        flag.String("root", fallback.Root, "directory the file tools may reach"),
@@ -104,13 +110,52 @@ func declareToggles(fallback Config) togglesFlags {
 	}
 }
 
-func declareSources() sourceFlags {
+func declareSources(fallback Config) sourceFlags {
 	skillDirs, mcp := new(pathList), new(pathList)
 	flag.Var(skillDirs, "skill-dir",
 		"extra directory to load skills from, alongside ~/.agents/skills (repeatable)")
 	flag.Var(mcp, "mcp",
 		"file of MCP servers to start and hand the model the tools of (repeatable)")
-	return sourceFlags{skillDirs: skillDirs, mcp: mcp}
+	gatesFile := flag.String("gates-file", fallback.GatesFile,
+		"file of gate checks the session must pass, overriding the main settings' gates")
+	return sourceFlags{skillDirs: skillDirs, mcp: mcp, gatesFile: gatesFile}
+}
+
+// loadGatesFile reads a --gates-file: the same gates block the main settings
+// carry, in a file of its own. Naming one is a deliberate act, so a missing or
+// malformed file is an error rather than the silent fall-through an absent
+// config file gets.
+func loadGatesFile(path string) ([]GateSpec, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, &ParseError{Path: path, Err: err}
+	}
+	defer func() { _ = file.Close() }()
+
+	decoder := yaml.NewDecoder(file)
+	decoder.KnownFields(true)
+
+	var parsed struct {
+		Gates []GateSpec `yaml:"gates"`
+	}
+	if err := decoder.Decode(&parsed); err != nil && !errors.Is(err, io.EOF) {
+		return nil, &ParseError{Path: path, Err: err}
+	}
+	return parsed.Gates, nil
+}
+
+// applyGatesFile lets a named gates file replace the chain the lower layers
+// resolved: the flag carries a whole file of gates, so it speaks last.
+func applyGatesFile(resolved Config, path string) (Config, error) {
+	if path == "" {
+		return resolved, nil
+	}
+	gates, err := loadGatesFile(path)
+	if err != nil {
+		return Config{}, err
+	}
+	resolved.Automation.Gates = gates
+	return resolved, nil
 }
 
 // FromFlags is the settings layer the command line supplies.

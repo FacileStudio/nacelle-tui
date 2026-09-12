@@ -58,6 +58,7 @@ func build(config settings.Config, local []nacelle.Tool, approve nacelle.Approve
 	if settings.DerefBool(config.Diagnostics) {
 		local = append(local, diagnostics.Tool())
 		hooks = withDiagnosticsHook(hooks)
+		diagnostics.UseChain(chainOf(config.Automation.Gates))
 	}
 
 	cfg := nacelle.Config{

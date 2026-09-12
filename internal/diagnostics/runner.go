@@ -1,14 +1,14 @@
-// Package diagnostics surfaces filet's errors to the model: passive injection
-// after an edit and an on-demand pull tool, both rendered as compiler-style
-// one-liners with attribution dedup and hard caps.
+// Package diagnostics surfaces the configured checkers' findings to the model:
+// passive injection after an edit and an on-demand pull tool, both rendered as
+// compiler-style one-liners with attribution dedup and hard caps. When the
+// agent installs a gate chain from the settings, both sides run its gates
+// instead; a nil chain is the filet-only path.
 package diagnostics
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -35,13 +35,7 @@ const (
 type outcome struct {
 	kind     kind
 	findings []finding
-}
-
-type runOutput struct {
-	stdout string
-	stderr string
-	code   int
-	err    error
+	raw      string
 }
 
 var runFilet = execFilet
@@ -73,13 +67,29 @@ func Inject(ctx context.Context, path string) string {
 	}
 }
 
+// InjectFile is the edit-hook side of the package: it runs only the
+// file-scoped gates of the installed chain on the one edited path, or the
+// filet check when no chain is installed, and returns the text Inject would.
+// Like Inject it never returns an error.
+func InjectFile(ctx context.Context, path string) string {
+	if chain := current(); chain != nil {
+		return chain.InjectFile(ctx, path)
+	}
+	return Inject(ctx, path)
+}
+
 // Run is the pull side of the package: it checks one path, or the whole
 // session root when repo is true, and returns the same compiler-style,
-// errors-only, capped rendering for the diagnostics tool. A clean run and an
-// unavailable checker both answer with the short clean line, because a
-// missing checker is not a reason to stop the model; a timed out run returns
-// an error that invites a retry while the background warm-up runs.
+// errors-only, capped rendering for the diagnostics tool. A gate chain the
+// agent installed from the settings runs the full chain instead, repo-scoped
+// gates included. A clean run and an unavailable checker both answer with the
+// short clean line, because a missing checker is not a reason to stop the
+// model; a timed out run returns an error that invites a retry while the
+// background warm-up runs.
 func Run(ctx context.Context, path string, repo bool) (string, error) {
+	if chain := current(); chain != nil {
+		return chain.Run(ctx, path, repo)
+	}
 	scope := scopeOf(path, repo)
 	out := run(ctx, scope)
 	switch out.kind {
@@ -121,7 +131,7 @@ func run(ctx context.Context, scope string) outcome {
 	}
 }
 
-func timedOut(runCtx context.Context, out runOutput) bool {
+func timedOut(runCtx context.Context, out gateOutput) bool {
 	return errors.Is(runCtx.Err(), context.DeadlineExceeded) ||
 		errors.Is(out.err, context.DeadlineExceeded)
 }
@@ -141,19 +151,4 @@ func warm(scope string) {
 	go func() {
 		filet(context.Background(), scope)
 	}()
-}
-
-func execFilet(ctx context.Context, scope string) runOutput {
-	cmd := exec.CommandContext(ctx, "filet", "check", scope)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	err := cmd.Run()
-	code := 0
-	if err != nil {
-		code = -1
-		if exit, ok := errors.AsType[*exec.ExitError](err); ok {
-			code = exit.ExitCode()
-		}
-	}
-	return runOutput{stdout: stdout.String(), stderr: stderr.String(), code: code, err: err}
 }

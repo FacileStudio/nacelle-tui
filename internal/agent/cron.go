@@ -82,7 +82,7 @@ func loadCronConfig() (settings.Config, error) {
 }
 
 func findCronJob(config settings.Config, name string) (settings.CronJob, error) {
-	for _, job := range config.Cron {
+	for _, job := range config.Automation.Cron {
 		if job.Name == name {
 			return job, nil
 		}

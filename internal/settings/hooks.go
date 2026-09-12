@@ -81,7 +81,7 @@ type hookPayload struct {
 
 // SessionHooks resolves every hooks layer in one place.
 func SessionHooks(config Config) (map[nacelle.HookPoint][]nacelle.Hook, string, error) {
-	hooks, err := BuildHooks(config.Hooks)
+	hooks, err := BuildHooks(config.Automation.Hooks)
 	if err != nil {
 		return nil, "", err
 	}

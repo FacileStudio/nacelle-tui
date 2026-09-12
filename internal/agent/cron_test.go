@@ -45,10 +45,10 @@ func TestApplyJobDefaultsToNoShell(t *testing.T) {
 
 func TestFindCronJob(t *testing.T) {
 	config := settings.Config{
-		Cron: []settings.CronJob{
+		Automation: settings.Automation{Cron: []settings.CronJob{
 			{Name: "one"},
 			{Name: "two"},
-		},
+		}},
 	}
 	if job, err := findCronJob(config, "two"); err != nil || job.Name != "two" {
 		t.Errorf("findCronJob(two) = %q, %v; want two, nil", job.Name, err)

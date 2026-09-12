@@ -19,13 +19,13 @@ func listCronJobs() error {
 		return err
 	}
 	if settings.DerefBool(config.JSON) {
-		return printCronJSON(config.Cron)
+		return printCronJSON(config.Automation.Cron)
 	}
-	if len(config.Cron) == 0 {
+	if len(config.Automation.Cron) == 0 {
 		fmt.Println("no cron jobs in " + settings.ConfigPath())
 		return nil
 	}
-	for _, job := range config.Cron {
+	for _, job := range config.Automation.Cron {
 		fmt.Printf("%-20s when=%-18s enabled=%t commands=%t workdir=%s delivery=%s\n",
 			job.Name, job.When, jobEnabled(job), jobCommands(job), job.Workdir, job.Delivery)
 	}
