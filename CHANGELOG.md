@@ -6,6 +6,8 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-09-12
+
 ### Added
 - Startup diagnostics note: when `tools.diagnostics` is on and a `filet.yml`
   (or `.filet.yml`) exists under the opened root, the launch transcript runs
