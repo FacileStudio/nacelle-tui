@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/FacileStudio/nacelle"
 )
 
 // The row shows the subagent's currently-running tool after the title's colon:
@@ -36,8 +38,31 @@ func TestParallelTaskRowShowsTheRunningTool(t *testing.T) {
 	if !strings.Contains(got, "$ run_command") {
 		t.Errorf("row = %q, want the tool glyph with its name", got)
 	}
-	if !strings.Contains(raw, "\x1b[35m$") {
-		t.Errorf("running tool glyph not coloured with its tool tone: %q", raw)
+	if !strings.Contains(raw, "\x1b[33m$") {
+		t.Errorf("running tool glyph not yellow while the call is in flight: %q", raw)
+	}
+	if !strings.Contains(raw, "\x1b[35m run_command") {
+		t.Errorf("tool name not in the tool's own tone: %q", raw)
+	}
+}
+
+// Between tool calls the row names the agent's own state: waiting before the
+// first tokens arrive, thinking once the model has streamed some.
+func TestTaskRowShowsThinkingAndWaitingBetweenTools(t *testing.T) {
+	m := sized()
+	m.parallelTasks = make(map[string][]parallelTaskInfo)
+	m.parallelTasks["t0"] = make([]parallelTaskInfo, 1)
+	m.parallelTasks["t0"][0] = parallelTaskInfo{Task: "one", Began: time.Now(), Active: true}
+
+	raw := m.taskRow(m.parallelTasks["t0"][0])
+	if !strings.Contains(raw, "waiting") {
+		t.Errorf("row = %q, want a waiting status before the first tokens", raw)
+	}
+
+	m.parallelTasks["t0"][0].Usage = nacelle.Usage{InputTokens: 10, OutputTokens: 5}
+	raw = m.taskRow(m.parallelTasks["t0"][0])
+	if strings.Contains(raw, "waiting") || !strings.Contains(raw, "thinking") {
+		t.Errorf("row = %q, want thinking once tokens have streamed", raw)
 	}
 }
 
@@ -86,6 +111,9 @@ func TestToolGlyphTurnsGreenOnSuccess(t *testing.T) {
 	raw := m.taskRow(m.parallelTasks["t0"][0])
 	if !strings.Contains(raw, "\x1b[32m☰") {
 		t.Errorf("succeeded tool glyph not green: %q", raw)
+	}
+	if !strings.Contains(raw, "\x1b[34m read_file") {
+		t.Errorf("tool name not in the tool's own tone after success: %q", raw)
 	}
 }
 

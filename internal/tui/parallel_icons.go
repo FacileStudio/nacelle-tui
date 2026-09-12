@@ -7,9 +7,9 @@ import (
 )
 
 // green, red and yellow are the three run-state colours a parallel task row's
-// marker and tool glyph share with the transcript: green for succeeded, red for
-// failed, and yellow while it is still running. The tool's own tone stands in
-// for yellow on the glyph while its call is in flight.
+// marker, tool glyph and activity label share with the transcript: green for
+// succeeded, red for failed, and yellow while still running. The tool's own
+// tone stays on the tool name in every state.
 var green = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 var red = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 var yellow = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
@@ -26,19 +26,28 @@ func (m *Model) parallelMarker(pt parallelTaskInfo) string {
 	return green.Render("✓")
 }
 
-// parallelGlyph renders the task's currently-running tool icon with its name,
-// coloured by the same run-state rules as the transcript: the tool's own tone
-// while it runs, green the moment its call succeeds, red when it fails. Empty
-// when the task is not running a tool.
+// parallelGlyph renders the task's current activity after the title. While the
+// task runs a tool, the tool's glyph carries the call's state — yellow while it
+// is in flight, green the moment it succeeds, red when it fails — and the tool
+// name keeps the tool's own tone either way. Between tool calls the row shows
+// the agent's instead: thinking once tokens have streamed, waiting before the
+// first one. Empty when the task is finished.
 func (m *Model) parallelGlyph(pt parallelTaskInfo) string {
-	if pt.Tool == "" {
+	if pt.Tool != "" {
+		icon := yellow
+		if pt.ToolOut == "ok" {
+			icon = green
+		} else if pt.ToolOut != "" {
+			icon = red
+		}
+		name := toolview.ToolTone(pt.Tool).Render(" " + pt.Tool)
+		return icon.Render(toolview.ToolGlyph(pt.Tool)) + name
+	}
+	if !pt.Active {
 		return ""
 	}
-	style := toolview.ToolTone(pt.Tool)
-	if pt.ToolOut == "ok" {
-		style = green
-	} else if pt.ToolOut != "" {
-		style = red
+	if pt.Usage.Total() > 0 {
+		return yellow.Render("✻") + " " + m.theme.Muted.Render("thinking")
 	}
-	return style.Render(toolview.ToolGlyph(pt.Tool) + " " + pt.Tool)
+	return yellow.Render("…") + " " + m.theme.Muted.Render("waiting")
 }
