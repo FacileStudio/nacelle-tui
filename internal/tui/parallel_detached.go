@@ -140,7 +140,13 @@ func (m *Model) applyDetached(tasks []parallelTaskInfo, r detachedResult) {
 // task's own spend joins the session total here; for a detached fan-out some of
 // it may already have been folded live, so only the residual over what was is
 // added — otherwise live updates and the authoritative figure double-count.
+// Like failDetached it only touches running tasks: a cancelled fan-out's
+// recordDetached call has already marked them, and a late or duplicate result
+// must not overwrite a finished task.
 func (m *Model) finishDetached(pt *parallelTaskInfo, r detachedResult) {
+	if !pt.Active {
+		return
+	}
 	if r.err != "" {
 		pt.Err = r.err
 	} else {

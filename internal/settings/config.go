@@ -220,7 +220,7 @@ func Settings(system string, flags Config) (Config, error) {
 		resolved := Defaults(system)
 		resolved.merge(FromEnv())
 		resolved.merge(flags)
-		return applyGatesFile(resolved, flags.GatesFile)
+		return resolveGates(resolved, flags.GatesFile)
 	}
 	if created, err := Scaffold(ConfigPath()); err != nil {
 		return Config{}, err
@@ -236,5 +236,5 @@ func Settings(system string, flags Config) (Config, error) {
 	resolved.merge(file)
 	resolved.merge(FromEnv())
 	resolved.merge(flags)
-	return applyGatesFile(resolved, flags.GatesFile)
+	return resolveGates(resolved, flags.GatesFile)
 }

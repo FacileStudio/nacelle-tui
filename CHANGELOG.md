@@ -6,6 +6,20 @@ while on `v0`, a breaking change bumps the minor.
 
 ## [Unreleased]
 
+## [0.52.0] - 2026-09-12
+
+### Added
+- Configurable gate chain: `gates:` in the settings (or a whole file via
+  `--gates-file`) runs project checks after every edit and on demand through
+  the diagnostics tool, with per-gate scope and timeout.
+- `security.deny_elevation` (on by default): run_command calls that try to
+  elevate privileges (sudo, su, doas, pkexec) are refused. Off switch in
+  settings or `NACELLE_DENY_ELEVATION`.
+- `/parallel cancel [batch]` stops live detached fan-outs; `parallel_cancel`
+  gives the model the same lever.
+- Parallel task rows show what each agent is doing between tool calls:
+  thinking, waiting, or the tool call's live state.
+
 ## [0.51.0] - 2026-09-12
 
 ### Added

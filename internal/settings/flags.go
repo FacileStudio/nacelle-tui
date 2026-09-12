@@ -3,6 +3,7 @@ package settings
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -144,17 +145,25 @@ func loadGatesFile(path string) ([]GateSpec, error) {
 	return parsed.Gates, nil
 }
 
-// applyGatesFile lets a named gates file replace the chain the lower layers
-// resolved: the flag carries a whole file of gates, so it speaks last.
-func applyGatesFile(resolved Config, path string) (Config, error) {
-	if path == "" {
-		return resolved, nil
+// resolveGates lets a named gates file replace the chain the lower layers
+// resolved, then validates whatever gates the config carries: the flag
+// carries a whole file of gates, so it speaks last.
+func resolveGates(resolved Config, path string) (Config, error) {
+	if path != "" {
+		gates, err := loadGatesFile(path)
+		if err != nil {
+			return Config{}, err
+		}
+		resolved.Automation.Gates = gates
 	}
-	gates, err := loadGatesFile(path)
-	if err != nil {
-		return Config{}, err
+	for _, g := range resolved.Automation.Gates {
+		if g.Name == "" || len(g.Command) == 0 {
+			return Config{}, &ParseError{Path: "gates", Err: errors.New("every gate needs a name and a command")}
+		}
+		if g.Scope != "" && g.Scope != "file" && g.Scope != "repo" {
+			return Config{}, &ParseError{Path: "gates", Err: fmt.Errorf("gate %q: unknown scope %q", g.Name, g.Scope)}
+		}
 	}
-	resolved.Automation.Gates = gates
 	return resolved, nil
 }
 
