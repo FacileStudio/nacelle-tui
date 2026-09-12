@@ -11,7 +11,7 @@ import (
 func TestHandlePastePreservesMultilineContent(t *testing.T) {
 	m := bareBanner()
 	m.prompt.InsertString("initial")
-	m.handlePaste(tea.PasteMsg{Content: "line1\nline2\nline3"})
+	m.promptRoute(tea.PasteMsg{Content: "line1\nline2\nline3"})
 	if got := m.prompt.Value(); got != "initialline1\nline2\nline3" {
 		t.Errorf("handlePaste = %q, want %q", got, "initialline1\nline2\nline3")
 	}
@@ -20,7 +20,7 @@ func TestHandlePastePreservesMultilineContent(t *testing.T) {
 // Windows line endings are normalized to Unix style before being inserted.
 func TestHandlePasteNormalizesWindowsLineEndings(t *testing.T) {
 	m := bareBanner()
-	m.handlePaste(tea.PasteMsg{Content: "line1\r\nline2"})
+	m.promptRoute(tea.PasteMsg{Content: "line1\r\nline2"})
 	if got := m.prompt.Value(); got != "line1\nline2" {
 		t.Errorf("handlePaste = %q, want %q", got, "line1\nline2")
 	}
@@ -29,7 +29,7 @@ func TestHandlePasteNormalizesWindowsLineEndings(t *testing.T) {
 // Old Mac line endings are normalized to Unix style before being inserted.
 func TestHandlePasteNormalizesMacLineEndings(t *testing.T) {
 	m := bareBanner()
-	m.handlePaste(tea.PasteMsg{Content: "line1\rline2"})
+	m.promptRoute(tea.PasteMsg{Content: "line1\rline2"})
 	if got := m.prompt.Value(); got != "line1\nline2" {
 		t.Errorf("handlePaste = %q, want %q", got, "line1\nline2")
 	}

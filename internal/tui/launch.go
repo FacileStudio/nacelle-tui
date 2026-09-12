@@ -20,6 +20,7 @@ func boot(m *Model, c UISession) {
 	m.delegate = c.DelegateConfig
 	m.mode = renderMode(c.Mode)
 	m.transparent = c.TransparentBlocks
+	m.diagLoop = c.Startup.Diagnostics
 	m.sink = usage.NewSink(c.Root, c.Model)
 	m.session = sessions.OpenSession(c.Backend, c.Model, c.Root)
 	herdr.SetSession(m.herdrClient, m.session.Path())

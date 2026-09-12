@@ -8,7 +8,7 @@ import (
 
 func TestAltEnterInsertsNewlineAfterPaste(t *testing.T) {
 	m := bareBanner()
-	m.handlePaste(tea.PasteMsg{Content: "pasted content"})
+	m.promptRoute(tea.PasteMsg{Content: "pasted content"})
 	if got := m.prompt.Value(); got != "pasted content" {
 		t.Fatalf("paste = %q, want %q", got, "pasted content")
 	}

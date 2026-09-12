@@ -62,6 +62,7 @@ type core struct {
 	resumePath  string
 	delegate    nacelle.Config
 	herdrClient *herdr.Client
+	diagLoop    bool
 }
 
 // transcript groups the conversation, unprinted lines, and transcript-size

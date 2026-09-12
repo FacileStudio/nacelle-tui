@@ -107,6 +107,7 @@ func sessionConfig(p preparedTools, found loaded, backend nacelle.Backend) tui.S
 			ContextPaths:  found.contextPaths,
 			ContextTokens: tokenEstimate(found.contextChars),
 			SystemTokens:  tokenEstimate(found.systemChars),
+			Diagnostics:   settings.DerefBool(p.config.Diagnostics),
 		},
 	}
 }

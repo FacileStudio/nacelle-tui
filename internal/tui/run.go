@@ -27,6 +27,9 @@ type LaunchContext struct {
 	ContextPaths  []string
 	ContextTokens int64
 	SystemTokens  int64
+	// Diagnostics is the tools.diagnostics toggle, carried here because the
+	// launch sweep it arms is one of the launch notes.
+	Diagnostics bool
 }
 
 // SessionConfig configures the runtime settings for an interactive session.

@@ -86,7 +86,7 @@ func (m *Model) Init() tea.Cmd {
 	} else if err != "" {
 		m.say(fromClient, err)
 	}
-	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchDetached(), watchUpdates())
+	return tea.Batch(tea.RequestBackgroundColor, watchDelegations(), watchTasks(), watchTitles(), watchDetached(), watchUpdates(), m.startupDiagnostics())
 }
 
 // Update routes each message to the one place that owns it, and hands whatever
@@ -154,8 +154,8 @@ func (m *Model) route(message tea.Msg) tea.Cmd {
 		return m.settleCompaction(message)
 	case compactFinished:
 		return m.finishCompaction()
-	case tea.PasteMsg:
-		return m.handlePaste(message)
+	case startupDiagnostics:
+		return m.recordStartupDiagnostics(message)
 	case tea.KeyboardEnhancementsMsg:
 		return nil
 	}
@@ -193,6 +193,11 @@ func (m *Model) finishCompaction() tea.Cmd {
 // tui transcript, so it can never read as up/down and drag the input's recall
 // history into view.
 func (m *Model) promptRoute(message tea.Msg) tea.Cmd {
+	if msg, ok := message.(tea.PasteMsg); ok {
+		msg.Content = strings.ReplaceAll(msg.Content, "\r\n", "\n")
+		msg.Content = strings.ReplaceAll(msg.Content, "\r", "\n")
+		message = msg
+	}
 	if msg, ok := message.(tea.MouseWheelMsg); ok {
 		return m.scrollWheel(msg)
 	}
@@ -200,11 +205,4 @@ func (m *Model) promptRoute(message tea.Msg) tea.Cmd {
 	m.prompt, cmd = m.prompt.Update(message)
 	m.refreshMenu()
 	return cmd
-}
-
-// handlePaste normalizes line endings and forwards pasted content to the prompt handler.
-func (m *Model) handlePaste(msg tea.PasteMsg) tea.Cmd {
-	msg.Content = strings.ReplaceAll(msg.Content, "\r\n", "\n")
-	msg.Content = strings.ReplaceAll(msg.Content, "\r", "\n")
-	return m.promptRoute(msg)
 }

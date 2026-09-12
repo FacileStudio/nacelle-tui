@@ -4,6 +4,15 @@ All notable changes to `nacelle-tui` are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow semver —
 while on `v0`, a breaking change bumps the minor.
 
+## [Unreleased]
+
+### Added
+- Startup diagnostics note: when `tools.diagnostics` is on and a `filet.yml`
+  (or `.filet.yml`) exists under the opened root, the launch transcript runs
+  one `filet check` over the root and prints the result under the banner —
+  the same compiler-style findings the post-edit loop injects, seen before
+  the first turn instead of after the first edit.
+
 ## [0.50.0] - 2026-09-12
 
 ### Added
