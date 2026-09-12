@@ -69,21 +69,13 @@ func (m *Model) margined(rows []string) []string {
 }
 
 // belowContent is everything rendered beneath the prompt: the running parallel
-// parallel_agents and the slash-command suggestions. They sit here together so none
-// fights for the same rows, and so the menu's own blank-line separator applies
-// to the whole block rather than doubling between them.
+// parallel_agents. The slash-command menu sits above the prompt instead, so it
+// never pushes this block further down the screen.
 func (m *Model) belowContent() string {
-	var below []string
-	if len(m.parallelTasks) > 0 {
-		below = append(below, strings.Join(m.margined([]string{m.parallelTasksView()}), "\n"))
-	}
-	if menu := m.viewMenu(); menu != "" {
-		below = append(below, menu)
-	}
-	if len(below) == 0 {
+	if len(m.parallelTasks) == 0 {
 		return ""
 	}
-	return strings.Join(below, "\n")
+	return strings.Join(m.margined([]string{m.parallelTasksView()}), "\n")
 }
 
 // reflowHold re-wraps the alternate-screen transcript for the new width. The

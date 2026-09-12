@@ -47,21 +47,27 @@ func (m *Model) assembleView() tea.View {
 // screen: the held transcript and live region tailed to whatever rows the screen
 // can spare, and the prompt pinned to the bottom with nothing beneath it and
 // one blank row above, so it reads as a fixed input bar the way vim keeps its
-// status line. There is no terminal scrollback to lean on inside an alternate
+// status line. The slash-command menu, when open, draws directly above the
+// prompt and claims rows from the transcript's tail — it renders above
+// everything else. There is no terminal scrollback to lean on inside an alternate
 // screen, so finished lines are held in m.hold and drawn back here; when the
 // transcript grows past the screen, the oldest rows scroll off rather than the
 // prompt moving. The prompt's own top row is where its text and cursor live, so
 // the cursor offset must land exactly there.
 func (m *Model) assembleTUI() tea.View {
 	prompt := m.prompt.View()
-	below := m.belowContent()
-	belowRows := 0
-	if below != "" {
-		belowRows = lipgloss.Height(below)
+	menu := m.viewMenu()
+	menuRows := 0
+	if menu != "" {
+		menuRows = lipgloss.Height(menu) + 1
 	}
-	avail := max(m.windowHeight-1-lipgloss.Height(prompt)-belowRows, 1)
-	parts := append(m.tuiUpper(avail), "", prompt)
-	if below != "" {
+	avail := max(m.windowHeight-1-lipgloss.Height(prompt)-menuRows, 1)
+	parts := append(m.tuiUpper(avail), "")
+	if menu != "" {
+		parts = append(parts, menu)
+	}
+	parts = append(parts, prompt)
+	if below := m.belowContent(); below != "" {
 		parts = append(parts, "", below)
 	}
 	body := strings.Join(parts, "\n")
@@ -71,7 +77,7 @@ func (m *Model) assembleTUI() tea.View {
 	view.AltScreen = true
 	view.MouseMode = tea.MouseModeCellMotion
 	if position := m.prompt.Cursor(); position != nil {
-		position.Y += avail + 1
+		position.Y += avail + 1 + menuRows
 		view.Cursor = position
 	}
 	return view
@@ -167,7 +173,7 @@ func (m *Model) scrollWheel(msg tea.MouseWheelMsg) tea.Cmd {
 
 // assembleInline is the scrollback render: everything already said lives in the
 // terminal's own history, and the view draws only the live region, the prompt,
-// and the menu beneath it. The prompt is separated from the content above and
+// and the menu above the prompt. The prompt is separated from the content above and
 // below by one blank row each, so it reads as its own band. aboveContent
 // already ends in a blank row when the menu is closed, so the separator is only
 // added when the content does not already breathe.
@@ -178,6 +184,9 @@ func (m *Model) assembleInline() tea.View {
 	if last := len(parts) - 1; last < 0 || parts[last] != "" {
 		parts = append(parts, "")
 	}
+	if menu := m.viewMenu(); menu != "" {
+		parts = append(parts, menu)
+	}
 	parts = append(parts, m.prompt.View())
 	if below := m.belowContent(); below != "" {
 		parts = append(parts, "", below)
@@ -186,8 +195,12 @@ func (m *Model) assembleInline() tea.View {
 	m.frameRows = lipgloss.Height(body)
 
 	view := tea.NewView(body)
+	menuRows := 0
+	if m.viewMenu() != "" {
+		menuRows = m.menu.Height()
+	}
 	if position := m.prompt.Cursor(); position != nil {
-		position.Y += aboveHeight + 1
+		position.Y += aboveHeight + 1 + menuRows
 		view.Cursor = position
 	}
 	return view
