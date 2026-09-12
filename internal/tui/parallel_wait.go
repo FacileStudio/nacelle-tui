@@ -1,6 +1,10 @@
 package tui
 
-import "github.com/FacileStudio/nacelle-tui/internal/sessions"
+import (
+	"strconv"
+
+	"github.com/FacileStudio/nacelle-tui/internal/sessions"
+)
 
 // relaxAfterDispatch ends the parent run once a model-callable parallel
 // fan-out has registered its batch. Detach already made the tool non-blocking;
@@ -25,7 +29,7 @@ func (m *Model) announceStart(n int) {
 	if n == 1 {
 		noun = "parallel agent"
 	}
-	msg := "✓ " + noun + " started"
+	msg := "✓ " + strconv.Itoa(n) + " " + noun + " started"
 	m.unprinted = append(m.unprinted, m.theme.Ready.Render(msg))
 	m.session.Line(sessions.Speaker(fromClient), msg)
 }
